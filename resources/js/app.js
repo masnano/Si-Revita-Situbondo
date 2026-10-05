@@ -20,3 +20,4 @@ window.printReport = () => {
 };
 
 Alpine.start();
+
