@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Si Revita Situbondo</title>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -24,18 +30,20 @@
                 Pemerintah Kabupaten Situbondo
             </div>
             
-            <div class="space-y-2">
-                <div class="flex items-center justify-center lg:justify-start gap-3">
-                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                        <i data-lucide="landmark" class="w-7 h-7 text-white"></i>
+            <div class="space-y-3">
+                <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+                    <img src="{{ asset('images/logo.png') }}" 
+                         alt="Logo Si-REVITA Situbondo" 
+                         class="w-20 h-20 sm:w-24 sm:h-24 object-contain rounded-2xl drop-shadow-2xl ring-2 ring-emerald-500/50 bg-slate-900/60 p-1">
+                    <div class="text-center sm:text-left">
+                        <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">
+                            Si Revita
+                        </h1>
+                        <p class="text-xs sm:text-sm font-semibold text-emerald-400 mt-0.5">
+                            Sistem Revitalisasi dan Pelaporan Keuangan Sekota Situbondo
+                        </p>
                     </div>
-                    <h1 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-                        Si Revita
-                    </h1>
                 </div>
-                <p class="text-sm font-semibold text-emerald-400">
-                    Sistem Revitalisasi dan Pelaporan Keuangan Sekota Situbondo
-                </p>
             </div>
 
             <p class="text-sm text-slate-300 leading-relaxed max-w-lg">
@@ -65,9 +73,14 @@
 
         <!-- Right Login Card -->
         <div class="lg:col-span-6 bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/60">
-            <div class="mb-6">
-                <h2 class="text-xl font-bold text-white">Masuk ke Sistem</h2>
-                <p class="text-xs text-slate-400 mt-1">Gunakan akun Anda atau pilih akun demo di bawah untuk mencoba langsung.</p>
+            <div class="mb-6 flex items-center gap-3 pb-4 border-b border-slate-800">
+                <img src="{{ asset('images/logo.png') }}" 
+                     alt="Logo Si-REVITA" 
+                     class="w-12 h-12 object-contain rounded-xl p-0.5 bg-slate-950 ring-1 ring-emerald-500/40 shrink-0">
+                <div>
+                    <h2 class="text-xl font-bold text-white tracking-tight">Masuk ke Sistem</h2>
+                    <p class="text-xs text-slate-400 mt-0.5">Sistem Revitalisasi Sekolah Situbondo</p>
+                </div>
             </div>
 
             @if($errors->any())

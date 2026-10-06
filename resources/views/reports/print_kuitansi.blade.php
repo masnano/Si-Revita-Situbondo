@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kuitansi {{ $transaction->transaction_number }} - Si Revita Situbondo</title>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
@@ -53,15 +59,19 @@
     <div class="max-w-3xl mx-auto bg-white border-2 border-slate-800 rounded-2xl p-8 sm:p-10 shadow-lg receipt-box">
         
         <!-- Header Kop -->
-        <div class="border-b-2 border-slate-900 pb-4 mb-6 text-center">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">Pemerintah Kabupaten Situbondo</h3>
-            <h2 class="text-sm font-black uppercase tracking-wider text-slate-900">Dinas Pendidikan dan Kebudayaan</h2>
-            <h1 class="text-base font-black uppercase tracking-wider text-teal-800 mt-0.5">
-                {{ $transaction->school->name }}
-            </h1>
-            <p class="text-[10px] text-slate-600">
-                {{ $transaction->school->address }} — NPSN: {{ $transaction->school->npsn }}
-            </p>
+        <div class="border-b-2 border-slate-900 pb-4 mb-6 flex items-center justify-between gap-4">
+            <img src="{{ asset('images/logo.png') }}" alt="Logo Si Revita Situbondo" class="w-16 h-16 object-contain shrink-0">
+            <div class="flex-1 text-center">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">Pemerintah Kabupaten Situbondo</h3>
+                <h2 class="text-sm font-black uppercase tracking-wider text-slate-900">Dinas Pendidikan dan Kebudayaan</h2>
+                <h1 class="text-base font-black uppercase tracking-wider text-teal-800 mt-0.5">
+                    {{ $transaction->school->name }}
+                </h1>
+                <p class="text-[10px] text-slate-600">
+                    {{ $transaction->school->address }} — NPSN: {{ $transaction->school->npsn }}
+                </p>
+            </div>
+            <div class="w-16 shrink-0 hidden sm:block"></div>
         </div>
 
         <!-- Receipt Header Details -->

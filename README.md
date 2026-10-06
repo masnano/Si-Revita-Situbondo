@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="public/images/logo.png" width="160" alt="Logo Si-REVITA Situbondo" style="border-radius: 20px; margin-bottom: 12px;" />
+
 # 🏛️ Si Revita Situbondo
 ### **Sistem Revitalisasi dan Pelaporan Keuangan Sekota Situbondo**
 *Platform Terpadu Akuntansi, Penatausahaan Kas, dan Pelaporan Dana Revitalisasi Sekolah*

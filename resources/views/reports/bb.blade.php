@@ -84,15 +84,19 @@
     <!-- Printable Official Report Sheet -->
     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-10 print-card">
         
-        <div class="border-b-2 border-slate-900 pb-4 mb-6 text-center">
-            <h3 class="text-base font-bold uppercase tracking-wider text-slate-800">Pemerintah Kabupaten Situbondo</h3>
-            <h2 class="text-lg font-black uppercase tracking-wider text-slate-900">Dinas Pendidikan dan Kebudayaan</h2>
-            <h1 class="text-xl font-black uppercase tracking-wider text-sky-800 mt-0.5">
-                {{ $selectedSchool->name ?? 'SEKOLAH KABUPATEN SITUBONDO' }}
-            </h1>
-            <p class="text-xs text-slate-600 mt-1">
-                {{ $selectedSchool->address ?? '' }}, Kec. {{ $selectedSchool->kecamatan ?? '' }}, Kab. Situbondo
-            </p>
+        <div class="border-b-2 border-slate-900 pb-4 mb-6 flex items-center justify-between gap-4">
+            <img src="{{ asset('images/logo.png') }}" alt="Logo Si Revita Situbondo" class="w-16 h-16 sm:w-20 sm:h-20 object-contain shrink-0">
+            <div class="flex-1 text-center">
+                <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-800">Pemerintah Kabupaten Situbondo</h3>
+                <h2 class="text-sm sm:text-base font-black uppercase tracking-wider text-slate-900">Dinas Pendidikan dan Kebudayaan</h2>
+                <h1 class="text-base sm:text-lg font-black uppercase tracking-wider text-sky-800 mt-0.5">
+                    {{ $selectedSchool->name ?? 'SEKOLAH KABUPATEN SITUBONDO' }}
+                </h1>
+                <p class="text-[11px] sm:text-xs text-slate-600 mt-0.5">
+                    {{ $selectedSchool->address ?? '' }}, Kec. {{ $selectedSchool->kecamatan ?? '' }}, Kab. Situbondo — NPSN: {{ $selectedSchool->npsn ?? '' }}
+                </p>
+            </div>
+            <div class="w-16 sm:w-20 shrink-0 hidden sm:block"></div>
         </div>
 
         <div class="text-center mb-6">

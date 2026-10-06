@@ -7,20 +7,25 @@
 
     <!-- Header & Action Toolbar -->
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
-        <div>
-            <div class="flex items-center gap-2 text-xs font-semibold text-emerald-600 mb-1">
-                <i data-lucide="book-open" class="w-4 h-4"></i>
-                <span>Petunjuk Operasional & Standar Pelaporan</span>
+        <div class="flex items-center gap-4">
+            <img src="{{ asset('images/logo.png') }}" 
+                 alt="Logo Si Revita Situbondo" 
+                 class="w-14 h-14 object-contain rounded-2xl p-1 bg-slate-50 ring-1 ring-emerald-500/30 shrink-0">
+            <div>
+                <div class="flex items-center gap-2 text-xs font-semibold text-emerald-600 mb-0.5">
+                    <i data-lucide="book-open" class="w-4 h-4"></i>
+                    <span>Petunjuk Operasional & Standar Pelaporan</span>
+                </div>
+                <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+                    <span>Buku Panduan Penggunaan (User Manual)</span>
+                    <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">
+                        Edisi Resmi 2026
+                    </span>
+                </h1>
+                <p class="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
+                    Dokumen komprehensif berisi panduan langkah demi langkah penggunaan aplikasi Si Revita Situbondo, mulai dari perumusan RAB, pembukuan kas/bank, pemotongan pajak otomatis, hingga penerbitan 4 buku perbendaharaan baku (BKU, BPK, BB, BP) dan kuitansi resmi.
+                </p>
             </div>
-            <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-                <span>Buku Panduan Penggunaan (User Manual)</span>
-                <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">
-                    Edisi Resmi 2026
-                </span>
-            </h1>
-            <p class="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
-                Dokumen komprehensif berisi panduan langkah demi langkah penggunaan aplikasi Si Revita Situbondo, mulai dari perumusan RAB, pembukuan kas/bank, pemotongan pajak otomatis, hingga penerbitan 4 buku perbendaharaan baku (BKU, BPK, BB, BP) dan kuitansi resmi.
-            </p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2.5 shrink-0">

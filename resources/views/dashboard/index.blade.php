@@ -7,17 +7,22 @@
 
     <!-- Top Greeting & School Filter Bar -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-        <div>
-            <div class="flex items-center gap-2 text-xs font-semibold text-emerald-600 mb-1">
-                <i data-lucide="sparkles" class="w-4 h-4"></i>
-                <span>Sistem Informasi Revitalisasi dan Pelaporan Keuangan</span>
+        <div class="flex items-center gap-4">
+            <img src="{{ asset('images/logo.png') }}" 
+                 alt="Logo Si Revita Situbondo" 
+                 class="w-14 h-14 object-contain rounded-2xl p-1 bg-slate-50 ring-1 ring-emerald-500/30 shrink-0">
+            <div>
+                <div class="flex items-center gap-2 text-xs font-semibold text-emerald-600 mb-0.5">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                    <span>Sistem Informasi Revitalisasi dan Pelaporan Keuangan</span>
+                </div>
+                <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                    Selamat Datang, {{ auth()->user()->name }}
+                </h1>
+                <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+                    Monitoring pelaksanaan revitalisasi dan pembukuan keuangan sekolah se-Kabupaten Situbondo TA 2026.
+                </p>
             </div>
-            <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-                Selamat Datang, {{ auth()->user()->name }}
-            </h1>
-            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
-                Monitoring pelaksanaan revitalisasi dan pembukuan keuangan sekolah se-Kabupaten Situbondo TA 2026.
-            </p>
         </div>
 
         <!-- School Filter (for Root or Global User) -->

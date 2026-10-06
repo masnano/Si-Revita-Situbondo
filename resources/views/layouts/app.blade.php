@@ -6,6 +6,12 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard') - Si Revita Situbondo</title>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+    
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -44,17 +50,19 @@
            class="fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 text-slate-200 flex flex-col transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 no-print border-r border-slate-800 shrink-0">
         
         <!-- App Branding -->
-        <div class="p-5 flex items-center gap-3 border-b border-slate-800/80 bg-slate-950/40">
-            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 shrink-0">
-                <i data-lucide="landmark" class="w-6 h-6"></i>
-            </div>
-            <div class="overflow-hidden">
-                <h1 class="text-base font-bold text-white tracking-tight flex items-center gap-1.5 truncate">
-                    Si Revita
-                    <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">Situbondo</span>
-                </h1>
-                <p class="text-xs text-slate-400 truncate">Pelaporan Revitalisasi Sekolah</p>
-            </div>
+        <div class="p-4 flex items-center gap-3 border-b border-slate-800/80 bg-slate-950/40">
+            <a href="{{ route('dashboard') }}" class="flex items-center gap-3 group">
+                <img src="{{ asset('images/logo.png') }}" 
+                     alt="Logo Si Revita Situbondo" 
+                     class="w-11 h-11 object-contain rounded-xl drop-shadow-md shrink-0 ring-1 ring-emerald-500/40 group-hover:scale-105 transition-transform bg-slate-900 p-0.5">
+                <div class="overflow-hidden">
+                    <h1 class="text-base font-bold text-white tracking-tight flex items-center gap-1.5 truncate">
+                        Si Revita
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">Situbondo</span>
+                    </h1>
+                    <p class="text-[11px] text-slate-400 truncate">Pelaporan Revitalisasi Sekolah</p>
+                </div>
+            </a>
         </div>
 
         <!-- Role Indicator Pill -->
@@ -264,11 +272,18 @@
                 <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100">
                     <i data-lucide="menu" class="w-5 h-5"></i>
                 </button>
-                <div class="hidden sm:block">
-                    <h2 class="text-sm font-bold text-slate-800">
-                        Pemerintah Kabupaten Situbondo
-                    </h2>
-                    <p class="text-xs text-slate-500">Dinas Pendidikan dan Kebudayaan — Bidang Sarana & Prasarana</p>
+                <div class="lg:hidden flex items-center gap-2">
+                    <img src="{{ asset('images/logo.png') }}" alt="Logo Si Revita" class="w-8 h-8 object-contain rounded-lg">
+                    <span class="text-sm font-extrabold text-slate-900 tracking-tight">Si Revita</span>
+                </div>
+                <div class="hidden sm:flex items-center gap-3">
+                    <img src="{{ asset('images/logo.png') }}" alt="Logo Si Revita" class="w-9 h-9 object-contain hidden md:block">
+                    <div>
+                        <h2 class="text-sm font-bold text-slate-800">
+                            Pemerintah Kabupaten Situbondo
+                        </h2>
+                        <p class="text-xs text-slate-500">Dinas Pendidikan dan Kebudayaan — Bidang Sarana & Prasarana</p>
+                    </div>
                 </div>
             </div>
 
