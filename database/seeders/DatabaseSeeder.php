@@ -41,6 +41,7 @@ class DatabaseSeeder extends Seeder
             'sekolah' => ['view', 'create', 'update', 'delete', 'export'],
             'proyek' => ['view', 'create', 'update', 'delete', 'export'],
             'rab' => ['view', 'create', 'update', 'delete', 'export', 'import'],
+            'rpd' => ['view', 'create', 'update', 'delete', 'export', 'post'],
             'transaksi' => ['view', 'create', 'update', 'delete', 'export', 'import'],
             'bku' => ['view', 'export', 'print'],
             'bpk' => ['view', 'export', 'print'],

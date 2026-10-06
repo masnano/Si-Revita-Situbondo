@@ -7,6 +7,7 @@ use App\Http\Controllers\GuideController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RolePermissionController;
+use App\Http\Controllers\RpdBreakdownController;
 use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\UserController;
@@ -58,6 +59,19 @@ Route::middleware('auth')->group(function () {
     Route::resource('schools', SchoolController::class);
     Route::resource('projects', ProjectController::class);
     Route::resource('rab', BudgetItemController::class)->only(['index', 'store', 'update', 'destroy']);
+
+    // 5. Modul Pecah Bahan RPD (Upload RPD & Generate Isian BKU)
+    Route::prefix('rpd')->name('rpd.')->group(function () {
+        Route::get('/', [RpdBreakdownController::class, 'index'])->name('index');
+        Route::get('/create', [RpdBreakdownController::class, 'create'])->name('create')->middleware('role:root,admin');
+        Route::post('/', [RpdBreakdownController::class, 'store'])->name('store')->middleware('role:root,admin');
+        Route::get('/template', [RpdBreakdownController::class, 'template'])->name('template');
+        Route::get('/{rpd}', [RpdBreakdownController::class, 'show'])->name('show');
+        Route::put('/items/{item}', [RpdBreakdownController::class, 'updateItem'])->name('items.update')->middleware('role:root,admin');
+        Route::post('/{rpd}/post-bku', [RpdBreakdownController::class, 'postToBku'])->name('post_bku')->middleware('role:root,admin');
+        Route::get('/{rpd}/export-bku', [RpdBreakdownController::class, 'exportBku'])->name('export_bku');
+        Route::delete('/{rpd}', [RpdBreakdownController::class, 'destroy'])->name('destroy')->middleware('role:root,admin');
+    });
 
     // 5. Modul Khusus Role ROOT (Kelola User, Role, & Permission Granular)
     Route::middleware('role:root')->group(function () {

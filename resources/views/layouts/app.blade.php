@@ -143,6 +143,16 @@
                         <i data-lucide="file-check" class="w-4 h-4 text-teal-400"></i>
                         <span>Kuitansi Pengeluaran</span>
                     </a>
+
+                    <a href="{{ route('rpd.index') }}" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all {{ request()->routeIs('rpd*') ? 'bg-emerald-600 text-white font-semibold shadow-md shadow-emerald-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                        <i data-lucide="layers" class="w-4 h-4 text-amber-400"></i>
+                        <div class="flex-1">
+                            <div class="leading-tight">Pecah Bahan RPD</div>
+                            <span class="text-[11px] text-amber-300 font-sans">Generator Isian BKU</span>
+                        </div>
+                        <span class="px-1.5 py-0.5 text-[9px] font-bold rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">BARU</span>
+                    </a>
                 </div>
             </div>
 

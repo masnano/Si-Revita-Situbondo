@@ -24,9 +24,10 @@
 - [Tentang Aplikasi](#-tentang-aplikasi)
 - [Fitur Utama](#-fitur-utama)
   - [1. Output 4 Buku Utama Keuangan](#1-output-4-buku-utama-keuangan-bku-bpk-bb-bp)
-  - [2. Laporan Realisasi Fisik & Anggaran](#2-laporan-realisasi-anggaran-rab-vs-realisasi)
-  - [3. Kuitansi & Bukti Pembayaran Resmi](#3-kuitansi-pengeluaran-siap-cetak)
-  - [4. Role & Permission Matrix Granular (Hak Akses Root)](#4-role--permission-management-granular)
+  - [2. Fitur Pintar Pecah Bahan RPD & Generator Isian BKU](#2-fitur-pintar-pecah-bahan-rpd--generator-isian-bku-baru-)
+  - [3. Laporan Realisasi Fisik & Anggaran](#3-laporan-realisasi-anggaran-rab-vs-realisasi)
+  - [4. Kuitansi & Bukti Pembayaran Resmi](#4-kuitansi-pengeluaran-siap-cetak)
+  - [5. Role & Permission Matrix Granular (Hak Akses Root)](#5-role--permission-management-granular)
 - [Teknologi yang Digunakan](#-teknologi-yang-digunakan)
 - [Prasyarat Sistem](#-prasyarat-sistem)
 - [Panduan Instalasi (Git Clone)](#-panduan-instalasi)
@@ -69,17 +70,36 @@ Semua dokumen siap diekspor ke **Excel / CSV** dan dicetak langsung dengan forma
   * Fitur aksi cepat **"Setor Pajak"** dengan modal interaktif untuk menginput Nomor NTPN (*Nomor Transaksi Penerimaan Negara*) dan tanggal setor.
   * Peringatan visual saldo pajak terutang secara *real-time*.
 
-### 2. Laporan Realisasi Anggaran (RAB vs Realisasi)
+### 2. Fitur Pintar Pecah Bahan RPD & Generator Isian BKU (BARU ⭐)
+* **Unggah Dokumen RPD Fleksibel:**
+  * Mendukung file Excel (`.xlsx`, `.xls`) dan teks Comma-Separated (`.csv`).
+  * Auto-deteksi kolom header (*Uraian Bahan, Volume, Satuan, Harga Satuan, Total Biaya, Tanggal Rencana, Nama Toko/Penerima*).
+* **Algoritma Otomasi Pecah Bahan:**
+  * Menguraikan dan mengklasifikasikan item secara cerdas ke dalam 4 kategori: **Bahan/Material Bangunan**, **Upah Tenaga Kerja/Tukang**, **Peralatan Kerja**, dan **Operasional/SPJ**.
+  * **Kalkulasi Pajak Otomatis (PMK / Aturan Revitalisasi Sekolah):**
+    * Belanja Barang/Bahan $\ge$ Rp 2.000.000 otomatis dihitung DPP, **PPN 11%**, dan **PPh Pasal 22 1,5%**.
+    * Belanja Upah Tenaga Kerja/Tukang di atas ambang batas otomatis dikenakan **PPh Pasal 21**.
+    * Belanja di bawah ambang batas dinyatakan bebas potongan pajak.
+  * **Pemetaan Saluran Kas Otomatis:**
+    * Transaksi $\le$ Rp 5.000.000 dipetakan ke **Buku Pembantu Kas Tunai (BPK)**.
+    * Transaksi $>$ Rp 5.000.000 dipetakan ke **Buku Pembantu Bank Jatim (BB)**.
+  * **Penyusunan Narasi Baku BKU:** Menyusun kalimat transaksi standar perbendaharaan daerah (contoh: *"Pembayaran belanja bahan Semen Gresik 50 Zak pada Toko Bangunan Berkah Situbondo untuk pekerjaan revitalisasi..."*).
+* **Review & Eksekusi Pembukuan:**
+  * Tabel interaktif kandidat isian BKU dengan filter kategori dan modal penyesuaian baris (*inline editing*).
+  * **1-Klik "Posting ke BKU":** Otomatis mendistribusikan seluruh pecahan bahan menjadi transaksi resmi di tabel transaksi, sehingga seketika muncul di **BKU, BPK, BB, BP, Laporan Realisasi, dan Kuitansi Cetak**.
+  * **Ekspor & Template:** Tersedia tombol unduh template RPD (Excel & CSV) dengan contoh material Situbondo, serta ekspor output pecahan bahan format BKU.
+
+### 3. Laporan Realisasi Anggaran (RAB vs Realisasi)
 * Komparasi Pagu Rencana Anggaran Biaya (RAB) per rincian pos (Material/Bahan, Upah Tenaga Kerja, Peralatan/Sewa, Honor & Operasional) terhadap realisasi riil belanja.
 * Perhitungan otomatis sisa pagu anggaran dan persentase (%) serapan dana per item dan total proyek.
 
-### 3. Kuitansi Pengeluaran Siap Cetak
+### 4. Kuitansi Pengeluaran Siap Cetak
 * Lembar kuitansi resmi pemerintah siap cetak (A4 Portrait).
 * **Terbilang Rupiah Otomatis** dalam Bahasa Indonesia (contoh: *"Delapan Belas Juta Lima Ratus Ribu Rupiah"*).
 * Rincian potongan pajak yang dipungut dan jumlah pembayaran bersih (*net amount*).
 * Kolom tanda tangan 3 pihak: **Yang Menerima Uang (Toko/Rekanan)**, **Bendahara Pengeluaran**, dan **Kepala Sekolah (Setuju Dibayar)**.
 
-### 4. Role & Permission Management Granular
+### 5. Role & Permission Management Granular
 Sistem hak akses bertingkat dengan kontrol matriks permission fleksibel yang dikendalikan oleh role **Root**:
 
 | Role | Deskripsi & Hak Akses |
