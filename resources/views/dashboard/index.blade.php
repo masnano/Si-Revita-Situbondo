@@ -142,6 +142,10 @@
                 </p>
             </div>
             <div class="flex items-center gap-2">
+                <a href="{{ route('panduan.index') }}" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-xs flex items-center gap-1.5 transition-all border border-slate-700">
+                    <i data-lucide="book-open" class="w-3.5 h-3.5 text-emerald-400"></i>
+                    <span>Buku Panduan (PDF)</span>
+                </a>
                 <a href="{{ route('reports.bku') }}" class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-emerald-500/20">
                     <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
                     Buka BKU Sekarang

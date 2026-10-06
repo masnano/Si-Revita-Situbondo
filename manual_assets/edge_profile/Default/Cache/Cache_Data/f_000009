@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="ngVPo6izSBJo8ZuRx5C2lBIUhAbTN5d5LGc3RZFZ">
+    <title>Paket Revitalisasi Sekolah - Si Revita Situbondo</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Icons (Lucide via CDN for instant crisp rendering) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Chart.js CDN for robust charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Tailwind & Vite Assets -->
+    <link rel="preload" as="style" href="/build/assets/app-de173af3.css" /><link rel="modulepreload" href="/build/assets/app-b717e231.js" /><link rel="stylesheet" href="/build/assets/app-de173af3.css" /><script type="module" src="/build/assets/app-b717e231.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+    </head>
+<body class="h-full flex overflow-hidden text-slate-800" x-data="{ sidebarOpen: false }">
+
+    <!-- Mobile Sidebar Backdrop -->
+    <div x-show="sidebarOpen" 
+         x-transition:enter="transition-opacity ease-linear duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition-opacity ease-linear duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @click="sidebarOpen = false" 
+         class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden no-print"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" 
+           class="fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 text-slate-200 flex flex-col transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 no-print border-r border-slate-800 shrink-0">
+        
+        <!-- App Branding -->
+        <div class="p-5 flex items-center gap-3 border-b border-slate-800/80 bg-slate-950/40">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 shrink-0">
+                <i data-lucide="landmark" class="w-6 h-6"></i>
+            </div>
+            <div class="overflow-hidden">
+                <h1 class="text-base font-bold text-white tracking-tight flex items-center gap-1.5 truncate">
+                    Si Revita
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">Situbondo</span>
+                </h1>
+                <p class="text-xs text-slate-400 truncate">Pelaporan Revitalisasi Sekolah</p>
+            </div>
+        </div>
+
+        <!-- Role Indicator Pill -->
+        <div class="px-5 py-3 bg-slate-800/40 border-b border-slate-800 text-xs flex items-center justify-between">
+            <span class="text-slate-400 font-medium">Hak Akses Anda:</span>
+                            <span class="px-2.5 py-1 rounded-md bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30 flex items-center gap-1">
+                    <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i> ROOT
+                </span>
+                    </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-1 overflow-y-auto px-3.5 py-4 space-y-6 text-sm">
+            <!-- Main Section -->
+            <div>
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400/90 mb-2">Utama</p>
+                <div class="space-y-1">
+                    <a href="http://sirevita.test/dashboard" 
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                        <span>Dashboard Eksekutif</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Core Reports (BKU, BPK, BB, BP) -->
+            <div>
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400/90 mb-2 flex items-center justify-between">
+                    <span>Output Laporan Keuangan</span>
+                    <span class="text-[10px] bg-slate-800 text-emerald-400 px-1.5 py-0.5 rounded font-mono">4 BUKU</span>
+                </p>
+                <div class="space-y-1">
+                    <a href="http://sirevita.test/laporan/bku" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="book-open-check" class="w-4 h-4 text-emerald-400"></i>
+                        <div class="flex-1">
+                            <div class="leading-tight">Buku Kas Umum</div>
+                            <span class="text-[11px] text-slate-400 font-mono">BKU</span>
+                        </div>
+                    </a>
+
+                    <a href="http://sirevita.test/laporan/bpk" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="wallet" class="w-4 h-4 text-amber-400"></i>
+                        <div class="flex-1">
+                            <div class="leading-tight">Buku Pembantu Kas</div>
+                            <span class="text-[11px] text-slate-400 font-mono">BPK (Kas Tunai)</span>
+                        </div>
+                    </a>
+
+                    <a href="http://sirevita.test/laporan/bb" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="building-2" class="w-4 h-4 text-sky-400"></i>
+                        <div class="flex-1">
+                            <div class="leading-tight">Buku Pembantu Bank</div>
+                            <span class="text-[11px] text-slate-400 font-mono">BB (Bank Jatim)</span>
+                        </div>
+                    </a>
+
+                    <a href="http://sirevita.test/laporan/bp" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="receipt-tax" class="w-4 h-4 text-rose-400"></i>
+                        <div class="flex-1">
+                            <div class="leading-tight">Buku Pembantu Pajak</div>
+                            <span class="text-[11px] text-slate-400 font-mono">BP (PPN & PPh)</span>
+                        </div>
+                    </a>
+
+                    <a href="http://sirevita.test/laporan/realisasi" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-400"></i>
+                        <span>Realisasi Anggaran & Fisik</span>
+                    </a>
+
+                    <a href="http://sirevita.test/laporan/kuitansi" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="file-check" class="w-4 h-4 text-teal-400"></i>
+                        <span>Kuitansi Pengeluaran</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Operations / Data Input -->
+                        <div>
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400/90 mb-2">Pencatatan Keuangan</p>
+                <div class="space-y-1">
+                    <a href="http://sirevita.test/transactions" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
+                        <span>Transaksi Kas & Bank</span>
+                    </a>
+
+                    <a href="http://sirevita.test/rab" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+                        <span>RAB & Pos Belanja</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Master Data -->
+            <div>
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400/90 mb-2">Data Master</p>
+                <div class="space-y-1">
+                    <a href="http://sirevita.test/schools" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="school" class="w-4 h-4"></i>
+                        <span>Sekolah Situbondo</span>
+                    </a>
+
+                    <a href="http://sirevita.test/projects" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all bg-emerald-600 text-white font-semibold shadow-md shadow-emerald-600/30">
+                        <i data-lucide="hard-hat" class="w-4 h-4"></i>
+                        <span>Paket Revitalisasi</span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Root Superadmin Control Section -->
+                        <div class="pt-2 border-t border-slate-800">
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-purple-400 mb-2 flex items-center gap-1.5">
+                    <i data-lucide="crown" class="w-3.5 h-3.5"></i>
+                    <span>Administrasi Root</span>
+                </p>
+                <div class="space-y-1">
+                    <a href="http://sirevita.test/users" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                        <span>Kelola Pengguna</span>
+                    </a>
+
+                    <a href="http://sirevita.test/roles" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="sliders" class="w-4 h-4"></i>
+                        <span>Role & Permission Matrix</span>
+                    </a>
+                </div>
+            </div>
+                    </nav>
+
+        <!-- User Profile Card in Sidebar Bottom -->
+        <div class="p-3.5 border-t border-slate-800 bg-slate-950/60">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center font-bold text-white text-xs shrink-0">
+                    SU
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-semibold text-white truncate">Super Administrator (Root)</p>
+                    <p class="text-[11px] text-slate-400 truncate">root@sirevita.situbondokab.go.id</p>
+                </div>
+                <form action="http://sirevita.test/logout" method="POST" class="shrink-0">
+                    <input type="hidden" name="_token" value="ngVPo6izSBJo8ZuRx5C2lBIUhAbTN5d5LGc3RZFZ" autocomplete="off">                    <button type="submit" title="Keluar dari Sistem" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-md transition-colors">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Container -->
+    <div class="flex-1 flex flex-col h-full overflow-hidden min-w-0">
+        
+        <!-- Top App Bar -->
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-20 shrink-0 no-print">
+            <div class="flex items-center gap-3">
+                <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+                <div class="hidden sm:block">
+                    <h2 class="text-sm font-bold text-slate-800">
+                        Pemerintah Kabupaten Situbondo
+                    </h2>
+                    <p class="text-xs text-slate-500">Dinas Pendidikan dan Kebudayaan — Bidang Sarana & Prasarana</p>
+                </div>
+            </div>
+
+            <!-- Header Quick Actions & Role Switcher -->
+            <div class="flex items-center gap-3">
+                <!-- Quick Demo Switcher -->
+                <div class="relative" x-data="{ openSwitcher: false }" @click.outside="openSwitcher = false">
+                    <button type="button" 
+                            @click="openSwitcher = !openSwitcher" 
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span class="hidden md:inline">Ubah Role:</span>
+                        <span class="font-bold text-slate-900">ROOT</span>
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+                    </button>
+
+                    <div x-cloak
+                         x-show="openSwitcher" 
+                         x-transition 
+                         class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs">
+                        <div class="px-3 py-1.5 border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase">
+                            Coba Akses Role Lain
+                        </div>
+                        <a href="http://sirevita.test/quick-login/root" class="flex items-center gap-2.5 px-3 py-2 text-slate-700 hover:bg-purple-50 hover:text-purple-700">
+                            <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                            <div>
+                                <div class="font-bold">Root (Superadmin)</div>
+                                <div class="text-[10px] text-slate-500">Semua fitur & kelola permission</div>
+                            </div>
+                        </a>
+                        <a href="http://sirevita.test/quick-login/admin" class="flex items-center gap-2.5 px-3 py-2 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <div>
+                                <div class="font-bold">Admin Revitalisasi</div>
+                                <div class="text-[10px] text-slate-500">Input transaksi & kelola RAB</div>
+                            </div>
+                        </a>
+                        <a href="http://sirevita.test/quick-login/user" class="flex items-center gap-2.5 px-3 py-2 text-slate-700 hover:bg-sky-50 hover:text-sky-700">
+                            <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+                            <div>
+                                <div class="font-bold">User (Viewer)</div>
+                                <div class="text-[10px] text-slate-500">Lihat & cetak output laporan</div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Print Page Button if relevant -->
+                <button onclick="window.print()" class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors">
+                    <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                    <span>Cetak Layar</span>
+                </button>
+
+                <!-- Logout Form -->
+                <form action="http://sirevita.test/logout" method="POST" class="inline">
+                    <input type="hidden" name="_token" value="ngVPo6izSBJo8ZuRx5C2lBIUhAbTN5d5LGc3RZFZ" autocomplete="off">                    <button type="submit" class="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Keluar">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
+                </form>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto bg-slate-50/70 p-4 sm:p-6 lg:p-8">
+            <!-- Flash Message Alerts -->
+            
+            
+            
+            <div class="space-y-6">
+
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+        <div>
+            <div class="flex items-center gap-2 text-xs font-semibold text-emerald-600 mb-1">
+                <i data-lucide="hard-hat" class="w-4 h-4"></i>
+                <span>Proyek Fisik & Sarpras</span>
+            </div>
+            <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">
+                Paket Revitalisasi Sekolah
+            </h1>
+            <p class="text-xs text-slate-500">Monitoring SPK, pagu kontrak bantuan, dan realisasi fisik vs perbendaharaan.</p>
+        </div>
+
+                <a href="http://sirevita.test/projects/create" 
+           class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Tambah Paket Proyek</span>
+        </a>
+            </div>
+
+    <!-- Projects List -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all p-6 space-y-4">
+            
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase bg-blue-100 text-blue-800">
+                        Pelaksanaan
+                    </span>
+                    <h3 class="font-bold text-base text-slate-900 mt-1.5">
+                        <a href="http://sirevita.test/projects/1" class="hover:text-emerald-600 transition-colors">
+                            Revitalisasi Gedung Ruang Kelas, Perpustakaan, dan Lab Komputer
+                        </a>
+                    </h3>
+                    <div class="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
+                        <i data-lucide="school" class="w-3.5 h-3.5 text-slate-400"></i>
+                        <span>SMP Negeri 1 Situbondo (TA 2026)</span>
+                    </div>
+                </div>
+
+                <div class="text-right">
+                    <span class="text-[11px] text-slate-400 font-semibold block uppercase">Nilai Pagu Kontrak</span>
+                    <span class="text-base font-extrabold text-slate-900 font-mono">Rp 850.000.000</span>
+                </div>
+            </div>
+
+            <!-- Double Progress Bar (Physical vs Financial) -->
+            <div class="space-y-3 p-3.5 bg-slate-50 rounded-xl border border-slate-100 text-xs">
+                <!-- Physical Progress -->
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-semibold text-slate-700 flex items-center gap-1.5">
+                            <i data-lucide="hammer" class="w-3.5 h-3.5 text-emerald-600"></i>
+                            Progres Fisik Lapangan:
+                        </span>
+                        <span class="font-bold font-mono text-emerald-600">68.50%</span>
+                    </div>
+                    <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div class="h-full bg-emerald-500 rounded-full" style="width: 68.50%"></div>
+                    </div>
+                </div>
+
+                <!-- Financial Progress -->
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-semibold text-slate-700 flex items-center gap-1.5">
+                            <i data-lucide="badge-dollar-sign" class="w-3.5 h-3.5 text-blue-600"></i>
+                            Serapan Keuangan:
+                        </span>
+                        <span class="font-bold font-mono text-blue-600">15.95%</span>
+                    </div>
+                    <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div class="h-full bg-blue-500 rounded-full" style="width: 15.95%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SPK & Timeline Metadata -->
+            <div class="grid grid-cols-2 gap-2 text-xs text-slate-600">
+                <div>
+                    <span class="text-[10px] text-slate-400 block uppercase font-medium">No. SPK / Penetapan</span>
+                    <span class="font-mono font-medium truncate block">027/451/431.201.2/2026</span>
+                </div>
+                <div>
+                    <span class="text-[10px] text-slate-400 block uppercase font-medium">Sumber Pembiayaan</span>
+                    <span class="truncate block">DAK Fisik Bidang Pendidikan SMP TA 2026</span>
+                </div>
+            </div>
+
+            <!-- Footer Action -->
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                <a href="http://sirevita.test/projects/1" class="font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+                    <span>Lihat Rincian & RAB</span>
+                    <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                </a>
+
+                <div class="flex items-center gap-1">
+                                        <a href="http://sirevita.test/projects/1/edit" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg">
+                        <i data-lucide="edit" class="w-4 h-4"></i>
+                    </a>
+                    
+                                        <form action="http://sirevita.test/projects/1" method="POST" onsubmit="return confirm('Hapus paket revitalisasi ini?')">
+                        <input type="hidden" name="_token" value="ngVPo6izSBJo8ZuRx5C2lBIUhAbTN5d5LGc3RZFZ" autocomplete="off">                        <input type="hidden" name="_method" value="DELETE">                        <button type="submit" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+                                    </div>
+            </div>
+
+        </div>
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all p-6 space-y-4">
+            
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase bg-blue-100 text-blue-800">
+                        Pelaksanaan
+                    </span>
+                    <h3 class="font-bold text-base text-slate-900 mt-1.5">
+                        <a href="http://sirevita.test/projects/2" class="hover:text-emerald-600 transition-colors">
+                            Rehabilitasi Ruang Kelas dan Pembangunan Sanitasi Sekolah Sehat
+                        </a>
+                    </h3>
+                    <div class="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
+                        <i data-lucide="school" class="w-3.5 h-3.5 text-slate-400"></i>
+                        <span>SD Negeri 1 Patokan (TA 2026)</span>
+                    </div>
+                </div>
+
+                <div class="text-right">
+                    <span class="text-[11px] text-slate-400 font-semibold block uppercase">Nilai Pagu Kontrak</span>
+                    <span class="text-base font-extrabold text-slate-900 font-mono">Rp 420.000.000</span>
+                </div>
+            </div>
+
+            <!-- Double Progress Bar (Physical vs Financial) -->
+            <div class="space-y-3 p-3.5 bg-slate-50 rounded-xl border border-slate-100 text-xs">
+                <!-- Physical Progress -->
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-semibold text-slate-700 flex items-center gap-1.5">
+                            <i data-lucide="hammer" class="w-3.5 h-3.5 text-emerald-600"></i>
+                            Progres Fisik Lapangan:
+                        </span>
+                        <span class="font-bold font-mono text-emerald-600">45.00%</span>
+                    </div>
+                    <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div class="h-full bg-emerald-500 rounded-full" style="width: 45.00%"></div>
+                    </div>
+                </div>
+
+                <!-- Financial Progress -->
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-semibold text-slate-700 flex items-center gap-1.5">
+                            <i data-lucide="badge-dollar-sign" class="w-3.5 h-3.5 text-blue-600"></i>
+                            Serapan Keuangan:
+                        </span>
+                        <span class="font-bold font-mono text-blue-600">0%</span>
+                    </div>
+                    <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div class="h-full bg-blue-500 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SPK & Timeline Metadata -->
+            <div class="grid grid-cols-2 gap-2 text-xs text-slate-600">
+                <div>
+                    <span class="text-[10px] text-slate-400 block uppercase font-medium">No. SPK / Penetapan</span>
+                    <span class="font-mono font-medium truncate block">027/212/431.201.1/2026</span>
+                </div>
+                <div>
+                    <span class="text-[10px] text-slate-400 block uppercase font-medium">Sumber Pembiayaan</span>
+                    <span class="truncate block">Bantuan Keuangan Revitalisasi Sekolah APBD Kab. Situbondo TA 2026</span>
+                </div>
+            </div>
+
+            <!-- Footer Action -->
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                <a href="http://sirevita.test/projects/2" class="font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+                    <span>Lihat Rincian & RAB</span>
+                    <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                </a>
+
+                <div class="flex items-center gap-1">
+                                        <a href="http://sirevita.test/projects/2/edit" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg">
+                        <i data-lucide="edit" class="w-4 h-4"></i>
+                    </a>
+                    
+                                        <form action="http://sirevita.test/projects/2" method="POST" onsubmit="return confirm('Hapus paket revitalisasi ini?')">
+                        <input type="hidden" name="_token" value="ngVPo6izSBJo8ZuRx5C2lBIUhAbTN5d5LGc3RZFZ" autocomplete="off">                        <input type="hidden" name="_method" value="DELETE">                        <button type="submit" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+                                    </div>
+            </div>
+
+        </div>
+            </div>
+
+</div>
+        </main>
+    </div>
+
+    <!-- Initialize Lucide Icons -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        });
+    </script>
+    </body>
+</html>
+

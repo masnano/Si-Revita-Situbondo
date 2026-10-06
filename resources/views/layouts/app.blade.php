@@ -21,6 +21,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
+        [x-cloak] { display: none !important; }
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
     </style>
     @stack('styles')
@@ -205,6 +206,23 @@
                 </div>
             </div>
             @endrole
+
+            <!-- Bantuan & Dokumen Panduan -->
+            <div class="pt-2 border-t border-slate-800">
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center justify-between">
+                    <span>Bantuan & Dokumen</span>
+                </p>
+                <div class="space-y-1">
+                    <a href="{{ route('panduan.index') }}" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all {{ request()->routeIs('panduan*') ? 'bg-emerald-600 text-white font-semibold shadow-md shadow-emerald-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                        <i data-lucide="book-open" class="w-4 h-4 text-emerald-400"></i>
+                        <div class="flex-1 flex items-center justify-between">
+                            <span>Buku Panduan</span>
+                            <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-bold border border-emerald-500/30">PDF</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
         </nav>
 
         <!-- User Profile Card in Sidebar Bottom -->
@@ -247,8 +265,9 @@
             <!-- Header Quick Actions & Role Switcher -->
             <div class="flex items-center gap-3">
                 <!-- Quick Demo Switcher -->
-                <div class="relative" x-data="{ openSwitcher: false }">
-                    <button @click="openSwitcher = !openSwitcher" 
+                <div class="relative" x-data="{ openSwitcher: false }" @click.outside="openSwitcher = false">
+                    <button type="button" 
+                            @click="openSwitcher = !openSwitcher" 
                             class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 transition-colors">
                         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                         <span class="hidden md:inline">Ubah Role:</span>
@@ -256,8 +275,8 @@
                         <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
                     </button>
 
-                    <div x-show="openSwitcher" 
-                         @click.away="openSwitcher = false" 
+                    <div x-cloak
+                         x-show="openSwitcher" 
                          x-transition 
                          class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs">
                         <div class="px-3 py-1.5 border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase">

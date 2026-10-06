@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="ngVPo6izSBJo8ZuRx5C2lBIUhAbTN5d5LGc3RZFZ">
+    <title>Catat Transaksi Keuangan Baru - Si Revita Situbondo</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Icons (Lucide via CDN for instant crisp rendering) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Chart.js CDN for robust charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Tailwind & Vite Assets -->
+    <link rel="preload" as="style" href="/build/assets/app-de173af3.css" /><link rel="modulepreload" href="/build/assets/app-b717e231.js" /><link rel="stylesheet" href="/build/assets/app-de173af3.css" /><script type="module" src="/build/assets/app-b717e231.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+    </head>
+<body class="h-full flex overflow-hidden text-slate-800" x-data="{ sidebarOpen: false }">
+
+    <!-- Mobile Sidebar Backdrop -->
+    <div x-show="sidebarOpen" 
+         x-transition:enter="transition-opacity ease-linear duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition-opacity ease-linear duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @click="sidebarOpen = false" 
+         class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden no-print"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" 
+           class="fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 text-slate-200 flex flex-col transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 no-print border-r border-slate-800 shrink-0">
+        
+        <!-- App Branding -->
+        <div class="p-5 flex items-center gap-3 border-b border-slate-800/80 bg-slate-950/40">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 shrink-0">
+                <i data-lucide="landmark" class="w-6 h-6"></i>
+            </div>
+            <div class="overflow-hidden">
+                <h1 class="text-base font-bold text-white tracking-tight flex items-center gap-1.5 truncate">
+                    Si Revita
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">Situbondo</span>
+                </h1>
+                <p class="text-xs text-slate-400 truncate">Pelaporan Revitalisasi Sekolah</p>
+            </div>
+        </div>
+
+        <!-- Role Indicator Pill -->
+        <div class="px-5 py-3 bg-slate-800/40 border-b border-slate-800 text-xs flex items-center justify-between">
+            <span class="text-slate-400 font-medium">Hak Akses Anda:</span>
+                            <span class="px-2.5 py-1 rounded-md bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30 flex items-center gap-1">
+                    <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i> ROOT
+                </span>
+                    </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-1 overflow-y-auto px-3.5 py-4 space-y-6 text-sm">
+            <!-- Main Section -->
+            <div>
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400/90 mb-2">Utama</p>
+                <div class="space-y-1">
+                    <a href="http://sirevita.test/dashboard" 
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                        <span>Dashboard Eksekutif</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Core Reports (BKU, BPK, BB, BP) -->
+            <div>
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400/90 mb-2 flex items-center justify-between">
+                    <span>Output Laporan Keuangan</span>
+                    <span class="text-[10px] bg-slate-800 text-emerald-400 px-1.5 py-0.5 rounded font-mono">4 BUKU</span>
+                </p>
+                <div class="space-y-1">
+                    <a href="http://sirevita.test/laporan/bku" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="book-open-check" class="w-4 h-4 text-emerald-400"></i>
+                        <div class="flex-1">
+                            <div class="leading-tight">Buku Kas Umum</div>
+                            <span class="text-[11px] text-slate-400 font-mono">BKU</span>
+                        </div>
+                    </a>
+
+                    <a href="http://sirevita.test/laporan/bpk" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="wallet" class="w-4 h-4 text-amber-400"></i>
+                        <div class="flex-1">
+                            <div class="leading-tight">Buku Pembantu Kas</div>
+                            <span class="text-[11px] text-slate-400 font-mono">BPK (Kas Tunai)</span>
+                        </div>
+                    </a>
+
+                    <a href="http://sirevita.test/laporan/bb" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="building-2" class="w-4 h-4 text-sky-400"></i>
+                        <div class="flex-1">
+                            <div class="leading-tight">Buku Pembantu Bank</div>
+                            <span class="text-[11px] text-slate-400 font-mono">BB (Bank Jatim)</span>
+                        </div>
+                    </a>
+
+                    <a href="http://sirevita.test/laporan/bp" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="receipt-tax" class="w-4 h-4 text-rose-400"></i>
+                        <div class="flex-1">
+                            <div class="leading-tight">Buku Pembantu Pajak</div>
+                            <span class="text-[11px] text-slate-400 font-mono">BP (PPN & PPh)</span>
+                        </div>
+                    </a>
+
+                    <a href="http://sirevita.test/laporan/realisasi" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-400"></i>
+                        <span>Realisasi Anggaran & Fisik</span>
+                    </a>
+
+                    <a href="http://sirevita.test/laporan/kuitansi" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="file-check" class="w-4 h-4 text-teal-400"></i>
+                        <span>Kuitansi Pengeluaran</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Operations / Data Input -->
+                        <div>
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400/90 mb-2">Pencatatan Keuangan</p>
+                <div class="space-y-1">
+                    <a href="http://sirevita.test/transactions" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all bg-emerald-600 text-white font-semibold shadow-md shadow-emerald-600/30">
+                        <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
+                        <span>Transaksi Kas & Bank</span>
+                    </a>
+
+                    <a href="http://sirevita.test/rab" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+                        <span>RAB & Pos Belanja</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Master Data -->
+            <div>
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400/90 mb-2">Data Master</p>
+                <div class="space-y-1">
+                    <a href="http://sirevita.test/schools" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="school" class="w-4 h-4"></i>
+                        <span>Sekolah Situbondo</span>
+                    </a>
+
+                    <a href="http://sirevita.test/projects" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="hard-hat" class="w-4 h-4"></i>
+                        <span>Paket Revitalisasi</span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Root Superadmin Control Section -->
+                        <div class="pt-2 border-t border-slate-800">
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-purple-400 mb-2 flex items-center gap-1.5">
+                    <i data-lucide="crown" class="w-3.5 h-3.5"></i>
+                    <span>Administrasi Root</span>
+                </p>
+                <div class="space-y-1">
+                    <a href="http://sirevita.test/users" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                        <span>Kelola Pengguna</span>
+                    </a>
+
+                    <a href="http://sirevita.test/roles" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="sliders" class="w-4 h-4"></i>
+                        <span>Role & Permission Matrix</span>
+                    </a>
+                </div>
+            </div>
+                    </nav>
+
+        <!-- User Profile Card in Sidebar Bottom -->
+        <div class="p-3.5 border-t border-slate-800 bg-slate-950/60">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center font-bold text-white text-xs shrink-0">
+                    SU
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-semibold text-white truncate">Super Administrator (Root)</p>
+                    <p class="text-[11px] text-slate-400 truncate">root@sirevita.situbondokab.go.id</p>
+                </div>
+                <form action="http://sirevita.test/logout" method="POST" class="shrink-0">
+                    <input type="hidden" name="_token" value="ngVPo6izSBJo8ZuRx5C2lBIUhAbTN5d5LGc3RZFZ" autocomplete="off">                    <button type="submit" title="Keluar dari Sistem" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-md transition-colors">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Container -->
+    <div class="flex-1 flex flex-col h-full overflow-hidden min-w-0">
+        
+        <!-- Top App Bar -->
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-20 shrink-0 no-print">
+            <div class="flex items-center gap-3">
+                <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+                <div class="hidden sm:block">
+                    <h2 class="text-sm font-bold text-slate-800">
+                        Pemerintah Kabupaten Situbondo
+                    </h2>
+                    <p class="text-xs text-slate-500">Dinas Pendidikan dan Kebudayaan — Bidang Sarana & Prasarana</p>
+                </div>
+            </div>
+
+            <!-- Header Quick Actions & Role Switcher -->
+            <div class="flex items-center gap-3">
+                <!-- Quick Demo Switcher -->
+                <div class="relative" x-data="{ openSwitcher: false }" @click.outside="openSwitcher = false">
+                    <button type="button" 
+                            @click="openSwitcher = !openSwitcher" 
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span class="hidden md:inline">Ubah Role:</span>
+                        <span class="font-bold text-slate-900">ROOT</span>
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+                    </button>
+
+                    <div x-cloak
+                         x-show="openSwitcher" 
+                         x-transition 
+                         class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs">
+                        <div class="px-3 py-1.5 border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase">
+                            Coba Akses Role Lain
+                        </div>
+                        <a href="http://sirevita.test/quick-login/root" class="flex items-center gap-2.5 px-3 py-2 text-slate-700 hover:bg-purple-50 hover:text-purple-700">
+                            <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                            <div>
+                                <div class="font-bold">Root (Superadmin)</div>
+                                <div class="text-[10px] text-slate-500">Semua fitur & kelola permission</div>
+                            </div>
+                        </a>
+                        <a href="http://sirevita.test/quick-login/admin" class="flex items-center gap-2.5 px-3 py-2 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <div>
+                                <div class="font-bold">Admin Revitalisasi</div>
+                                <div class="text-[10px] text-slate-500">Input transaksi & kelola RAB</div>
+                            </div>
+                        </a>
+                        <a href="http://sirevita.test/quick-login/user" class="flex items-center gap-2.5 px-3 py-2 text-slate-700 hover:bg-sky-50 hover:text-sky-700">
+                            <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+                            <div>
+                                <div class="font-bold">User (Viewer)</div>
+                                <div class="text-[10px] text-slate-500">Lihat & cetak output laporan</div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Print Page Button if relevant -->
+                <button onclick="window.print()" class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors">
+                    <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                    <span>Cetak Layar</span>
+                </button>
+
+                <!-- Logout Form -->
+                <form action="http://sirevita.test/logout" method="POST" class="inline">
+                    <input type="hidden" name="_token" value="ngVPo6izSBJo8ZuRx5C2lBIUhAbTN5d5LGc3RZFZ" autocomplete="off">                    <button type="submit" class="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Keluar">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
+                </form>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto bg-slate-50/70 p-4 sm:p-6 lg:p-8">
+            <!-- Flash Message Alerts -->
+            
+            
+            
+            <div class="max-w-4xl mx-auto space-y-6" x-data="transactionCalculator()">
+
+    <div class="flex items-center justify-between">
+        <div>
+            <a href="http://sirevita.test/transactions" class="text-xs font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-1 mb-1">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                <span>Kembali ke Daftar Transaksi</span>
+            </a>
+            <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">
+                Input Transaksi Keuangan Baru
+            </h1>
+        </div>
+    </div>
+
+    
+    <form action="http://sirevita.test/transactions" method="POST" enctype="multipart/form-data" class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-8 space-y-6">
+        <input type="hidden" name="_token" value="ngVPo6izSBJo8ZuRx5C2lBIUhAbTN5d5LGc3RZFZ" autocomplete="off">
+        <!-- School & Project -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Sekolah Penerima Revitalisasi *</label>
+                <select name="school_id" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-slate-50 focus:outline-none focus:border-emerald-500">
+                                            <option value="2" selected>
+                            SD Negeri 1 Patokan (SD)
+                        </option>
+                                            <option value="3" >
+                            SMK Negeri 1 Panji Situbondo (SMK)
+                        </option>
+                                            <option value="1" >
+                            SMP Negeri 1 Situbondo (SMP)
+                        </option>
+                                    </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Paket Revitalisasi Terkait *</label>
+                <select name="project_id" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-slate-50 focus:outline-none focus:border-emerald-500">
+                                            <option value="2">Rehabilitasi Ruang Kelas dan Pembangunan Sanitasi Sekolah Sehat</option>
+                                    </select>
+            </div>
+        </div>
+
+        <!-- Transaction Number & Date -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Nomor Bukti Transaksi / Kuitansi *</label>
+                <input type="text" name="transaction_number" required value="BKU-2026/010"
+                       class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-800 bg-slate-50 focus:outline-none focus:border-emerald-500">
+                <p class="text-[10px] text-slate-400 mt-0.5">Format baku: BKU-TAHUN/NOMOR</p>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Tanggal Transaksi *</label>
+                <input type="date" name="transaction_date" required value="2026-10-06"
+                       class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-emerald-500">
+            </div>
+        </div>
+
+        <!-- Type & Payment Method -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="sm:col-span-2">
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Jenis Mutasi Keuangan *</label>
+                <select name="type" required x-model="transactionType" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-slate-50 focus:outline-none focus:border-emerald-500">
+                    <option value="belanja_tunai">Belanja Tunai (Pengeluaran dari Kas Tunai Bendahara)</option>
+                    <option value="belanja_transfer">Belanja Transfer (Pengeluaran langsung dari Bank ke Toko)</option>
+                    <option value="tarik_tunai">Penarikan Tunai (Bank ke Kas Fisik Bendahara)</option>
+                    <option value="setor_tunai">Penyetoran Kas Tunai ke Bank</option>
+                    <option value="penerimaan_dana">Penerimaan Transfer Dana (Termin DAK/Bantuan masuk ke Bank)</option>
+                    <option value="bunga_bank">Bunga Rekening Bank / Jasa Giro</option>
+                    <option value="biaya_bank">Biaya Administrasi & Pajak Bunga Bank</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Metode Pembayaran *</label>
+                <select name="payment_method" required x-model="paymentMethod" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-slate-50 focus:outline-none focus:border-emerald-500">
+                    <option value="kas_tunai">Kas Tunai</option>
+                    <option value="bank_transfer">Transfer Bank (Bank Jatim)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Description & RAB Item -->
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Uraian Transaksi Belanja / Penerimaan *</label>
+                <textarea name="description" rows="2" required placeholder="Contoh: Pembayaran belanja semen gresik 100 sak untuk renovasi ruang kelas 1 dan 2..."
+                          class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-emerald-500"></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Kaitan Pos Rencana Anggaran (RAB)</label>
+                    <select name="budget_item_id" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-slate-50 focus:outline-none focus:border-emerald-500">
+                        <option value="">-- Tidak Terkait Item Khusus (Umum/Penerimaan) --</option>
+                                            </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Nama Toko / Rekanan / Penerima</label>
+                    <input type="text" name="recipient_name" placeholder="Contoh: UD. Berkah Jaya Bahan Bangunan" value=""
+                           class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-emerald-500">
+                </div>
+            </div>
+        </div>
+
+        <!-- Nominal Bruto -->
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <label class="block text-xs font-bold text-slate-800 mb-1">Nominal Transaksi Bruto (Rp) *</label>
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center font-bold text-slate-500 text-sm">Rp</span>
+                <input type="number" step="any" name="amount" required x-model.number="amount"
+                       placeholder="0"
+                       class="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl text-base font-mono font-bold text-slate-900 bg-white focus:outline-none focus:border-emerald-500">
+            </div>
+        </div>
+
+        <!-- SMART TAX CALCULATOR ACCORDION -->
+        <div class="border border-slate-200 rounded-2xl p-5 space-y-4 bg-white shadow-sm" x-show="transactionType.includes('belanja')">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="has_tax" name="has_tax" value="1" x-model="hasTax"
+                           class="rounded border-slate-300 text-rose-600 focus:ring-0 w-4 h-4">
+                    <label for="has_tax" class="text-xs font-bold text-slate-800 cursor-pointer flex items-center gap-1.5">
+                        <i data-lucide="receipt-tax" class="w-4 h-4 text-rose-600"></i>
+                        Ada Pemotongan Pajak pada Belanja Ini? (PPN / PPh)
+                    </label>
+                </div>
+                <span class="text-[11px] text-slate-500">Otomatis masuk ke Buku Pembantu Pajak (BP)</span>
+            </div>
+
+            <div x-show="hasTax" x-transition class="space-y-4 pt-2">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <!-- Quick Tax Presets -->
+                    <button type="button" @click="applyPpn()" class="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-left">
+                        <div class="font-bold text-rose-700">+ PPN 11%</div>
+                        <div class="text-[10px] text-slate-500">Belanja Barang > Rp 2 Juta</div>
+                    </button>
+                    <button type="button" @click="applyPph22()" class="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-left">
+                        <div class="font-bold text-rose-700">+ PPh 22 (1.5%)</div>
+                        <div class="text-[10px] text-slate-500">Pengadaan Material</div>
+                    </button>
+                    <button type="button" @click="applyPph21()" class="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-left">
+                        <div class="font-bold text-rose-700">+ PPh 21 (2.5% / 5%)</div>
+                        <div class="text-[10px] text-slate-500">Upah Tenaga Kerja</div>
+                    </button>
+                    <button type="button" @click="applyPph4_2()" class="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-left">
+                        <div class="font-bold text-rose-700">+ PPh 4(2) Final (2%)</div>
+                        <div class="text-[10px] text-slate-500">Jasa Pelaksana Konstruksi</div>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">PPN 11% (Rp)</label>
+                        <input type="number" step="any" name="tax_ppn" x-model.number="taxPpn" placeholder="0"
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono">
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">PPh 21 (Upah) (Rp)</label>
+                        <input type="number" step="any" name="tax_pph21" x-model.number="taxPph21" placeholder="0"
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono">
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">PPh 22 (Barang) (Rp)</label>
+                        <input type="number" step="any" name="tax_pph22" x-model.number="taxPph22" placeholder="0"
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono">
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">PPh 23 (Sewa Alat) (Rp)</label>
+                        <input type="number" step="any" name="tax_pph23" x-model.number="taxPph23" placeholder="0"
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono">
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">PPh 4(2) Final Konstruksi (Rp)</label>
+                        <input type="number" step="any" name="tax_pph4_2" x-model.number="taxPph4_2" placeholder="0"
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono">
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Keterangan Jenis Pajak</label>
+                        <input type="text" name="tax_type" placeholder="Contoh: PPN & PPh 22"
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs">
+                    </div>
+                </div>
+
+                <!-- Tax Summary Result Box -->
+                <div class="p-3.5 bg-rose-50 rounded-xl border border-rose-200 flex flex-wrap items-center justify-between text-xs">
+                    <div>
+                        <span class="text-rose-800 font-semibold">Total Pajak Dipungut:</span>
+                        <span class="font-bold font-mono text-sm text-rose-900 ml-1">Rp <span x-text="formatNumber(totalTax())"></span></span>
+                    </div>
+                    <div>
+                        <span class="text-slate-700 font-semibold">Nominal Bersih yang Dibayarkan:</span>
+                        <span class="font-bold font-mono text-sm text-emerald-800 ml-1">Rp <span x-text="formatNumber(netAmount())"></span></span>
+                    </div>
+                </div>
+
+                <!-- NTPN if already deposited -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Nomor NTPN (Jika sudah disetor ke Kas Negara)</label>
+                        <input type="text" name="tax_ntpn" placeholder="Kosongkan jika belum disetor"
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Tanggal Penyetoran Pajak</label>
+                        <input type="date" name="tax_payment_date"
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Receipt File & Notes -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Unggah Bukti Kuitansi / Faktur / Nota (Opsional)</label>
+                <input type="file" name="receipt_file" accept=".pdf,.jpg,.jpeg,.png"
+                       class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Catatan Tambahan</label>
+                <input type="text" name="notes" placeholder="Catatan internal transaksi..."
+                       class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-emerald-500">
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="pt-4 border-t border-slate-200 flex items-center justify-end gap-3">
+            <a href="http://sirevita.test/transactions" class="px-5 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                Batal
+            </a>
+            <button type="submit" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/25 transition-all">
+                Simpan & Bukukan Transaksi
+            </button>
+        </div>
+    </form>
+
+</div>
+
+<script>
+    function transactionCalculator() {
+        return {
+            transactionType: 'belanja_tunai',
+            paymentMethod: 'kas_tunai',
+            amount: 0,
+            hasTax: false,
+            taxPpn: 0,
+            taxPph21: 0,
+            taxPph22: 0,
+            taxPph23: 0,
+            taxPph4_2: 0,
+
+            totalTax() {
+                if (!this.hasTax) return 0;
+                return (this.taxPpn || 0) + (this.taxPph21 || 0) + (this.taxPph22 || 0) + (this.taxPph23 || 0) + (this.taxPph4_2 || 0);
+            },
+
+            netAmount() {
+                return Math.max(0, (this.amount || 0) - this.totalTax());
+            },
+
+            applyPpn() {
+                this.hasTax = true;
+                // PPN 11% dari DPP (11/111 * Nilai Bruto)
+                this.taxPpn = Math.round((11 / 111) * (this.amount || 0));
+            },
+
+            applyPph22() {
+                this.hasTax = true;
+                // PPh 22 1.5% dari DPP (100/111 * Nilai Bruto * 1.5%)
+                const dpp = (100 / 111) * (this.amount || 0);
+                this.taxPph22 = Math.round(dpp * 0.015);
+            },
+
+            applyPph21() {
+                this.hasTax = true;
+                // PPh 21 tarif 5% (atau 2.5% jika PTKP/non-NPWP disesuaikan)
+                this.taxPph21 = Math.round((this.amount || 0) * 0.025);
+            },
+
+            applyPph4_2() {
+                this.hasTax = true;
+                // PPh Final Jasa Konstruksi 2%
+                this.taxPph4_2 = Math.round((this.amount || 0) * 0.02);
+            },
+
+            formatNumber(num) {
+                return new Intl.NumberFormat('id-ID').format(num || 0);
+            }
+        };
+    }
+</script>
+        </main>
+    </div>
+
+    <!-- Initialize Lucide Icons -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        });
+    </script>
+    </body>
+</html>
+

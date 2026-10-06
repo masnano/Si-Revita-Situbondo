@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="ngVPo6izSBJo8ZuRx5C2lBIUhAbTN5d5LGc3RZFZ">
+    <title>Daftar Transaksi Keuangan - Si Revita Situbondo</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Icons (Lucide via CDN for instant crisp rendering) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Chart.js CDN for robust charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Tailwind & Vite Assets -->
+    <link rel="preload" as="style" href="/build/assets/app-de173af3.css" /><link rel="modulepreload" href="/build/assets/app-b717e231.js" /><link rel="stylesheet" href="/build/assets/app-de173af3.css" /><script type="module" src="/build/assets/app-b717e231.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+    </head>
+<body class="h-full flex overflow-hidden text-slate-800" x-data="{ sidebarOpen: false }">
+
+    <!-- Mobile Sidebar Backdrop -->
+    <div x-show="sidebarOpen" 
+         x-transition:enter="transition-opacity ease-linear duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition-opacity ease-linear duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @click="sidebarOpen = false" 
+         class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden no-print"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" 
+           class="fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 text-slate-200 flex flex-col transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 no-print border-r border-slate-800 shrink-0">
+        
+        <!-- App Branding -->
+        <div class="p-5 flex items-center gap-3 border-b border-slate-800/80 bg-slate-950/40">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 shrink-0">
+                <i data-lucide="landmark" class="w-6 h-6"></i>
+            </div>
+            <div class="overflow-hidden">
+                <h1 class="text-base font-bold text-white tracking-tight flex items-center gap-1.5 truncate">
+                    Si Revita
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">Situbondo</span>
+                </h1>
+                <p class="text-xs text-slate-400 truncate">Pelaporan Revitalisasi Sekolah</p>
+            </div>
+        </div>
+
+        <!-- Role Indicator Pill -->
+        <div class="px-5 py-3 bg-slate-800/40 border-b border-slate-800 text-xs flex items-center justify-between">
+            <span class="text-slate-400 font-medium">Hak Akses Anda:</span>
+                            <span class="px-2.5 py-1 rounded-md bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30 flex items-center gap-1">
+                    <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i> ROOT
+                </span>
+                    </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-1 overflow-y-auto px-3.5 py-4 space-y-6 text-sm">
+            <!-- Main Section -->
+            <div>
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400/90 mb-2">Utama</p>
+                <div class="space-y-1">
+                    <a href="http://sirevita.test/dashboard" 
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                        <span>Dashboard Eksekutif</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Core Reports (BKU, BPK, BB, BP) -->
+            <div>
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400/90 mb-2 flex items-center justify-between">
+                    <span>Output Laporan Keuangan</span>
+                    <span class="text-[10px] bg-slate-800 text-emerald-400 px-1.5 py-0.5 rounded font-mono">4 BUKU</span>
+                </p>
+                <div class="space-y-1">
+                    <a href="http://sirevita.test/laporan/bku" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="book-open-check" class="w-4 h-4 text-emerald-400"></i>
+                        <div class="flex-1">
+                            <div class="leading-tight">Buku Kas Umum</div>
+                            <span class="text-[11px] text-slate-400 font-mono">BKU</span>
+                        </div>
+                    </a>
+
+                    <a href="http://sirevita.test/laporan/bpk" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="wallet" class="w-4 h-4 text-amber-400"></i>
+                        <div class="flex-1">
+                            <div class="leading-tight">Buku Pembantu Kas</div>
+                            <span class="text-[11px] text-slate-400 font-mono">BPK (Kas Tunai)</span>
+                        </div>
+                    </a>
+
+                    <a href="http://sirevita.test/laporan/bb" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="building-2" class="w-4 h-4 text-sky-400"></i>
+                        <div class="flex-1">
+                            <div class="leading-tight">Buku Pembantu Bank</div>
+                            <span class="text-[11px] text-slate-400 font-mono">BB (Bank Jatim)</span>
+                        </div>
+                    </a>
+
+                    <a href="http://sirevita.test/laporan/bp" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="receipt-tax" class="w-4 h-4 text-rose-400"></i>
+                        <div class="flex-1">
+                            <div class="leading-tight">Buku Pembantu Pajak</div>
+                            <span class="text-[11px] text-slate-400 font-mono">BP (PPN & PPh)</span>
+                        </div>
+                    </a>
+
+                    <a href="http://sirevita.test/laporan/realisasi" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-400"></i>
+                        <span>Realisasi Anggaran & Fisik</span>
+                    </a>
+
+                    <a href="http://sirevita.test/laporan/kuitansi" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="file-check" class="w-4 h-4 text-teal-400"></i>
+                        <span>Kuitansi Pengeluaran</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Operations / Data Input -->
+                        <div>
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400/90 mb-2">Pencatatan Keuangan</p>
+                <div class="space-y-1">
+                    <a href="http://sirevita.test/transactions" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all bg-emerald-600 text-white font-semibold shadow-md shadow-emerald-600/30">
+                        <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
+                        <span>Transaksi Kas & Bank</span>
+                    </a>
+
+                    <a href="http://sirevita.test/rab" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+                        <span>RAB & Pos Belanja</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Master Data -->
+            <div>
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400/90 mb-2">Data Master</p>
+                <div class="space-y-1">
+                    <a href="http://sirevita.test/schools" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="school" class="w-4 h-4"></i>
+                        <span>Sekolah Situbondo</span>
+                    </a>
+
+                    <a href="http://sirevita.test/projects" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="hard-hat" class="w-4 h-4"></i>
+                        <span>Paket Revitalisasi</span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Root Superadmin Control Section -->
+                        <div class="pt-2 border-t border-slate-800">
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-purple-400 mb-2 flex items-center gap-1.5">
+                    <i data-lucide="crown" class="w-3.5 h-3.5"></i>
+                    <span>Administrasi Root</span>
+                </p>
+                <div class="space-y-1">
+                    <a href="http://sirevita.test/users" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                        <span>Kelola Pengguna</span>
+                    </a>
+
+                    <a href="http://sirevita.test/roles" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="sliders" class="w-4 h-4"></i>
+                        <span>Role & Permission Matrix</span>
+                    </a>
+                </div>
+            </div>
+                    </nav>
+
+        <!-- User Profile Card in Sidebar Bottom -->
+        <div class="p-3.5 border-t border-slate-800 bg-slate-950/60">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center font-bold text-white text-xs shrink-0">
+                    SU
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-semibold text-white truncate">Super Administrator (Root)</p>
+                    <p class="text-[11px] text-slate-400 truncate">root@sirevita.situbondokab.go.id</p>
+                </div>
+                <form action="http://sirevita.test/logout" method="POST" class="shrink-0">
+                    <input type="hidden" name="_token" value="ngVPo6izSBJo8ZuRx5C2lBIUhAbTN5d5LGc3RZFZ" autocomplete="off">                    <button type="submit" title="Keluar dari Sistem" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-md transition-colors">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Container -->
+    <div class="flex-1 flex flex-col h-full overflow-hidden min-w-0">
+        
+        <!-- Top App Bar -->
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-20 shrink-0 no-print">
+            <div class="flex items-center gap-3">
+                <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+                <div class="hidden sm:block">
+                    <h2 class="text-sm font-bold text-slate-800">
+                        Pemerintah Kabupaten Situbondo
+                    </h2>
+                    <p class="text-xs text-slate-500">Dinas Pendidikan dan Kebudayaan — Bidang Sarana & Prasarana</p>
+                </div>
+            </div>
+
+            <!-- Header Quick Actions & Role Switcher -->
+            <div class="flex items-center gap-3">
+                <!-- Quick Demo Switcher -->
+                <div class="relative" x-data="{ openSwitcher: false }" @click.outside="openSwitcher = false">
+                    <button type="button" 
+                            @click="openSwitcher = !openSwitcher" 
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span class="hidden md:inline">Ubah Role:</span>
+                        <span class="font-bold text-slate-900">ROOT</span>
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+                    </button>
+
+                    <div x-cloak
+                         x-show="openSwitcher" 
+                         x-transition 
+                         class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs">
+                        <div class="px-3 py-1.5 border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase">
+                            Coba Akses Role Lain
+                        </div>
+                        <a href="http://sirevita.test/quick-login/root" class="flex items-center gap-2.5 px-3 py-2 text-slate-700 hover:bg-purple-50 hover:text-purple-700">
+                            <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                            <div>
+                                <div class="font-bold">Root (Superadmin)</div>
+                                <div class="text-[10px] text-slate-500">Semua fitur & kelola permission</div>
+                            </div>
+                        </a>
+                        <a href="http://sirevita.test/quick-login/admin" class="flex items-center gap-2.5 px-3 py-2 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <div>
+                                <div class="font-bold">Admin Revitalisasi</div>
+                                <div class="text-[10px] text-slate-500">Input transaksi & kelola RAB</div>
+                            </div>
+                        </a>
+                        <a href="http://sirevita.test/quick-login/user" class="flex items-center gap-2.5 px-3 py-2 text-slate-700 hover:bg-sky-50 hover:text-sky-700">
+                            <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+                            <div>
+                                <div class="font-bold">User (Viewer)</div>
+                                <div class="text-[10px] text-slate-500">Lihat & cetak output laporan</div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Print Page Button if relevant -->
+                <button onclick="window.print()" class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors">
+                    <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                    <span>Cetak Layar</span>
+                </button>
+
+                <!-- Logout Form -->
+                <form action="http://sirevita.test/logout" method="POST" class="inline">
+                    <input type="hidden" name="_token" value="ngVPo6izSBJo8ZuRx5C2lBIUhAbTN5d5LGc3RZFZ" autocomplete="off">                    <button type="submit" class="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Keluar">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
+                </form>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto bg-slate-50/70 p-4 sm:p-6 lg:p-8">
+            <!-- Flash Message Alerts -->
+            
+            
+            
+            <div class="space-y-6">
+
+    <!-- Top Action & Filter Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+        <div>
+            <div class="flex items-center gap-2 text-xs font-semibold text-emerald-600 mb-1">
+                <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
+                <span>Buku Kas & Bank</span>
+            </div>
+            <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">
+                Pencatatan Transaksi Keuangan
+            </h1>
+            <p class="text-xs text-slate-500">Seluruh mutasi otomatis terhubung ke Buku Kas Umum (BKU), BPK, BB, dan Buku Pajak.</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+                        <a href="http://sirevita.test/transactions/create" 
+               class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                <span>Catat Transaksi Baru</span>
+            </a>
+                    </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <form action="http://sirevita.test/transactions" method="GET" class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex flex-wrap items-center gap-3 text-xs">
+                <div class="w-full sm:w-auto">
+            <select name="school_id" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 font-medium">
+                <option value="">-- Semua Sekolah --</option>
+                                    <option value="2" >
+                        SD Negeri 1 Patokan
+                    </option>
+                                    <option value="3" >
+                        SMK Negeri 1 Panji Situbondo
+                    </option>
+                                    <option value="1" >
+                        SMP Negeri 1 Situbondo
+                    </option>
+                            </select>
+        </div>
+        
+        <div class="w-full sm:w-auto">
+            <select name="type" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 font-medium">
+                <option value="">-- Semua Jenis Mutasi --</option>
+                <option value="penerimaan_dana" >Penerimaan Dana (Bank)</option>
+                <option value="tarik_tunai" >Penarikan Tunai Kas</option>
+                <option value="belanja_tunai" >Belanja Tunai (Kas)</option>
+                <option value="belanja_transfer" >Belanja Transfer (Bank)</option>
+                <option value="bunga_bank" >Bunga Bank</option>
+                <option value="biaya_bank" >Biaya Adm Bank</option>
+            </select>
+        </div>
+
+        <div class="w-full sm:w-auto">
+            <select name="tax_status" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 font-medium">
+                <option value="">-- Status Pajak --</option>
+                <option value="none" >Tanpa Pajak</option>
+                <option value="dipungut" >Dipungut (Belum Setor)</option>
+                <option value="disetor" >Sudah Disetor (NTPN)</option>
+            </select>
+        </div>
+
+        <div class="flex-1 min-w-[200px]">
+            <input type="text" name="search" value="" placeholder="Cari nomor bukti, toko, uraian, NTPN..."
+                   class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <button type="submit" class="px-4 py-2 bg-slate-800 text-white font-semibold rounded-lg hover:bg-slate-900 transition-colors">
+            Terapkan Filter
+        </button>
+        <a href="http://sirevita.test/transactions" class="px-3 py-2 text-slate-500 hover:text-slate-800 font-medium">
+            Reset
+        </a>
+    </form>
+
+    <!-- Transactions Table -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px]">
+                        <th class="py-3 px-3">Tanggal / No Bukti</th>
+                        <th class="py-3 px-3">Sekolah</th>
+                        <th class="py-3 px-4">Uraian Transaksi</th>
+                        <th class="py-3 px-3">Jenis & Metode</th>
+                        <th class="py-3 px-3 text-right">Nominal (Rp)</th>
+                        <th class="py-3 px-3 text-center">Status Pajak</th>
+                        <th class="py-3 px-3 text-center">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                                        <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <div class="font-bold text-slate-900">05/04/2026</div>
+                            <div class="text-[11px] font-mono text-slate-500">BKU-2026/008</div>
+                        </td>
+                        <td class="py-3 px-3 whitespace-nowrap font-medium text-slate-800">
+                            SMP Negeri 1 Situbondo
+                        </td>
+                        <td class="py-3 px-4 max-w-xs">
+                            <div class="font-semibold text-slate-800 truncate">Penerimaan Jasa Giro / Bunga Rekening Bank Jatim Cabang Situbondo bulan Maret 2026</div>
+                                                            <div class="text-[10px] text-slate-500 truncate">Kepada: Bank Jatim Cabang Situbondo</div>
+                                                    </td>
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <div class="font-medium text-slate-700">Bunga bank</div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono">
+                                Bank Transfer
+                            </span>
+                        </td>
+                        <td class="py-3 px-3 text-right whitespace-nowrap font-bold text-emerald-600">
+                            + Rp 425.000                        </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                                                            <span class="text-slate-400 text-[11px]">-</span>
+                                                    </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                            <div class="inline-flex items-center gap-1">
+                                
+                                                                <a href="http://sirevita.test/transactions/8/edit" title="Edit Transaksi"
+                                   class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md">
+                                    <i data-lucide="edit" class="w-4 h-4"></i>
+                                </a>
+                                
+                                                                <form action="http://sirevita.test/transactions/8" method="POST" class="inline"
+                                      onsubmit="return confirm('Hapus transaksi ini? Data di BKU/BPK/BB/BP akan ikut terhapus.')">
+                                    <input type="hidden" name="_token" value="ngVPo6izSBJo8ZuRx5C2lBIUhAbTN5d5LGc3RZFZ" autocomplete="off">                                    <input type="hidden" name="_method" value="DELETE">                                    <button type="submit" title="Hapus Transaksi" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-md">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </form>
+                                                            </div>
+                        </td>
+                    </tr>
+                                        <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <div class="font-bold text-slate-900">05/04/2026</div>
+                            <div class="text-[11px] font-mono text-slate-500">BKU-2026/009</div>
+                        </td>
+                        <td class="py-3 px-3 whitespace-nowrap font-medium text-slate-800">
+                            SMP Negeri 1 Situbondo
+                        </td>
+                        <td class="py-3 px-4 max-w-xs">
+                            <div class="font-semibold text-slate-800 truncate">Pemotongan Pajak Bunga Jasa Giro dan Biaya Administrasi Pengelolaan Rekening Koran Bank Jatim</div>
+                                                            <div class="text-[10px] text-slate-500 truncate">Kepada: Bank Jatim Cabang Situbondo</div>
+                                                    </td>
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <div class="font-medium text-slate-700">Biaya bank</div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono">
+                                Bank Transfer
+                            </span>
+                        </td>
+                        <td class="py-3 px-3 text-right whitespace-nowrap font-bold text-slate-900">
+                            - Rp 85.000                        </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                                                            <span class="text-slate-400 text-[11px]">-</span>
+                                                    </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                            <div class="inline-flex items-center gap-1">
+                                
+                                                                <a href="http://sirevita.test/transactions/9/edit" title="Edit Transaksi"
+                                   class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md">
+                                    <i data-lucide="edit" class="w-4 h-4"></i>
+                                </a>
+                                
+                                                                <form action="http://sirevita.test/transactions/9" method="POST" class="inline"
+                                      onsubmit="return confirm('Hapus transaksi ini? Data di BKU/BPK/BB/BP akan ikut terhapus.')">
+                                    <input type="hidden" name="_token" value="ngVPo6izSBJo8ZuRx5C2lBIUhAbTN5d5LGc3RZFZ" autocomplete="off">                                    <input type="hidden" name="_method" value="DELETE">                                    <button type="submit" title="Hapus Transaksi" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-md">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </form>
+                                                            </div>
+                        </td>
+                    </tr>
+                                        <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <div class="font-bold text-slate-900">02/04/2026</div>
+                            <div class="text-[11px] font-mono text-slate-500">BKU-2026/007</div>
+                        </td>
+                        <td class="py-3 px-3 whitespace-nowrap font-medium text-slate-800">
+                            SMP Negeri 1 Situbondo
+                        </td>
+                        <td class="py-3 px-4 max-w-xs">
+                            <div class="font-semibold text-slate-800 truncate">Pembayaran pembelian granit lantai 60x60 Roman dan cat tembok Dulux Weathershield ke Toko Mega Bangunan Situbondo</div>
+                                                            <div class="text-[10px] text-slate-500 truncate">Kepada: Toko Mega Bangunan Situbondo</div>
+                                                    </td>
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <div class="font-medium text-slate-700">Belanja transfer</div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono">
+                                Bank Transfer
+                            </span>
+                        </td>
+                        <td class="py-3 px-3 text-right whitespace-nowrap font-bold text-slate-900">
+                            - Rp 32.000.000                        </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                                                                                                <span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-bold text-[10px]">
+                                        Dipungut
+                                    </span>
+                                                                <div class="text-[9px] text-slate-500 font-mono mt-0.5">Rp 3.600.000</div>
+                                                    </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                            <div class="inline-flex items-center gap-1">
+                                                                <a href="http://sirevita.test/laporan/kuitansi/7/print" target="_blank" title="Cetak Kuitansi"
+                                   class="p-1.5 text-teal-600 hover:bg-teal-50 rounded-md">
+                                    <i data-lucide="printer" class="w-4 h-4"></i>
+                                </a>
+                                
+                                                                <a href="http://sirevita.test/transactions/7/edit" title="Edit Transaksi"
+                                   class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md">
+                                    <i data-lucide="edit" class="w-4 h-4"></i>
+                                </a>
+                                
+                                                                <form action="http://sirevita.test/transactions/7" method="POST" class="inline"
+                                      onsubmit="return confirm('Hapus transaksi ini? Data di BKU/BPK/BB/BP akan ikut terhapus.')">
+                                    <input type="hidden" name="_token" value="ngVPo6izSBJo8ZuRx5C2lBIUhAbTN5d5LGc3RZFZ" autocomplete="off">                                    <input type="hidden" name="_method" value="DELETE">                                    <button type="submit" title="Hapus Transaksi" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-md">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </form>
+                                                            </div>
+                        </td>
+                    </tr>
+                                        <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <div class="font-bold text-slate-900">27/03/2026</div>
+                            <div class="text-[11px] font-mono text-slate-500">BKU-2026/006</div>
+                        </td>
+                        <td class="py-3 px-3 whitespace-nowrap font-medium text-slate-800">
+                            SMP Negeri 1 Situbondo
+                        </td>
+                        <td class="py-3 px-4 max-w-xs">
+                            <div class="font-semibold text-slate-800 truncate">Pembayaran sewa molen mixer beton dan 40 set scaffolding perancah selama 1 bulan</div>
+                                                            <div class="text-[10px] text-slate-500 truncate">Kepada: Rental Alat Teknik Situbondo Mandiri</div>
+                                                    </td>
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <div class="font-medium text-slate-700">Belanja tunai</div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono">
+                                Tunai (Kas)
+                            </span>
+                        </td>
+                        <td class="py-3 px-3 text-right whitespace-nowrap font-bold text-slate-900">
+                            - Rp 5.000.000                        </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                                                                                                <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                                        Disetor
+                                    </span>
+                                                                <div class="text-[9px] text-slate-500 font-mono mt-0.5">Rp 100.000</div>
+                                                    </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                            <div class="inline-flex items-center gap-1">
+                                                                <a href="http://sirevita.test/laporan/kuitansi/6/print" target="_blank" title="Cetak Kuitansi"
+                                   class="p-1.5 text-teal-600 hover:bg-teal-50 rounded-md">
+                                    <i data-lucide="printer" class="w-4 h-4"></i>
+                                </a>
+                                
+                                                                <a href="http://sirevita.test/transactions/6/edit" title="Edit Transaksi"
+                                   class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md">
+                                    <i data-lucide="edit" class="w-4 h-4"></i>
+                                </a>
+                                
+                                                                <form action="http://sirevita.test/transactions/6" method="POST" class="inline"
+                                      onsubmit="return confirm('Hapus transaksi ini? Data di BKU/BPK/BB/BP akan ikut terhapus.')">
+                                    <input type="hidden" name="_token" value="ngVPo6izSBJo8ZuRx5C2lBIUhAbTN5d5LGc3RZFZ" autocomplete="off">                                    <input type="hidden" name="_method" value="DELETE">                                    <button type="submit" title="Hapus Transaksi" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-md">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </form>
+                                                            </div>
+                        </td>
+                    </tr>
+                                        <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <div class="font-bold text-slate-900">24/03/2026</div>
+                            <div class="text-[11px] font-mono text-slate-500">BKU-2026/005</div>
+                        </td>
+                        <td class="py-3 px-3 whitespace-nowrap font-medium text-slate-800">
+                            SMP Negeri 1 Situbondo
+                        </td>
+                        <td class="py-3 px-4 max-w-xs">
+                            <div class="font-semibold text-slate-800 truncate">Pembayaran upah tukang dan pekerja konstruksi revitalisasi Tahap I Minggu 1 &amp; 2</div>
+                                                            <div class="text-[10px] text-slate-500 truncate">Kepada: Mandor Slamet Riyadi &amp; Rekan</div>
+                                                    </td>
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <div class="font-medium text-slate-700">Belanja tunai</div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono">
+                                Tunai (Kas)
+                            </span>
+                        </td>
+                        <td class="py-3 px-3 text-right whitespace-nowrap font-bold text-slate-900">
+                            - Rp 15.000.000                        </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                                                                                                <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                                        Disetor
+                                    </span>
+                                                                <div class="text-[9px] text-slate-500 font-mono mt-0.5">Rp 375.000</div>
+                                                    </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                            <div class="inline-flex items-center gap-1">
+                                                                <a href="http://sirevita.test/laporan/kuitansi/5/print" target="_blank" title="Cetak Kuitansi"
+                                   class="p-1.5 text-teal-600 hover:bg-teal-50 rounded-md">
+                                    <i data-lucide="printer" class="w-4 h-4"></i>
+                                </a>
+                                
+                                                                <a href="http://sirevita.test/transactions/5/edit" title="Edit Transaksi"
+                                   class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md">
+                                    <i data-lucide="edit" class="w-4 h-4"></i>
+                                </a>
+                                
+                                                                <form action="http://sirevita.test/transactions/5" method="POST" class="inline"
+                                      onsubmit="return confirm('Hapus transaksi ini? Data di BKU/BPK/BB/BP akan ikut terhapus.')">
+                                    <input type="hidden" name="_token" value="ngVPo6izSBJo8ZuRx5C2lBIUhAbTN5d5LGc3RZFZ" autocomplete="off">                                    <input type="hidden" name="_method" value="DELETE">                                    <button type="submit" title="Hapus Transaksi" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-md">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </form>
+                                                            </div>
+                        </td>
+                    </tr>
+                                        <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <div class="font-bold text-slate-900">18/03/2026</div>
+                            <div class="text-[11px] font-mono text-slate-500">BKU-2026/004</div>
+                        </td>
+                        <td class="py-3 px-3 whitespace-nowrap font-medium text-slate-800">
+                            SMP Negeri 1 Situbondo
+                        </td>
+                        <td class="py-3 px-4 max-w-xs">
+                            <div class="font-semibold text-slate-800 truncate">Pembayaran material rangka baja ringan zincalume dan genteng metal pasir untuk atap 4 ruang kelas ke CV. Situbondo Baja Presisi</div>
+                                                            <div class="text-[10px] text-slate-500 truncate">Kepada: CV. Situbondo Baja Presisi</div>
+                                                    </td>
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <div class="font-medium text-slate-700">Belanja transfer</div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono">
+                                Bank Transfer
+                            </span>
+                        </td>
+                        <td class="py-3 px-3 text-right whitespace-nowrap font-bold text-slate-900">
+                            - Rp 65.000.000                        </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                                                                                                <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                                        Disetor
+                                    </span>
+                                                                <div class="text-[9px] text-slate-500 font-mono mt-0.5">Rp 7.319.819</div>
+                                                    </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                            <div class="inline-flex items-center gap-1">
+                                                                <a href="http://sirevita.test/laporan/kuitansi/4/print" target="_blank" title="Cetak Kuitansi"
+                                   class="p-1.5 text-teal-600 hover:bg-teal-50 rounded-md">
+                                    <i data-lucide="printer" class="w-4 h-4"></i>
+                                </a>
+                                
+                                                                <a href="http://sirevita.test/transactions/4/edit" title="Edit Transaksi"
+                                   class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md">
+                                    <i data-lucide="edit" class="w-4 h-4"></i>
+                                </a>
+                                
+                                                                <form action="http://sirevita.test/transactions/4" method="POST" class="inline"
+                                      onsubmit="return confirm('Hapus transaksi ini? Data di BKU/BPK/BB/BP akan ikut terhapus.')">
+                                    <input type="hidden" name="_token" value="ngVPo6izSBJo8ZuRx5C2lBIUhAbTN5d5LGc3RZFZ" autocomplete="off">                                    <input type="hidden" name="_method" value="DELETE">                                    <button type="submit" title="Hapus Transaksi" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-md">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </form>
+                                                            </div>
+                        </td>
+                    </tr>
+                                        <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <div class="font-bold text-slate-900">15/03/2026</div>
+                            <div class="text-[11px] font-mono text-slate-500">BKU-2026/003</div>
+                        </td>
+                        <td class="py-3 px-3 whitespace-nowrap font-medium text-slate-800">
+                            SMP Negeri 1 Situbondo
+                        </td>
+                        <td class="py-3 px-4 max-w-xs">
+                            <div class="font-semibold text-slate-800 truncate">Pembayaran belanja material Semen Gresik 150 sak dan Pasir Lumajang 4 truk ke UD. Berkah Jaya Bahan Bangunan Situbondo</div>
+                                                            <div class="text-[10px] text-slate-500 truncate">Kepada: UD. Berkah Jaya Bangunan (H. Subagyo)</div>
+                                                    </td>
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <div class="font-medium text-slate-700">Belanja tunai</div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono">
+                                Tunai (Kas)
+                            </span>
+                        </td>
+                        <td class="py-3 px-3 text-right whitespace-nowrap font-bold text-slate-900">
+                            - Rp 18.500.000                        </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                                                                                                <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                                        Disetor
+                                    </span>
+                                                                <div class="text-[9px] text-slate-500 font-mono mt-0.5">Rp 2.083.333</div>
+                                                    </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                            <div class="inline-flex items-center gap-1">
+                                                                <a href="http://sirevita.test/laporan/kuitansi/3/print" target="_blank" title="Cetak Kuitansi"
+                                   class="p-1.5 text-teal-600 hover:bg-teal-50 rounded-md">
+                                    <i data-lucide="printer" class="w-4 h-4"></i>
+                                </a>
+                                
+                                                                <a href="http://sirevita.test/transactions/3/edit" title="Edit Transaksi"
+                                   class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md">
+                                    <i data-lucide="edit" class="w-4 h-4"></i>
+                                </a>
+                                
+                                                                <form action="http://sirevita.test/transactions/3" method="POST" class="inline"
+                                      onsubmit="return confirm('Hapus transaksi ini? Data di BKU/BPK/BB/BP akan ikut terhapus.')">
+                                    <input type="hidden" name="_token" value="ngVPo6izSBJo8ZuRx5C2lBIUhAbTN5d5LGc3RZFZ" autocomplete="off">                                    <input type="hidden" name="_method" value="DELETE">                                    <button type="submit" title="Hapus Transaksi" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-md">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </form>
+                                                            </div>
+                        </td>
+                    </tr>
+                                        <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <div class="font-bold text-slate-900">12/03/2026</div>
+                            <div class="text-[11px] font-mono text-slate-500">BKU-2026/002</div>
+                        </td>
+                        <td class="py-3 px-3 whitespace-nowrap font-medium text-slate-800">
+                            SMP Negeri 1 Situbondo
+                        </td>
+                        <td class="py-3 px-4 max-w-xs">
+                            <div class="font-semibold text-slate-800 truncate">Penarikan tunai dari Bank Jatim Cabang Situbondo untuk pengisian Kas Tunai Bendahara kegiatan revitalisasi</div>
+                                                            <div class="text-[10px] text-slate-500 truncate">Kepada: Bendahara Revitalisasi (Siti Nur Aisyah, S.E.)</div>
+                                                    </td>
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <div class="font-medium text-slate-700">Tarik tunai</div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono">
+                                Tunai (Kas)
+                            </span>
+                        </td>
+                        <td class="py-3 px-3 text-right whitespace-nowrap font-bold text-slate-900">
+                            - Rp 60.000.000                        </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                                                            <span class="text-slate-400 text-[11px]">-</span>
+                                                    </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                            <div class="inline-flex items-center gap-1">
+                                
+                                                                <a href="http://sirevita.test/transactions/2/edit" title="Edit Transaksi"
+                                   class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md">
+                                    <i data-lucide="edit" class="w-4 h-4"></i>
+                                </a>
+                                
+                                                                <form action="http://sirevita.test/transactions/2" method="POST" class="inline"
+                                      onsubmit="return confirm('Hapus transaksi ini? Data di BKU/BPK/BB/BP akan ikut terhapus.')">
+                                    <input type="hidden" name="_token" value="ngVPo6izSBJo8ZuRx5C2lBIUhAbTN5d5LGc3RZFZ" autocomplete="off">                                    <input type="hidden" name="_method" value="DELETE">                                    <button type="submit" title="Hapus Transaksi" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-md">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </form>
+                                                            </div>
+                        </td>
+                    </tr>
+                                        <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <div class="font-bold text-slate-900">10/03/2026</div>
+                            <div class="text-[11px] font-mono text-slate-500">BKU-2026/001</div>
+                        </td>
+                        <td class="py-3 px-3 whitespace-nowrap font-medium text-slate-800">
+                            SMP Negeri 1 Situbondo
+                        </td>
+                        <td class="py-3 px-4 max-w-xs">
+                            <div class="font-semibold text-slate-800 truncate">Penerimaan Penyaluran Dana Alokasi Khusus (DAK) Fisik Bidang Pendidikan Termin I (40%) dari Kasda Pemkab Situbondo ke Rekening Sekolah</div>
+                                                            <div class="text-[10px] text-slate-500 truncate">Kepada: Pemerintah Kabupaten Situbondo / BPPKAD</div>
+                                                    </td>
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <div class="font-medium text-slate-700">Penerimaan dana</div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono">
+                                Bank Transfer
+                            </span>
+                        </td>
+                        <td class="py-3 px-3 text-right whitespace-nowrap font-bold text-emerald-600">
+                            + Rp 340.000.000                        </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                                                            <span class="text-slate-400 text-[11px]">-</span>
+                                                    </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                            <div class="inline-flex items-center gap-1">
+                                
+                                                                <a href="http://sirevita.test/transactions/1/edit" title="Edit Transaksi"
+                                   class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md">
+                                    <i data-lucide="edit" class="w-4 h-4"></i>
+                                </a>
+                                
+                                                                <form action="http://sirevita.test/transactions/1" method="POST" class="inline"
+                                      onsubmit="return confirm('Hapus transaksi ini? Data di BKU/BPK/BB/BP akan ikut terhapus.')">
+                                    <input type="hidden" name="_token" value="ngVPo6izSBJo8ZuRx5C2lBIUhAbTN5d5LGc3RZFZ" autocomplete="off">                                    <input type="hidden" name="_method" value="DELETE">                                    <button type="submit" title="Hapus Transaksi" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-md">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </form>
+                                                            </div>
+                        </td>
+                    </tr>
+                                    </tbody>
+            </table>
+        </div>
+
+            </div>
+
+</div>
+        </main>
+    </div>
+
+    <!-- Initialize Lucide Icons -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        });
+    </script>
+    </body>
+</html>
+

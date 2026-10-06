@@ -1,0 +1,513 @@
+[2026-10-06T02:46:15.807Z] [INFO] ========================================================================================================================
+[2026-10-06T02:46:15.807Z] [INFO] Initializing MAM Client.
+App: com.microsoft.edge 154.0.4258.62
+SDK: 2.1.367.0
+OS: windows 10.0.26200.9550
+DeviceType: Desktop
+Manufacturer: Micro-Star International Co., Ltd.
+Model: MS-7D82
+Telemetry: yes
+Managed device support: enabled
+[2026-10-06T02:46:15.807Z] [INFO] Telemetry session 12e73b06-639f-4772-8602-00b687e06c5d.
+[2026-10-06T02:46:15.808Z] [INFO] Initializing cache (v1).
+[2026-10-06T02:46:15.812Z] [INFO] Registered UserID:4de5e253-6c31-45e6-8e82-795514888bbd in the Azure public cloud.
+[2026-10-06T02:46:15.812Z] [INFO] Conditional Access is blocked for UserID:4de5e253-6c31-45e6-8e82-795514888bbd pre-enrollment; compliance reporting will be accelerated to unblock the user.
+[2026-10-06T02:46:15.812Z] [INFO] Queuing pre-enrollment policy assignment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd to run as soon as possible.
+[2026-10-06T02:46:15.812Z] [INFO] Scheduler background thread starting for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:46:17.171Z] [INFO] Resolved MAM Location Service address "https://mamservice.manage.microsoft.com/api/Locations" for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:46:17.335Z] [ERROR] MAM Location Service request for UserID:4de5e253-6c31-45e6-8e82-795514888bbd failed with a status (404) indicating the tenant has not completed onboarding, or the user is not licensed for Intune. (client-request-id:bdfb42d8-f22e-4314-a43a-72d56bd35139)
+[2026-10-06T02:46:17.418Z] [ERROR] Unable to retrieve or validate the MAM Service address during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd; the operation will be reattempted at a later time.
+[2026-10-06T02:46:17.418Z] [INFO] Queuing pre-enrollment policy assignment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd to run at 2026-10-07T02:46:18.335Z.
+[2026-10-06T02:46:24.034Z] [INFO] Shutting down.
+[2026-10-06T02:46:24.034Z] [INFO] Stopping the task scheduler and canceling any outstanding work items...
+[2026-10-06T02:46:24.034Z] [INFO] Scheduler background thread for UserID:4de5e253-6c31-45e6-8e82-795514888bbd is exiting after completing the last task.
+[2026-10-06T02:46:24.035Z] [INFO] Task scheduler has stopped, and all work has been canceled.
+[2026-10-06T02:46:52.433Z] [INFO] ========================================================================================================================
+[2026-10-06T02:46:52.433Z] [INFO] Initializing MAM Client.
+App: com.microsoft.edge 154.0.4258.62
+SDK: 2.1.367.0
+OS: windows 10.0.26200.9550
+DeviceType: Desktop
+Manufacturer: Micro-Star International Co., Ltd.
+Model: MS-7D82
+Telemetry: yes
+Managed device support: enabled
+[2026-10-06T02:46:52.433Z] [INFO] Telemetry session e96566f8-ca06-46da-a951-e9f86d2c6d72.
+[2026-10-06T02:46:52.434Z] [INFO] Restored UserID:4de5e253-6c31-45e6-8e82-795514888bbd
+Azure public cloud
+[2026-10-06T02:46:52.434Z] [INFO] Reinitialized cache (v1).
+[2026-10-06T02:46:52.434Z] [INFO] Scheduler background thread starting for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:46:52.434Z] [INFO] Re-queuing pre-enrollment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:46:52.434Z] [INFO] Queuing pre-enrollment policy assignment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd to run as soon as possible.
+[2026-10-06T02:46:52.435Z] [ERROR] The application could not supply an access token on request for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+Reason: 0
+User not found: token fetch aborted.
+[2026-10-06T02:46:52.435Z] [WARNING] Unable to acquire an access token during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:46:52.435Z] [ERROR] An unexpected error occurred during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd; the operation will be reattempted after a brief delay on local conditions.
+[2026-10-06T02:46:53.409Z] [INFO] Shutting down.
+[2026-10-06T02:46:53.409Z] [INFO] Stopping the task scheduler and canceling any outstanding work items...
+[2026-10-06T02:46:53.409Z] [INFO] The check for MAM policy assignment reattempt for UserID:4de5e253-6c31-45e6-8e82-795514888bbd needs to be postponed due to application shutdown.
+[2026-10-06T02:46:53.409Z] [INFO] Scheduler background thread for UserID:4de5e253-6c31-45e6-8e82-795514888bbd is exiting after completing the last task.
+[2026-10-06T02:46:53.409Z] [INFO] Task scheduler has stopped, and all work has been canceled.
+[2026-10-06T02:46:56.281Z] [INFO] ========================================================================================================================
+[2026-10-06T02:46:56.281Z] [INFO] Initializing MAM Client.
+App: com.microsoft.edge 154.0.4258.62
+SDK: 2.1.367.0
+OS: windows 10.0.26200.9550
+DeviceType: Desktop
+Manufacturer: Micro-Star International Co., Ltd.
+Model: MS-7D82
+Telemetry: yes
+Managed device support: enabled
+[2026-10-06T02:46:56.281Z] [INFO] Telemetry session c8dda938-800b-4be3-9a94-e2485a665afe.
+[2026-10-06T02:46:56.281Z] [INFO] Restored UserID:4de5e253-6c31-45e6-8e82-795514888bbd
+Azure public cloud
+[2026-10-06T02:46:56.281Z] [INFO] Reinitialized cache (v1).
+[2026-10-06T02:46:56.281Z] [INFO] Scheduler background thread starting for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:46:56.281Z] [INFO] Re-queuing pre-enrollment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:46:56.281Z] [INFO] Queuing pre-enrollment policy assignment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd to run as soon as possible.
+[2026-10-06T02:46:56.282Z] [ERROR] The application could not supply an access token on request for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+Reason: 0
+User not found: token fetch aborted.
+[2026-10-06T02:46:56.282Z] [WARNING] Unable to acquire an access token during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:46:56.282Z] [ERROR] An unexpected error occurred during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd; the operation will be reattempted after a brief delay on local conditions.
+[2026-10-06T02:46:56.994Z] [INFO] Shutting down.
+[2026-10-06T02:46:56.994Z] [INFO] Stopping the task scheduler and canceling any outstanding work items...
+[2026-10-06T02:46:56.994Z] [INFO] The check for MAM policy assignment reattempt for UserID:4de5e253-6c31-45e6-8e82-795514888bbd needs to be postponed due to application shutdown.
+[2026-10-06T02:46:56.994Z] [INFO] Scheduler background thread for UserID:4de5e253-6c31-45e6-8e82-795514888bbd is exiting after completing the last task.
+[2026-10-06T02:46:56.994Z] [INFO] Task scheduler has stopped, and all work has been canceled.
+[2026-10-06T02:46:59.150Z] [INFO] ========================================================================================================================
+[2026-10-06T02:46:59.150Z] [INFO] Initializing MAM Client.
+App: com.microsoft.edge 154.0.4258.62
+SDK: 2.1.367.0
+OS: windows 10.0.26200.9550
+DeviceType: Desktop
+Manufacturer: Micro-Star International Co., Ltd.
+Model: MS-7D82
+Telemetry: yes
+Managed device support: enabled
+[2026-10-06T02:46:59.150Z] [INFO] Telemetry session 893efc9b-7338-4e57-b94a-29807c42e06d.
+[2026-10-06T02:46:59.151Z] [INFO] Restored UserID:4de5e253-6c31-45e6-8e82-795514888bbd
+Azure public cloud
+[2026-10-06T02:46:59.151Z] [INFO] Reinitialized cache (v1).
+[2026-10-06T02:46:59.151Z] [INFO] Scheduler background thread starting for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:46:59.151Z] [INFO] Re-queuing pre-enrollment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:46:59.151Z] [INFO] Queuing pre-enrollment policy assignment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd to run as soon as possible.
+[2026-10-06T02:46:59.152Z] [ERROR] The application could not supply an access token on request for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+Reason: 0
+User not found: token fetch aborted.
+[2026-10-06T02:46:59.152Z] [WARNING] Unable to acquire an access token during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:46:59.152Z] [ERROR] An unexpected error occurred during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd; the operation will be reattempted after a brief delay on local conditions.
+[2026-10-06T02:47:00.852Z] [INFO] Shutting down.
+[2026-10-06T02:47:00.852Z] [INFO] Stopping the task scheduler and canceling any outstanding work items...
+[2026-10-06T02:47:00.852Z] [INFO] The check for MAM policy assignment reattempt for UserID:4de5e253-6c31-45e6-8e82-795514888bbd needs to be postponed due to application shutdown.
+[2026-10-06T02:47:00.852Z] [INFO] Scheduler background thread for UserID:4de5e253-6c31-45e6-8e82-795514888bbd is exiting after completing the last task.
+[2026-10-06T02:47:00.852Z] [INFO] Task scheduler has stopped, and all work has been canceled.
+[2026-10-06T02:47:02.986Z] [INFO] ========================================================================================================================
+[2026-10-06T02:47:02.986Z] [INFO] Initializing MAM Client.
+App: com.microsoft.edge 154.0.4258.62
+SDK: 2.1.367.0
+OS: windows 10.0.26200.9550
+DeviceType: Desktop
+Manufacturer: Micro-Star International Co., Ltd.
+Model: MS-7D82
+Telemetry: yes
+Managed device support: enabled
+[2026-10-06T02:47:02.986Z] [INFO] Telemetry session 90165a06-0d83-4208-8815-719853a2ce9f.
+[2026-10-06T02:47:02.986Z] [INFO] Restored UserID:4de5e253-6c31-45e6-8e82-795514888bbd
+Azure public cloud
+[2026-10-06T02:47:02.986Z] [INFO] Reinitialized cache (v1).
+[2026-10-06T02:47:02.987Z] [INFO] Scheduler background thread starting for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:02.987Z] [INFO] Re-queuing pre-enrollment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:02.987Z] [INFO] Queuing pre-enrollment policy assignment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd to run as soon as possible.
+[2026-10-06T02:47:02.987Z] [ERROR] The application could not supply an access token on request for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+Reason: 0
+User not found: token fetch aborted.
+[2026-10-06T02:47:02.987Z] [WARNING] Unable to acquire an access token during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:02.987Z] [ERROR] An unexpected error occurred during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd; the operation will be reattempted after a brief delay on local conditions.
+[2026-10-06T02:47:03.655Z] [INFO] Shutting down.
+[2026-10-06T02:47:03.656Z] [INFO] Stopping the task scheduler and canceling any outstanding work items...
+[2026-10-06T02:47:03.656Z] [INFO] The check for MAM policy assignment reattempt for UserID:4de5e253-6c31-45e6-8e82-795514888bbd needs to be postponed due to application shutdown.
+[2026-10-06T02:47:03.656Z] [INFO] Scheduler background thread for UserID:4de5e253-6c31-45e6-8e82-795514888bbd is exiting after completing the last task.
+[2026-10-06T02:47:03.656Z] [INFO] Task scheduler has stopped, and all work has been canceled.
+[2026-10-06T02:47:06.831Z] [INFO] ========================================================================================================================
+[2026-10-06T02:47:06.831Z] [INFO] Initializing MAM Client.
+App: com.microsoft.edge 154.0.4258.62
+SDK: 2.1.367.0
+OS: windows 10.0.26200.9550
+DeviceType: Desktop
+Manufacturer: Micro-Star International Co., Ltd.
+Model: MS-7D82
+Telemetry: yes
+Managed device support: enabled
+[2026-10-06T02:47:06.831Z] [INFO] Telemetry session a6f09c8f-be68-436d-8f90-4c4539595e0e.
+[2026-10-06T02:47:06.832Z] [INFO] Restored UserID:4de5e253-6c31-45e6-8e82-795514888bbd
+Azure public cloud
+[2026-10-06T02:47:06.832Z] [INFO] Reinitialized cache (v1).
+[2026-10-06T02:47:06.832Z] [INFO] Scheduler background thread starting for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:06.832Z] [INFO] Re-queuing pre-enrollment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:06.832Z] [INFO] Queuing pre-enrollment policy assignment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd to run as soon as possible.
+[2026-10-06T02:47:06.833Z] [ERROR] The application could not supply an access token on request for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+Reason: 0
+User not found: token fetch aborted.
+[2026-10-06T02:47:06.833Z] [WARNING] Unable to acquire an access token during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:06.833Z] [ERROR] An unexpected error occurred during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd; the operation will be reattempted after a brief delay on local conditions.
+[2026-10-06T02:47:07.707Z] [INFO] Shutting down.
+[2026-10-06T02:47:07.708Z] [INFO] Stopping the task scheduler and canceling any outstanding work items...
+[2026-10-06T02:47:07.708Z] [INFO] The check for MAM policy assignment reattempt for UserID:4de5e253-6c31-45e6-8e82-795514888bbd needs to be postponed due to application shutdown.
+[2026-10-06T02:47:07.708Z] [INFO] Scheduler background thread for UserID:4de5e253-6c31-45e6-8e82-795514888bbd is exiting after completing the last task.
+[2026-10-06T02:47:07.708Z] [INFO] Task scheduler has stopped, and all work has been canceled.
+[2026-10-06T02:47:10.703Z] [INFO] ========================================================================================================================
+[2026-10-06T02:47:10.703Z] [INFO] Initializing MAM Client.
+App: com.microsoft.edge 154.0.4258.62
+SDK: 2.1.367.0
+OS: windows 10.0.26200.9550
+DeviceType: Desktop
+Manufacturer: Micro-Star International Co., Ltd.
+Model: MS-7D82
+Telemetry: yes
+Managed device support: enabled
+[2026-10-06T02:47:10.703Z] [INFO] Telemetry session 9f81d7aa-bc69-4879-93bd-d36eb0456d0a.
+[2026-10-06T02:47:10.703Z] [INFO] Restored UserID:4de5e253-6c31-45e6-8e82-795514888bbd
+Azure public cloud
+[2026-10-06T02:47:10.703Z] [INFO] Reinitialized cache (v1).
+[2026-10-06T02:47:10.703Z] [INFO] Scheduler background thread starting for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:10.703Z] [INFO] Re-queuing pre-enrollment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:10.703Z] [INFO] Queuing pre-enrollment policy assignment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd to run as soon as possible.
+[2026-10-06T02:47:10.704Z] [ERROR] The application could not supply an access token on request for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+Reason: 0
+User not found: token fetch aborted.
+[2026-10-06T02:47:10.704Z] [WARNING] Unable to acquire an access token during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:10.704Z] [ERROR] An unexpected error occurred during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd; the operation will be reattempted after a brief delay on local conditions.
+[2026-10-06T02:47:11.547Z] [INFO] Shutting down.
+[2026-10-06T02:47:11.547Z] [INFO] Stopping the task scheduler and canceling any outstanding work items...
+[2026-10-06T02:47:11.547Z] [INFO] The check for MAM policy assignment reattempt for UserID:4de5e253-6c31-45e6-8e82-795514888bbd needs to be postponed due to application shutdown.
+[2026-10-06T02:47:11.547Z] [INFO] Scheduler background thread for UserID:4de5e253-6c31-45e6-8e82-795514888bbd is exiting after completing the last task.
+[2026-10-06T02:47:11.547Z] [INFO] Task scheduler has stopped, and all work has been canceled.
+[2026-10-06T02:47:13.540Z] [INFO] ========================================================================================================================
+[2026-10-06T02:47:13.540Z] [INFO] Initializing MAM Client.
+App: com.microsoft.edge 154.0.4258.62
+SDK: 2.1.367.0
+OS: windows 10.0.26200.9550
+DeviceType: Desktop
+Manufacturer: Micro-Star International Co., Ltd.
+Model: MS-7D82
+Telemetry: yes
+Managed device support: enabled
+[2026-10-06T02:47:13.541Z] [INFO] Telemetry session 3f8f487d-2795-4324-97fd-03fb28b27cfa.
+[2026-10-06T02:47:13.541Z] [INFO] Restored UserID:4de5e253-6c31-45e6-8e82-795514888bbd
+Azure public cloud
+[2026-10-06T02:47:13.541Z] [INFO] Reinitialized cache (v1).
+[2026-10-06T02:47:13.541Z] [INFO] Scheduler background thread starting for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:13.541Z] [INFO] Re-queuing pre-enrollment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:13.541Z] [INFO] Queuing pre-enrollment policy assignment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd to run as soon as possible.
+[2026-10-06T02:47:13.542Z] [ERROR] The application could not supply an access token on request for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+Reason: 0
+User not found: token fetch aborted.
+[2026-10-06T02:47:13.542Z] [WARNING] Unable to acquire an access token during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:13.542Z] [ERROR] An unexpected error occurred during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd; the operation will be reattempted after a brief delay on local conditions.
+[2026-10-06T02:47:14.525Z] [INFO] Shutting down.
+[2026-10-06T02:47:14.525Z] [INFO] Stopping the task scheduler and canceling any outstanding work items...
+[2026-10-06T02:47:14.525Z] [INFO] The check for MAM policy assignment reattempt for UserID:4de5e253-6c31-45e6-8e82-795514888bbd needs to be postponed due to application shutdown.
+[2026-10-06T02:47:14.525Z] [INFO] Scheduler background thread for UserID:4de5e253-6c31-45e6-8e82-795514888bbd is exiting after completing the last task.
+[2026-10-06T02:47:14.525Z] [INFO] Task scheduler has stopped, and all work has been canceled.
+[2026-10-06T02:47:22.397Z] [INFO] ========================================================================================================================
+[2026-10-06T02:47:22.397Z] [INFO] Initializing MAM Client.
+App: com.microsoft.edge 154.0.4258.62
+SDK: 2.1.367.0
+OS: windows 10.0.26200.9550
+DeviceType: Desktop
+Manufacturer: Micro-Star International Co., Ltd.
+Model: MS-7D82
+Telemetry: yes
+Managed device support: enabled
+[2026-10-06T02:47:22.397Z] [INFO] Telemetry session 342ce7ab-7730-48a4-a666-d14df411f348.
+[2026-10-06T02:47:22.397Z] [INFO] Restored UserID:4de5e253-6c31-45e6-8e82-795514888bbd
+Azure public cloud
+[2026-10-06T02:47:22.397Z] [INFO] Reinitialized cache (v1).
+[2026-10-06T02:47:22.397Z] [INFO] Scheduler background thread starting for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:22.398Z] [INFO] Re-queuing pre-enrollment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:22.398Z] [INFO] Queuing pre-enrollment policy assignment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd to run as soon as possible.
+[2026-10-06T02:47:22.398Z] [ERROR] The application could not supply an access token on request for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+Reason: 0
+User not found: token fetch aborted.
+[2026-10-06T02:47:22.398Z] [WARNING] Unable to acquire an access token during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:22.398Z] [ERROR] An unexpected error occurred during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd; the operation will be reattempted after a brief delay on local conditions.
+[2026-10-06T02:47:23.222Z] [INFO] Shutting down.
+[2026-10-06T02:47:23.223Z] [INFO] Stopping the task scheduler and canceling any outstanding work items...
+[2026-10-06T02:47:23.223Z] [INFO] The check for MAM policy assignment reattempt for UserID:4de5e253-6c31-45e6-8e82-795514888bbd needs to be postponed due to application shutdown.
+[2026-10-06T02:47:23.223Z] [INFO] Scheduler background thread for UserID:4de5e253-6c31-45e6-8e82-795514888bbd is exiting after completing the last task.
+[2026-10-06T02:47:23.223Z] [INFO] Task scheduler has stopped, and all work has been canceled.
+[2026-10-06T02:47:25.327Z] [INFO] ========================================================================================================================
+[2026-10-06T02:47:25.327Z] [INFO] Initializing MAM Client.
+App: com.microsoft.edge 154.0.4258.62
+SDK: 2.1.367.0
+OS: windows 10.0.26200.9550
+DeviceType: Desktop
+Manufacturer: Micro-Star International Co., Ltd.
+Model: MS-7D82
+Telemetry: yes
+Managed device support: enabled
+[2026-10-06T02:47:25.327Z] [INFO] Telemetry session 802f20e2-a5f1-48a1-894b-f9a3c4822975.
+[2026-10-06T02:47:25.327Z] [INFO] Restored UserID:4de5e253-6c31-45e6-8e82-795514888bbd
+Azure public cloud
+[2026-10-06T02:47:25.327Z] [INFO] Reinitialized cache (v1).
+[2026-10-06T02:47:25.327Z] [INFO] Scheduler background thread starting for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:25.328Z] [INFO] Re-queuing pre-enrollment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:25.328Z] [INFO] Queuing pre-enrollment policy assignment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd to run as soon as possible.
+[2026-10-06T02:47:25.328Z] [ERROR] The application could not supply an access token on request for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+Reason: 0
+User not found: token fetch aborted.
+[2026-10-06T02:47:25.328Z] [WARNING] Unable to acquire an access token during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:25.328Z] [ERROR] An unexpected error occurred during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd; the operation will be reattempted after a brief delay on local conditions.
+[2026-10-06T02:47:26.447Z] [INFO] Shutting down.
+[2026-10-06T02:47:26.447Z] [INFO] Stopping the task scheduler and canceling any outstanding work items...
+[2026-10-06T02:47:26.447Z] [INFO] The check for MAM policy assignment reattempt for UserID:4de5e253-6c31-45e6-8e82-795514888bbd needs to be postponed due to application shutdown.
+[2026-10-06T02:47:26.447Z] [INFO] Scheduler background thread for UserID:4de5e253-6c31-45e6-8e82-795514888bbd is exiting after completing the last task.
+[2026-10-06T02:47:26.447Z] [INFO] Task scheduler has stopped, and all work has been canceled.
+[2026-10-06T02:47:29.183Z] [INFO] ========================================================================================================================
+[2026-10-06T02:47:29.183Z] [INFO] Initializing MAM Client.
+App: com.microsoft.edge 154.0.4258.62
+SDK: 2.1.367.0
+OS: windows 10.0.26200.9550
+DeviceType: Desktop
+Manufacturer: Micro-Star International Co., Ltd.
+Model: MS-7D82
+Telemetry: yes
+Managed device support: enabled
+[2026-10-06T02:47:29.183Z] [INFO] Telemetry session cfc96392-62c0-4cfd-82f4-f600aadeb497.
+[2026-10-06T02:47:29.184Z] [INFO] Restored UserID:4de5e253-6c31-45e6-8e82-795514888bbd
+Azure public cloud
+[2026-10-06T02:47:29.184Z] [INFO] Reinitialized cache (v1).
+[2026-10-06T02:47:29.184Z] [INFO] Scheduler background thread starting for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:29.186Z] [INFO] Re-queuing pre-enrollment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:29.186Z] [INFO] Queuing pre-enrollment policy assignment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd to run as soon as possible.
+[2026-10-06T02:47:29.187Z] [ERROR] The application could not supply an access token on request for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+Reason: 0
+User not found: token fetch aborted.
+[2026-10-06T02:47:29.187Z] [WARNING] Unable to acquire an access token during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:29.187Z] [ERROR] An unexpected error occurred during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd; the operation will be reattempted after a brief delay on local conditions.
+[2026-10-06T02:47:30.118Z] [INFO] Shutting down.
+[2026-10-06T02:47:30.118Z] [INFO] Stopping the task scheduler and canceling any outstanding work items...
+[2026-10-06T02:47:30.118Z] [INFO] The check for MAM policy assignment reattempt for UserID:4de5e253-6c31-45e6-8e82-795514888bbd needs to be postponed due to application shutdown.
+[2026-10-06T02:47:30.118Z] [INFO] Scheduler background thread for UserID:4de5e253-6c31-45e6-8e82-795514888bbd is exiting after completing the last task.
+[2026-10-06T02:47:30.118Z] [INFO] Task scheduler has stopped, and all work has been canceled.
+[2026-10-06T02:47:32.939Z] [INFO] ========================================================================================================================
+[2026-10-06T02:47:32.939Z] [INFO] Initializing MAM Client.
+App: com.microsoft.edge 154.0.4258.62
+SDK: 2.1.367.0
+OS: windows 10.0.26200.9550
+DeviceType: Desktop
+Manufacturer: Micro-Star International Co., Ltd.
+Model: MS-7D82
+Telemetry: yes
+Managed device support: enabled
+[2026-10-06T02:47:32.939Z] [INFO] Telemetry session 2d6eecdf-909e-4bed-b096-84f45fbdd7d4.
+[2026-10-06T02:47:32.939Z] [INFO] Restored UserID:4de5e253-6c31-45e6-8e82-795514888bbd
+Azure public cloud
+[2026-10-06T02:47:32.939Z] [INFO] Reinitialized cache (v1).
+[2026-10-06T02:47:32.939Z] [INFO] Scheduler background thread starting for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:32.940Z] [INFO] Re-queuing pre-enrollment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:32.940Z] [INFO] Queuing pre-enrollment policy assignment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd to run as soon as possible.
+[2026-10-06T02:47:32.940Z] [ERROR] The application could not supply an access token on request for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+Reason: 0
+User not found: token fetch aborted.
+[2026-10-06T02:47:32.940Z] [WARNING] Unable to acquire an access token during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:32.940Z] [ERROR] An unexpected error occurred during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd; the operation will be reattempted after a brief delay on local conditions.
+[2026-10-06T02:47:33.584Z] [INFO] Shutting down.
+[2026-10-06T02:47:33.584Z] [INFO] Stopping the task scheduler and canceling any outstanding work items...
+[2026-10-06T02:47:33.584Z] [INFO] The check for MAM policy assignment reattempt for UserID:4de5e253-6c31-45e6-8e82-795514888bbd needs to be postponed due to application shutdown.
+[2026-10-06T02:47:33.584Z] [INFO] Scheduler background thread for UserID:4de5e253-6c31-45e6-8e82-795514888bbd is exiting after completing the last task.
+[2026-10-06T02:47:33.584Z] [INFO] Task scheduler has stopped, and all work has been canceled.
+[2026-10-06T02:47:41.864Z] [INFO] ========================================================================================================================
+[2026-10-06T02:47:41.864Z] [INFO] Initializing MAM Client.
+App: com.microsoft.edge 154.0.4258.62
+SDK: 2.1.367.0
+OS: windows 10.0.26200.9550
+DeviceType: Desktop
+Manufacturer: Micro-Star International Co., Ltd.
+Model: MS-7D82
+Telemetry: yes
+Managed device support: enabled
+[2026-10-06T02:47:41.865Z] [INFO] Telemetry session 855f7e48-d407-41fc-86de-6dfdf5df8beb.
+[2026-10-06T02:47:41.865Z] [INFO] Restored UserID:4de5e253-6c31-45e6-8e82-795514888bbd
+Azure public cloud
+[2026-10-06T02:47:41.865Z] [INFO] Reinitialized cache (v1).
+[2026-10-06T02:47:41.865Z] [INFO] Scheduler background thread starting for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:41.865Z] [INFO] Re-queuing pre-enrollment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:41.865Z] [INFO] Queuing pre-enrollment policy assignment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd to run as soon as possible.
+[2026-10-06T02:47:41.866Z] [ERROR] The application could not supply an access token on request for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+Reason: 0
+User not found: token fetch aborted.
+[2026-10-06T02:47:41.866Z] [WARNING] Unable to acquire an access token during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:41.866Z] [ERROR] An unexpected error occurred during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd; the operation will be reattempted after a brief delay on local conditions.
+[2026-10-06T02:47:43.107Z] [INFO] Shutting down.
+[2026-10-06T02:47:43.108Z] [INFO] Stopping the task scheduler and canceling any outstanding work items...
+[2026-10-06T02:47:43.108Z] [INFO] The check for MAM policy assignment reattempt for UserID:4de5e253-6c31-45e6-8e82-795514888bbd needs to be postponed due to application shutdown.
+[2026-10-06T02:47:43.108Z] [INFO] Scheduler background thread for UserID:4de5e253-6c31-45e6-8e82-795514888bbd is exiting after completing the last task.
+[2026-10-06T02:47:43.108Z] [INFO] Task scheduler has stopped, and all work has been canceled.
+[2026-10-06T02:47:51.724Z] [INFO] ========================================================================================================================
+[2026-10-06T02:47:51.724Z] [INFO] Initializing MAM Client.
+App: com.microsoft.edge 154.0.4258.62
+SDK: 2.1.367.0
+OS: windows 10.0.26200.9550
+DeviceType: Desktop
+Manufacturer: Micro-Star International Co., Ltd.
+Model: MS-7D82
+Telemetry: yes
+Managed device support: enabled
+[2026-10-06T02:47:51.724Z] [INFO] Telemetry session 20be320d-dafe-4ede-92b1-51b8d341b6dc.
+[2026-10-06T02:47:51.724Z] [INFO] Restored UserID:4de5e253-6c31-45e6-8e82-795514888bbd
+Azure public cloud
+[2026-10-06T02:47:51.724Z] [INFO] Reinitialized cache (v1).
+[2026-10-06T02:47:51.725Z] [INFO] Scheduler background thread starting for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:51.725Z] [INFO] Re-queuing pre-enrollment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:51.725Z] [INFO] Queuing pre-enrollment policy assignment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd to run as soon as possible.
+[2026-10-06T02:47:51.725Z] [ERROR] The application could not supply an access token on request for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+Reason: 0
+User not found: token fetch aborted.
+[2026-10-06T02:47:51.725Z] [WARNING] Unable to acquire an access token during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:47:51.725Z] [ERROR] An unexpected error occurred during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd; the operation will be reattempted after a brief delay on local conditions.
+[2026-10-06T02:47:53.141Z] [INFO] Shutting down.
+[2026-10-06T02:47:53.141Z] [INFO] Stopping the task scheduler and canceling any outstanding work items...
+[2026-10-06T02:47:53.141Z] [INFO] The check for MAM policy assignment reattempt for UserID:4de5e253-6c31-45e6-8e82-795514888bbd needs to be postponed due to application shutdown.
+[2026-10-06T02:47:53.141Z] [INFO] Scheduler background thread for UserID:4de5e253-6c31-45e6-8e82-795514888bbd is exiting after completing the last task.
+[2026-10-06T02:47:53.141Z] [INFO] Task scheduler has stopped, and all work has been canceled.
+[2026-10-06T02:48:44.387Z] [INFO] ========================================================================================================================
+[2026-10-06T02:48:44.387Z] [INFO] Initializing MAM Client.
+App: com.microsoft.edge 154.0.4258.62
+SDK: 2.1.367.0
+OS: windows 10.0.26200.9550
+DeviceType: Desktop
+Manufacturer: Micro-Star International Co., Ltd.
+Model: MS-7D82
+Telemetry: yes
+Managed device support: enabled
+[2026-10-06T02:48:44.387Z] [INFO] Telemetry session c824193e-1bd5-4787-939a-97fb8f23dbcf.
+[2026-10-06T02:48:44.387Z] [INFO] Restored UserID:4de5e253-6c31-45e6-8e82-795514888bbd
+Azure public cloud
+[2026-10-06T02:48:44.387Z] [INFO] Reinitialized cache (v1).
+[2026-10-06T02:48:44.388Z] [INFO] Scheduler background thread starting for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:48:44.388Z] [INFO] Re-queuing pre-enrollment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:48:44.388Z] [INFO] Queuing pre-enrollment policy assignment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd to run as soon as possible.
+[2026-10-06T02:48:44.389Z] [ERROR] The application could not supply an access token on request for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+Reason: 0
+User not found: token fetch aborted.
+[2026-10-06T02:48:44.389Z] [WARNING] Unable to acquire an access token during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:48:44.389Z] [ERROR] An unexpected error occurred during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd; the operation will be reattempted after a brief delay on local conditions.
+[2026-10-06T02:48:45.386Z] [INFO] Shutting down.
+[2026-10-06T02:48:45.386Z] [INFO] Stopping the task scheduler and canceling any outstanding work items...
+[2026-10-06T02:48:45.387Z] [INFO] The check for MAM policy assignment reattempt for UserID:4de5e253-6c31-45e6-8e82-795514888bbd needs to be postponed due to application shutdown.
+[2026-10-06T02:48:45.387Z] [INFO] Scheduler background thread for UserID:4de5e253-6c31-45e6-8e82-795514888bbd is exiting after completing the last task.
+[2026-10-06T02:48:45.387Z] [INFO] Task scheduler has stopped, and all work has been canceled.
+[2026-10-06T02:48:47.371Z] [INFO] ========================================================================================================================
+[2026-10-06T02:48:47.371Z] [INFO] Initializing MAM Client.
+App: com.microsoft.edge 154.0.4258.62
+SDK: 2.1.367.0
+OS: windows 10.0.26200.9550
+DeviceType: Desktop
+Manufacturer: Micro-Star International Co., Ltd.
+Model: MS-7D82
+Telemetry: yes
+Managed device support: enabled
+[2026-10-06T02:48:47.371Z] [INFO] Telemetry session 35e5b896-1c91-43a3-a417-fd67ce14a34c.
+[2026-10-06T02:48:47.371Z] [INFO] Restored UserID:4de5e253-6c31-45e6-8e82-795514888bbd
+Azure public cloud
+[2026-10-06T02:48:47.371Z] [INFO] Reinitialized cache (v1).
+[2026-10-06T02:48:47.371Z] [INFO] Scheduler background thread starting for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:48:47.371Z] [INFO] Re-queuing pre-enrollment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:48:47.371Z] [INFO] Queuing pre-enrollment policy assignment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd to run as soon as possible.
+[2026-10-06T02:48:47.372Z] [ERROR] The application could not supply an access token on request for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+Reason: 0
+User not found: token fetch aborted.
+[2026-10-06T02:48:47.372Z] [WARNING] Unable to acquire an access token during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:48:47.372Z] [ERROR] An unexpected error occurred during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd; the operation will be reattempted after a brief delay on local conditions.
+[2026-10-06T02:48:52.432Z] [INFO] Resolved MAM Location Service address "https://mamservice.manage.microsoft.com/api/Locations" for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:48:52.636Z] [ERROR] MAM Location Service request for UserID:4de5e253-6c31-45e6-8e82-795514888bbd failed with a status (404) indicating the tenant has not completed onboarding, or the user is not licensed for Intune. (client-request-id:a61aeaaa-f1b8-413e-9ead-22c82046bf80)
+[2026-10-06T02:48:52.636Z] [ERROR] Unable to retrieve or validate the MAM Service address during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd; the operation will be reattempted at a later time.
+[2026-10-06T02:48:52.636Z] [INFO] Queuing pre-enrollment policy assignment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd to run at 2026-10-07T02:48:53.636Z.
+[2026-10-06T02:48:53.034Z] [INFO] Shutting down.
+[2026-10-06T02:48:53.034Z] [INFO] Stopping the task scheduler and canceling any outstanding work items...
+[2026-10-06T02:48:53.034Z] [INFO] Scheduler background thread for UserID:4de5e253-6c31-45e6-8e82-795514888bbd is exiting after completing the last task.
+[2026-10-06T02:48:53.035Z] [INFO] Task scheduler has stopped, and all work has been canceled.
+[2026-10-06T02:48:54.448Z] [INFO] ========================================================================================================================
+[2026-10-06T02:48:54.448Z] [INFO] Initializing MAM Client.
+App: com.microsoft.edge 154.0.4258.62
+SDK: 2.1.367.0
+OS: windows 10.0.26200.9550
+DeviceType: Desktop
+Manufacturer: Micro-Star International Co., Ltd.
+Model: MS-7D82
+Telemetry: yes
+Managed device support: enabled
+[2026-10-06T02:48:54.448Z] [INFO] Telemetry session 7b41f520-1273-4530-83ac-f779458bd470.
+[2026-10-06T02:48:54.448Z] [INFO] Restored UserID:4de5e253-6c31-45e6-8e82-795514888bbd
+Azure public cloud
+[2026-10-06T02:48:54.448Z] [INFO] Reinitialized cache (v1).
+[2026-10-06T02:48:54.448Z] [INFO] Scheduler background thread starting for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:48:54.449Z] [INFO] Re-queuing pre-enrollment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:48:54.449Z] [INFO] Queuing pre-enrollment policy assignment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd to run as soon as possible.
+[2026-10-06T02:48:54.449Z] [ERROR] The application could not supply an access token on request for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+Reason: 0
+User not found: token fetch aborted.
+[2026-10-06T02:48:54.449Z] [WARNING] Unable to acquire an access token during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:48:54.449Z] [ERROR] An unexpected error occurred during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd; the operation will be reattempted after a brief delay on local conditions.
+[2026-10-06T02:48:55.404Z] [INFO] Shutting down.
+[2026-10-06T02:48:55.404Z] [INFO] Stopping the task scheduler and canceling any outstanding work items...
+[2026-10-06T02:48:55.404Z] [INFO] The check for MAM policy assignment reattempt for UserID:4de5e253-6c31-45e6-8e82-795514888bbd needs to be postponed due to application shutdown.
+[2026-10-06T02:48:55.404Z] [INFO] Scheduler background thread for UserID:4de5e253-6c31-45e6-8e82-795514888bbd is exiting after completing the last task.
+[2026-10-06T02:48:55.405Z] [INFO] Task scheduler has stopped, and all work has been canceled.
+[2026-10-06T02:48:56.474Z] [INFO] ========================================================================================================================
+[2026-10-06T02:48:56.474Z] [INFO] Initializing MAM Client.
+App: com.microsoft.edge 154.0.4258.62
+SDK: 2.1.367.0
+OS: windows 10.0.26200.9550
+DeviceType: Desktop
+Manufacturer: Micro-Star International Co., Ltd.
+Model: MS-7D82
+Telemetry: yes
+Managed device support: enabled
+[2026-10-06T02:48:56.474Z] [INFO] Telemetry session 0327f6a5-c576-4cb4-a070-aa11c18e1058.
+[2026-10-06T02:48:56.474Z] [INFO] Restored UserID:4de5e253-6c31-45e6-8e82-795514888bbd
+Azure public cloud
+[2026-10-06T02:48:56.474Z] [INFO] Reinitialized cache (v1).
+[2026-10-06T02:48:56.474Z] [INFO] Scheduler background thread starting for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:48:56.475Z] [INFO] Re-queuing pre-enrollment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:48:56.475Z] [INFO] Queuing pre-enrollment policy assignment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd to run as soon as possible.
+[2026-10-06T02:48:56.475Z] [ERROR] The application could not supply an access token on request for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+Reason: 0
+User not found: token fetch aborted.
+[2026-10-06T02:48:56.475Z] [WARNING] Unable to acquire an access token during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T02:48:56.475Z] [ERROR] An unexpected error occurred during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd; the operation will be reattempted after a brief delay on local conditions.
+[2026-10-06T02:48:57.672Z] [INFO] Shutting down.
+[2026-10-06T02:48:57.672Z] [INFO] Stopping the task scheduler and canceling any outstanding work items...
+[2026-10-06T02:48:57.672Z] [INFO] The check for MAM policy assignment reattempt for UserID:4de5e253-6c31-45e6-8e82-795514888bbd needs to be postponed due to application shutdown.
+[2026-10-06T02:48:57.672Z] [INFO] Scheduler background thread for UserID:4de5e253-6c31-45e6-8e82-795514888bbd is exiting after completing the last task.
+[2026-10-06T02:48:57.672Z] [INFO] Task scheduler has stopped, and all work has been canceled.
+[2026-10-06T03:00:37.058Z] [INFO] ========================================================================================================================
+[2026-10-06T03:00:37.059Z] [INFO] Initializing MAM Client.
+App: com.microsoft.edge 154.0.4258.62
+SDK: 2.1.367.0
+OS: windows 10.0.26200.9550
+DeviceType: Desktop
+Manufacturer: Micro-Star International Co., Ltd.
+Model: MS-7D82
+Telemetry: yes
+Managed device support: enabled
+[2026-10-06T03:00:37.059Z] [INFO] Telemetry session 0b8887e0-7912-4081-9ca4-fe074146f51b.
+[2026-10-06T03:00:37.059Z] [INFO] Restored UserID:4de5e253-6c31-45e6-8e82-795514888bbd
+Azure public cloud
+[2026-10-06T03:00:37.059Z] [INFO] Reinitialized cache (v1).
+[2026-10-06T03:00:37.059Z] [INFO] Scheduler background thread starting for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T03:00:37.059Z] [INFO] Re-queuing pre-enrollment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T03:00:37.059Z] [INFO] Queuing pre-enrollment policy assignment check for UserID:4de5e253-6c31-45e6-8e82-795514888bbd to run as soon as possible.
+[2026-10-06T03:00:37.060Z] [ERROR] The application could not supply an access token on request for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+Reason: 0
+User not found: token fetch aborted.
+[2026-10-06T03:00:37.060Z] [WARNING] Unable to acquire an access token during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd.
+[2026-10-06T03:00:37.060Z] [ERROR] An unexpected error occurred during check for MAM policy assignment for UserID:4de5e253-6c31-45e6-8e82-795514888bbd; the operation will be reattempted after a brief delay on local conditions.
+[2026-10-06T03:00:40.673Z] [INFO] Shutting down.
+[2026-10-06T03:00:40.673Z] [INFO] Stopping the task scheduler and canceling any outstanding work items...
+[2026-10-06T03:00:40.673Z] [INFO] The check for MAM policy assignment reattempt for UserID:4de5e253-6c31-45e6-8e82-795514888bbd needs to be postponed due to application shutdown.
+[2026-10-06T03:00:40.673Z] [INFO] Scheduler background thread for UserID:4de5e253-6c31-45e6-8e82-795514888bbd is exiting after completing the last task.
+[2026-10-06T03:00:40.673Z] [INFO] Task scheduler has stopped, and all work has been canceled.

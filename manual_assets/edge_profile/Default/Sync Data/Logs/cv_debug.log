@@ -1,0 +1,9 @@
+{"logTime": "1006/024847", "correlationVector":"/mKM4hHivYr1aVdQ2n2tkx","action":"Normal GetUpdate request", "result":"", "context":cV=/mKM4hHivYr1aVdQ2n2tkx
+Nudged types: Sessions, User Consents, History
+Refresh requested types: Bookmarks, Preferences, Passwords, Autofill Profiles, Autofill, Extensions, Sessions, Extension settings, History Delete Directives, Device Info, User Consents, Send Tab To Self, Web Apps, History, Saved Tab Group, WebAuthn Credentials, Edge Hub App Usage, Edge Workspace, Encryption Keys}
+{"logTime": "1006/024848", "correlationVector":"/mKM4hHivYr1aVdQ2n2tkx.1","action":"SyncServerConnectionManagerRequest", "result":"SYNC_SERVER_OK", "context":{"environment":"Prod_southeastasia_prod-s01-064-apac-southeastasia", "migrationStage":"NotStarted", "server":"akswtt00300005a"}}
+{"logTime": "1006/024848", "correlationVector":"/mKM4hHivYr1aVdQ2n2tkx.2","action":"GetUpdates Response", "result":"Success", "context":Received 0 update(s). cV=/mKM4hHivYr1aVdQ2n2tkx.0;server=akswtt00300005a;cloudType=Multitenant;environment=Prod_southeastasia_prod-s01-064-apac-southeastasia;migrationStage=NotStarted}
+{"logTime": "1006/024848", "correlationVector":"F27Y89gCQsuvb6EJWro2np","action":"Commit Request", "result":"", "context":Item count: 26
+Contributing types: Sessions, User Consents, History}
+{"logTime": "1006/024851", "correlationVector":"F27Y89gCQsuvb6EJWro2np.1","action":"SyncServerConnectionManagerRequest", "result":"SYNC_SERVER_OK", "context":{"environment":"Prod_southeastasia_prod-s01-064-apac-southeastasia", "migrationStage":"NotStarted", "server":"akswtt00300000i"}}
+{"logTime": "1006/024851", "correlationVector":"F27Y89gCQsuvb6EJWro2np.2","action":"Commit Response", "result":"Success", "context":Result: Success. cV=F27Y89gCQsuvb6EJWro2np.0;server=akswtt00300000i;cloudType=Multitenant;environment=Prod_southeastasia_prod-s01-064-apac-southeastasia;migrationStage=NotStarted}

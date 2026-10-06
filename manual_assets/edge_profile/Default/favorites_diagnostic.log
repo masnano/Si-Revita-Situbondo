@@ -1,0 +1,12 @@
+2026-10-06 02:48:47.443: [INFO] CurrentProfilePath: e:\laragon\www\sirevita\manual_assets\edge_profile\Default
+2026-10-06 02:48:47.443: [INFO] Profiles total count: 1
+2026-10-06 02:48:47.443: [INFO] Profile: name=Work path=e:\laragon\www\sirevita\manual_assets\edge_profile\Default lastActive=2026-10-06T02:48:47.431Z
+2026-10-06 02:48:47.443: [INFO] LastUsedProfileDir: e:\laragon\www\sirevita\manual_assets\edge_profile\Default
+2026-10-06 02:48:47.443: [INFO] MostRecentlyActiveProfile: name=Work path=e:\laragon\www\sirevita\manual_assets\edge_profile\Default lastActive=2026-10-06T02:48:47.431Z
+2026-10-06 02:48:47.443: [INFO] OnDoneLoading sync enabled: 1
+2026-10-06 02:48:47.443: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-10-06 02:48:47.443: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-10-06 02:48:47.443: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-10-06 02:48:47.519: [INFO] VisibilityChanged: 0
+2026-10-06 02:48:47.660: [INFO] Sync initialization duration: 184ms
+2026-10-06 02:48:53.133: [INFO] BookmarksSnapshot Shutdown total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1

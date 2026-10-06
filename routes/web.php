@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BudgetItemController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\GuideController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RolePermissionController;
@@ -69,5 +70,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/roles/{role}/permissions', [RolePermissionController::class, 'updatePermissions'])->name('roles.update_permissions');
         Route::post('/roles/permissions/store', [RolePermissionController::class, 'storePermission'])->name('roles.store_permission');
     });
+
+    // 6. Buku Panduan Penggunaan Sistem (PDF Viewer & Download)
+    Route::get('/panduan', [GuideController::class, 'index'])->name('panduan.index');
+    Route::get('/panduan/download', [GuideController::class, 'download'])->name('panduan.download');
+    Route::get('/panduan/preview', [GuideController::class, 'preview'])->name('panduan.preview');
 });
 
