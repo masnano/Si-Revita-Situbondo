@@ -48,83 +48,83 @@
 
     <!-- Statistic Metric Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
-                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Dokumen RPD</p>
-                <h3 class="text-2xl font-bold text-slate-900 dark:text-white mt-1">{{ number_format($stats['total_docs']) }}</h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Dokumen diunggah</p>
+                <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Dokumen RPD</p>
+                <h3 class="text-2xl font-bold text-slate-900 mt-1">{{ number_format($stats['total_docs']) }}</h3>
+                <p class="text-xs text-slate-500 mt-1">Dokumen diunggah</p>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-400">
+            <div class="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600">
                 <i data-lucide="files" class="w-6 h-6"></i>
             </div>
         </div>
 
-        <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
-                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Nilai RPD</p>
-                <h3 class="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">Rp {{ number_format($stats['total_budget'], 0, ',', '.') }}</h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Akumulasi anggaran RPD</p>
+                <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Nilai RPD</p>
+                <h3 class="text-xl font-bold text-emerald-600 mt-1">Rp {{ number_format($stats['total_budget'], 0, ',', '.') }}</h3>
+                <p class="text-xs text-slate-500 mt-1">Akumulasi anggaran RPD</p>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
                 <i data-lucide="badge-dollar-sign" class="w-6 h-6"></i>
             </div>
         </div>
 
-        <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
-                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Siap Diposting (Dianalisis)</p>
-                <h3 class="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{{ number_format($stats['ready_count']) }}</h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Menunggu posting BKU</p>
+                <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Siap Diposting (Dianalisis)</p>
+                <h3 class="text-2xl font-bold text-amber-600 mt-1">{{ number_format($stats['ready_count']) }}</h3>
+                <p class="text-xs text-slate-500 mt-1">Menunggu posting BKU</p>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-amber-600 dark:text-amber-400">
+            <div class="w-12 h-12 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
                 <i data-lucide="clock" class="w-6 h-6"></i>
             </div>
         </div>
 
-        <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
-                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Sudah di BKU</p>
-                <h3 class="text-2xl font-bold text-teal-600 dark:text-teal-400 mt-1">{{ number_format($stats['posted_count']) }}</h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Telah menjadi transaksi resmi</p>
+                <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Sudah di BKU</p>
+                <h3 class="text-2xl font-bold text-teal-600 mt-1">{{ number_format($stats['posted_count']) }}</h3>
+                <p class="text-xs text-slate-500 mt-1">Telah menjadi transaksi resmi</p>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 flex items-center justify-center text-teal-600 dark:text-teal-400">
+            <div class="w-12 h-12 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-600">
                 <i data-lucide="check-circle-2" class="w-6 h-6"></i>
             </div>
         </div>
     </div>
 
     <!-- Filter & Table Card -->
-    <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <!-- Filter Bar -->
-        <div class="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+        <div class="p-4 border-b border-slate-200 bg-slate-50/50">
             <form action="{{ route('rpd.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Sekolah</label>
-                    <select name="school_id" class="w-full text-xs rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-emerald-500 focus:border-emerald-500">
-                        <option value="">-- Semua Sekolah --</option>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Sekolah</label>
+                    <select name="school_id" class="w-full text-xs rounded-lg border border-slate-300 bg-white text-slate-800 font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none">
+                        <option value="" class="bg-white text-slate-800">-- Semua Sekolah --</option>
                         @foreach($schools as $sch)
-                            <option value="{{ $sch->id }}" {{ request('school_id') == $sch->id ? 'selected' : '' }}>{{ $sch->name }}</option>
+                            <option value="{{ $sch->id }}" class="bg-white text-slate-800" {{ request('school_id') == $sch->id ? 'selected' : '' }}>{{ $sch->name }}</option>
                         @endforeach
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Proyek Revitalisasi</label>
-                    <select name="project_id" class="w-full text-xs rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-emerald-500 focus:border-emerald-500">
-                        <option value="">-- Semua Paket Proyek --</option>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Proyek Revitalisasi</label>
+                    <select name="project_id" class="w-full text-xs rounded-lg border border-slate-300 bg-white text-slate-800 font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none">
+                        <option value="" class="bg-white text-slate-800">-- Semua Paket Proyek --</option>
                         @foreach($projects as $prj)
-                            <option value="{{ $prj->id }}" {{ request('project_id') == $prj->id ? 'selected' : '' }}>{{ $prj->title }}</option>
+                            <option value="{{ $prj->id }}" class="bg-white text-slate-800" {{ request('project_id') == $prj->id ? 'selected' : '' }}>{{ $prj->title }}</option>
                         @endforeach
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Status Dokumen</label>
-                    <select name="status" class="w-full text-xs rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-emerald-500 focus:border-emerald-500">
-                        <option value="">-- Semua Status --</option>
-                        <option value="analyzed" {{ request('status') == 'analyzed' ? 'selected' : '' }}>Siap Posting (Dianalisis)</option>
-                        <option value="posted_to_bku" {{ request('status') == 'posted_to_bku' ? 'selected' : '' }}>Terposting ke BKU</option>
-                        <option value="draft" {{ request('status') == 'draft' ? 'selected' : '' }}>Draft</option>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Status Dokumen</label>
+                    <select name="status" class="w-full text-xs rounded-lg border border-slate-300 bg-white text-slate-800 font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none">
+                        <option value="" class="bg-white text-slate-800">-- Semua Status --</option>
+                        <option value="analyzed" class="bg-white text-slate-800" {{ request('status') == 'analyzed' ? 'selected' : '' }}>Siap Posting (Dianalisis)</option>
+                        <option value="posted_to_bku" class="bg-white text-slate-800" {{ request('status') == 'posted_to_bku' ? 'selected' : '' }}>Terposting ke BKU</option>
+                        <option value="draft" class="bg-white text-slate-800" {{ request('status') == 'draft' ? 'selected' : '' }}>Draft</option>
                     </select>
                 </div>
 
@@ -133,7 +133,7 @@
                         <i data-lucide="filter" class="w-3.5 h-3.5"></i>
                         <span>Filter</span>
                     </button>
-                    <a href="{{ route('rpd.index') }}" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium">
+                    <a href="{{ route('rpd.index') }}" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-medium transition-colors">
                         Reset
                     </a>
                 </div>
@@ -144,7 +144,7 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs md:text-sm">
                 <thead>
-                    <tr class="bg-slate-100/75 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 font-semibold">
+                    <tr class="bg-slate-100/75 text-slate-700 border-b border-slate-200 font-semibold">
                         <th class="py-3 px-4 w-12 text-center">No</th>
                         <th class="py-3 px-4">Dokumen RPD & Tahap</th>
                         <th class="py-3 px-4">Sekolah & Paket Revitalisasi</th>
@@ -155,42 +155,42 @@
                         <th class="py-3 px-4 text-center w-36">Aksi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80">
+                <tbody class="divide-y divide-slate-100">
                     @forelse($documents as $index => $doc)
-                        <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                        <tr class="hover:bg-slate-50 transition-colors">
                             <td class="py-3.5 px-4 text-center text-slate-500 font-mono">
                                 {{ $documents->firstItem() + $index }}
                             </td>
                             <td class="py-3.5 px-4">
-                                <a href="{{ route('rpd.show', $doc->id) }}" class="font-bold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1.5">
+                                <a href="{{ route('rpd.show', $doc->id) }}" class="font-bold text-emerald-600 hover:text-emerald-700 hover:underline flex items-center gap-1.5">
                                     <i data-lucide="file-text" class="w-4 h-4 flex-shrink-0"></i>
                                     <span>{{ $doc->title }}</span>
                                 </a>
-                                <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-2">
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                                <div class="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800">
                                         {{ $doc->term_stage }}
                                     </span>
                                     <span>File: <code class="font-mono">{{ $doc->file_name }}</code></span>
                                 </div>
                             </td>
                             <td class="py-3.5 px-4">
-                                <div class="font-medium text-slate-900 dark:text-white">{{ $doc->school->name }}</div>
-                                <div class="text-[11px] text-slate-500 dark:text-slate-400">{{ $doc->project->title }}</div>
+                                <div class="font-medium text-slate-900">{{ $doc->school->name }}</div>
+                                <div class="text-[11px] text-slate-500">{{ $doc->project->title }}</div>
                             </td>
                             <td class="py-3.5 px-4 text-center">
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-800">
                                     {{ $doc->items_count }} Baris
                                 </span>
                             </td>
-                            <td class="py-3.5 px-4 text-right font-mono font-bold text-slate-900 dark:text-white">
+                            <td class="py-3.5 px-4 text-right font-mono font-bold text-slate-900">
                                 Rp {{ number_format($doc->total_budget, 0, ',', '.') }}
                             </td>
                             <td class="py-3.5 px-4 text-center">
                                 <div class="inline-flex flex-col gap-1 text-[11px] text-left">
-                                    <span class="text-emerald-600 dark:text-emerald-400 font-medium">
+                                    <span class="text-emerald-600 font-medium">
                                         • Bahan: Rp {{ number_format($doc->total_materials, 0, ',', '.') }}
                                     </span>
-                                    <span class="text-blue-600 dark:text-blue-400 font-medium">
+                                    <span class="text-blue-600 font-medium">
                                         • Upah: Rp {{ number_format($doc->total_wages, 0, ',', '.') }}
                                     </span>
                                 </div>
@@ -207,13 +207,13 @@
                                 <div class="flex items-center justify-center gap-1.5">
                                     <a href="{{ route('rpd.show', $doc->id) }}" 
                                        title="Lihat Hasil Pecah Bahan & Isian BKU"
-                                       class="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 transition-colors">
+                                       class="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors">
                                         <i data-lucide="eye" class="w-4 h-4"></i>
                                     </a>
 
                                     <a href="{{ route('rpd.export_bku', ['rpd' => $doc->id, 'format' => 'xlsx']) }}" 
                                        title="Unduh Format Isian BKU (Excel)"
-                                       class="p-1.5 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 dark:text-teal-300 border border-teal-200 dark:border-teal-800 transition-colors">
+                                       class="p-1.5 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 transition-colors">
                                         <i data-lucide="download" class="w-4 h-4"></i>
                                     </a>
 
@@ -224,7 +224,7 @@
                                         @method('DELETE')
                                         <button type="submit" 
                                                 title="Hapus Dokumen"
-                                                class="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 dark:text-rose-400 border border-rose-200 dark:border-rose-800 transition-colors">
+                                                class="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-colors">
                                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                                         </button>
                                     </form>
@@ -235,12 +235,12 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="py-12 text-center text-slate-500 dark:text-slate-400">
+                            <td colspan="8" class="py-12 text-center text-slate-500">
                                 <div class="max-w-sm mx-auto space-y-3">
-                                    <div class="w-16 h-16 mx-auto rounded-full bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                                    <div class="w-16 h-16 mx-auto rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-200">
                                         <i data-lucide="layers" class="w-8 h-8"></i>
                                     </div>
-                                    <h4 class="text-base font-bold text-slate-800 dark:text-slate-200">Belum Ada Dokumen RPD</h4>
+                                    <h4 class="text-base font-bold text-slate-800">Belum Ada Dokumen RPD</h4>
                                     <p class="text-xs text-slate-500">
                                         Unggah file RPD (Rencana Penarikan Dana) sekolah Anda untuk memecah rincian belanja bahan & otomatis menghasilkan draf isian Buku Kas Umum (BKU).
                                     </p>
@@ -261,7 +261,7 @@
         </div>
 
         @if($documents->hasPages())
-        <div class="p-4 border-t border-slate-200 dark:border-slate-800">
+        <div class="p-4 border-t border-slate-200">
             {{ $documents->links() }}
         </div>
         @endif
