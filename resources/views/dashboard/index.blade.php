@@ -10,7 +10,7 @@
         <div class="flex items-center gap-4">
             <img src="{{ asset('images/logo.png') }}" 
                  alt="Logo Si Revita Situbondo" 
-                 class="w-14 h-14 object-contain rounded-2xl p-1 bg-slate-50 ring-1 ring-emerald-500/30 shrink-0">
+                 class="w-12 h-12 object-contain rounded-2xl p-1 bg-slate-50 ring-1 ring-emerald-500/30 shrink-0">
             <div>
                 <div class="flex items-center gap-2 text-xs font-semibold text-emerald-600 mb-0.5">
                     <i data-lucide="sparkles" class="w-4 h-4"></i>
