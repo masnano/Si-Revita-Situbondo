@@ -97,7 +97,11 @@
                     </a>
                     @endpermission
                     @permission('sekolah.delete')
-                    <form action="{{ route('schools.destroy', $sch->id) }}" method="POST" onsubmit="return confirm('Hapus data sekolah ini?')">
+                    <form action="{{ route('schools.destroy', $sch->id) }}" method="POST"
+                          data-confirm="Apakah Anda yakin ingin menghapus data sekolah <strong>{{ $sch->name }}</strong> (NPSN: {{ $sch->npsn }})?<br><br>Seluruh data proyek revitalisasi, RAB, transaksi, dan dokumen RPD sekolah ini akan <strong>terhapus secara permanen</strong>."
+                          data-confirm-title="Hapus Data Sekolah"
+                          data-confirm-button="Ya, Hapus Sekolah"
+                          onsubmit="return confirm('Hapus data sekolah ini?')">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg">

@@ -63,18 +63,80 @@
 
             @if($unpostedCount > 0)
                 @role('root,admin')
+                <!-- Tombol Variasikan dengan AI Gemini -->
+                <form action="{{ route('rpd.ai_enhance', $rpd->id) }}" method="POST"
+                      data-confirm="Sistem akan menyempurnakan <strong>{{ $unpostedCount }} item draf</strong> menggunakan Google Gemini AI (atau Algoritma Cerdas Lokal).<br><br>Tanggal belanja akan disusun berfase konstruksi realistis, hari Minggu dihindari, upah tukang di hari Sabtu, narasi BKU dibuat variatif dan formal, serta toko lokal Situbondo disarankan otomatis.<br><br>Lanjutkan proses variasi cerdas?"
+                      data-confirm-title="Variasikan Draf dengan AI"
+                      data-confirm-button="Ya, Variasikan dengan AI"
+                      data-confirm-danger="false"
+                      onsubmit="return confirm('Variasikan jadwal dan narasi BKU item draf dengan AI?')">
+                    @csrf
+                    <button type="submit" 
+                            class="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500 text-white rounded-xl text-xs md:text-sm font-bold shadow-md shadow-teal-600/20 transition-all hover:-translate-y-0.5"
+                            title="Variasikan tanggal dan narasi BKU menggunakan Google Gemini AI">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-cyan-200"></i>
+                        <span>Variasi AI</span>
+                    </button>
+                </form>
+
                 <!-- Tombol Posting ke BKU Resmi untuk item baru yang belum diposting -->
                 <form action="{{ route('rpd.post_bku', $rpd->id) }}" method="POST" 
+                      data-confirm="Apakah Anda yakin ingin memposting <strong>{{ $unpostedCount }} item</strong> baru ini ke Buku Kas Umum (BKU)?{{ $postedCount > 0 ? ' Item yang sudah diposting sebelumnya tidak akan diduplikasi.' : ' Sistem akan otomatis mencatat Saldo Masuk Penerimaan Dana Termin dan Penarikan Tunai Kas.' }}"
+                      data-confirm-title="Posting ke BKU"
+                      data-confirm-button="Ya, Posting ke BKU"
                       onsubmit="return confirm('Apakah Anda yakin ingin memposting {{ $unpostedCount }} item baru / belum diposting ini ke Buku Kas Umum (BKU)?{{ $postedCount > 0 ? ' Item yang sudah diposting sebelumnya (' . $postedCount . ' item) tidak akan diduplikasi.' : ' Sistem akan otomatis mencatat Saldo Masuk Penerimaan Dana Termin dan Penarikan Tunai Kas.' }}')">
                     @csrf
                     <button type="submit" 
-                            class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs md:text-sm font-bold shadow-lg shadow-emerald-600/30 transition-all hover:-translate-y-0.5">
+                            class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs md:text-sm font-bold shadow-lg shadow-emerald-600/30 transition-all hover:-translate-y-0.5">
                         <i data-lucide="check-check" class="w-4 h-4"></i>
-                        <span>{{ $postedCount > 0 ? 'Posting ' . $unpostedCount . ' Item Baru ke BKU' : 'Posting ke BKU Sekarang' }}</span>
+                        <span>{{ $postedCount > 0 ? 'Posting ' . $unpostedCount . ' Item Baru' : 'Posting ke BKU' }}</span>
                     </button>
                 </form>
                 @endrole
             @endif
+
+            @role('root,admin')
+                @if($postedCount > 0)
+                <!-- Batalkan Posting BKU (Unpost) -->
+                <form action="{{ route('rpd.unpost', $rpd->id) }}" method="POST"
+                      data-confirm="Apakah Anda yakin ingin <strong>membatalkan posting ke BKU</strong> untuk dokumen RPD ini?<br><br>Seluruh <strong>{{ $postedCount }} transaksi belanja, saldo masuk penerimaan termin, dan penarikan tunai kas</strong> terkait dokumen ini akan <strong>dihapus dari BKU</strong>. Status dokumen akan kembali menjadi Draf Siap Posting."
+                      data-confirm-title="Batalkan Posting BKU"
+                      data-confirm-button="Ya, Batalkan Posting BKU"
+                      onsubmit="return confirm('Apakah Anda yakin ingin membatalkan posting BKU untuk dokumen RPD ini? Semua transaksi terkait di BKU akan dihapus.')">
+                    @csrf
+                    <button type="submit" 
+                            class="inline-flex items-center gap-1.5 px-3 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-xl text-xs md:text-sm font-bold transition-all shadow-sm"
+                            title="Batalkan posting dan hapus transaksi terkait di BKU">
+                        <i data-lucide="undo-2" class="w-4 h-4 text-amber-600"></i>
+                        <span>Batalkan Posting BKU</span>
+                    </button>
+                </form>
+                @endif
+
+                <!-- Hapus Dokumen RPD -->
+                @php
+                    $isPostedShow = $rpd->status === 'posted_to_bku' || $postedCount > 0;
+                    $delMsgShow = $isPostedShow 
+                        ? "Dokumen RPD ini <strong>sudah diposting ke BKU</strong>.<br><br>Menghapus RPD ini akan <strong>otomatis membatalkan posting</strong> dan <strong>MENGHAPUS SEMUA TRANSAKSI TERKAIT</strong> di Buku Kas Umum (BKU), BPK, BB, dan Buku Pembantu Pajak.<br><br>Apakah Anda benar-benar yakin ingin menghapus dokumen RPD beserta seluruh transaksinya?"
+                        : "Apakah Anda yakin ingin menghapus dokumen RPD ini? Seluruh draf item pecahan bahan di dalamnya akan ikut terhapus.";
+                    $delTitleShow = $isPostedShow ? "Hapus RPD & Batalkan BKU" : "Hapus Dokumen RPD";
+                    $delBtnShow = $isPostedShow ? "Ya, Hapus RPD & Transaksi BKU" : "Ya, Hapus RPD";
+                @endphp
+                <form action="{{ route('rpd.destroy', $rpd->id) }}" method="POST"
+                      data-confirm="{!! e($delMsgShow) !!}"
+                      data-confirm-title="{{ $delTitleShow }}"
+                      data-confirm-button="{{ $delBtnShow }}"
+                      onsubmit="return confirm('{{ $isPostedShow ? 'Peringatan: Dokumen RPD ini sudah diposting ke BKU. Menghapus dokumen ini akan membatalkan posting dan MENGHAPUS semua transaksi belanja, saldo masuk, dan penarikan tunai terkait dari BKU. Lanjutkan?' : 'Apakah Anda yakin ingin menghapus dokumen RPD ini?' }}')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" 
+                            class="inline-flex items-center gap-1.5 px-3 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs md:text-sm font-bold transition-all shadow-sm"
+                            title="Hapus Dokumen RPD">
+                        <i data-lucide="trash-2" class="w-4 h-4 text-rose-600"></i>
+                        <span>Hapus RPD</span>
+                    </button>
+                </form>
+            @endrole
         </div>
     </div>
 

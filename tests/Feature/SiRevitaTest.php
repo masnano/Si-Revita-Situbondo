@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\RevitalizationProject;
+use App\Models\RpdDocument;
+use App\Models\RpdItem;
 use App\Models\School;
 use App\Models\Transaction;
 use App\Models\User;
@@ -927,6 +930,157 @@ class SiRevitaTest extends TestCase
         $doc->items()->delete();
         $doc->delete();
         @unlink($tempFileEmpty);
+    }
+
+    public function test_posted_rpd_can_be_unposted_and_deleted_with_transactions()
+    {
+        $admin = User::where('username', 'admin')->first();
+        $this->actingAs($admin);
+
+        $school = School::first();
+        $project = RevitalizationProject::where('school_id', $school->id)->first();
+
+        // 1. Buat Dokumen RPD baru dengan 2 item
+        $csvData = "No,Kode Akun,Kategori,Uraian Pekerjaan,Spesifikasi,Volume,Satuan,Harga Satuan,Jumlah Total,Tanggal,Toko,Metode\n" .
+            "1,5.1.02.01,Bahan,Semen Uji Hapus Posted,SNI PCC 50kg,10,Zak,68000,680000,2026-09-01,Toko Berkah,Transfer Bank\n" .
+            "2,5.1.02.02,Upah,Upah Tukang Uji Hapus,HOK Tukang,5,OH,120000,600000,2026-09-05,Kelompok Tukang,Kas Tunai\n";
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'rpd_test_unpost_') . '.csv';
+        file_put_contents($tempFile, $csvData);
+        $file = new \Illuminate\Http\UploadedFile($tempFile, 'rpd_test_unpost.csv', 'text/csv', null, true);
+
+        $title = 'RPD Uji Hapus Posted ' . uniqid();
+        $this->post('/rpd', [
+            'school_id' => $school->id,
+            'project_id' => $project->id,
+            'term_stage' => 'Tahap Uji Hapus',
+            'title' => $title,
+            'rpd_file' => $file,
+            'default_date' => '2026-09-01',
+        ])->assertRedirect();
+
+        $doc = RpdDocument::where('title', $title)->first();
+        $this->assertNotNull($doc);
+        $this->assertEquals(2, $doc->items()->count());
+
+        // 2. Post ke BKU
+        $this->post("/rpd/{$doc->id}/post-bku")->assertRedirect();
+        $doc->refresh();
+        $this->assertEquals('posted_to_bku', $doc->status);
+        $this->assertEquals(2, $doc->items()->where('is_posted', true)->count());
+
+        // Verifikasi transaksi terbentuk di database BKU (2 item belanja + saldo masuk SP2D + tarik tunai kas = 4 transaksi)
+        $txCount = Transaction::where('project_id', $project->id)
+            ->where(function ($q) use ($doc) {
+                $q->where('notes', 'like', "%RPD #{$doc->id}%")
+                  ->orWhere('notes', 'like', "%RPD: {$doc->title}%")
+                  ->orWhere('notes', 'like', "%Pecah Bahan RPD: {$doc->title}%");
+            })->count();
+        $this->assertGreaterThanOrEqual(2, $txCount);
+
+        // 3. Tes Fitur UNPOST (Batalkan Posting BKU tanpa hapus dokumen)
+        $this->post("/rpd/{$doc->id}/unpost")->assertRedirect();
+        $doc->refresh();
+        $this->assertEquals('analyzed', $doc->status);
+        $this->assertNull($doc->posted_at);
+        $this->assertEquals(0, $doc->items()->where('is_posted', true)->count());
+        $this->assertEquals(2, $doc->items()->where('is_posted', false)->count());
+
+        // Verifikasi seluruh transaksi di BKU yang terkait telah terhapus
+        $txCountAfterUnpost = Transaction::where('project_id', $project->id)
+            ->where(function ($q) use ($doc) {
+                $q->where('notes', 'like', "%RPD #{$doc->id}%")
+                  ->orWhere('notes', 'like', "%RPD: {$doc->title}%")
+                  ->orWhere('notes', 'like', "%Pecah Bahan RPD: {$doc->title}%");
+            })->count();
+        $this->assertEquals(0, $txCountAfterUnpost);
+
+        // 4. Posting kembali ke BKU untuk menguji fitur HAPUS RPD YANG SUDAH DIPOSTING
+        $this->post("/rpd/{$doc->id}/post-bku")->assertRedirect();
+        $doc->refresh();
+        $this->assertEquals('posted_to_bku', $doc->status);
+
+        // 5. Hapus RPD yang sedang berstatus 'posted_to_bku'
+        $delResp = $this->delete("/rpd/{$doc->id}");
+        $delResp->assertRedirect(route('rpd.index'));
+        $delResp->assertSessionHas('success');
+
+        // Verifikasi dokumen dan item RPD telah terhapus
+        $this->assertDatabaseMissing('rpd_documents', ['id' => $doc->id]);
+        $this->assertDatabaseMissing('rpd_items', ['rpd_document_id' => $doc->id]);
+
+        // Verifikasi seluruh transaksi di BKU yang berkaitan juga otomatis ikut terhapus bersih
+        $txCountAfterDelete = Transaction::where('project_id', $project->id)
+            ->where(function ($q) use ($doc) {
+                $q->where('notes', 'like', "%RPD #{$doc->id}%")
+                  ->orWhere('notes', 'like', "%RPD: {$doc->title}%")
+                  ->orWhere('notes', 'like', "%Pecah Bahan RPD: {$doc->title}%");
+            })->count();
+        $this->assertEquals(0, $txCountAfterDelete);
+
+        @unlink($tempFile);
+    }
+
+    public function test_ai_variance_enhances_rpd_breakdown_items()
+    {
+        $admin = User::where('username', 'admin')->first();
+        $this->actingAs($admin);
+
+        $school = School::first();
+        $project = RevitalizationProject::where('school_id', $school->id)->first();
+
+        // 1. Unggah RPD dengan opsi use_ai = 1
+        $csvContent = "No,Kode Akun,Kategori,Uraian Pekerjaan,Spesifikasi,Volume,Satuan,Harga Satuan,Jumlah Total,Tanggal,Toko,Metode\n" .
+            "1,5.1.02.01,Bahan,Semen Gresik 50 Kg,SNI PCC Type 1,50,Zak,68000,3400000,2026-08-03,,Transfer Bank\n" .
+            "2,5.1.02.01,Bahan,Pasir Pasang Kali Sampean,Kasar Bersih,5,M3,250000,1250000,2026-08-03,,Kas Tunai\n" .
+            "3,5.1.02.01,Bahan,Cat Tembok Weathershield,Putih 20L,2,Pail,1450000,2900000,2026-08-03,,Transfer Bank\n" .
+            "4,5.1.02.02,Upah,Upah Tukang Batu,HOK Tukang,15,OH,120000,1800000,2026-08-03,,Kas Tunai\n";
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'rpd_test_ai_') . '.csv';
+        file_put_contents($tempFile, $csvContent);
+        $file = new \Illuminate\Http\UploadedFile($tempFile, 'rpd_ai_test.csv', 'text/csv', null, true);
+
+        $title = 'RPD Uji Variasi AI ' . uniqid();
+        $response = $this->post('/rpd', [
+            'school_id' => $school->id,
+            'project_id' => $project->id,
+            'term_stage' => 'Tahap AI Test',
+            'title' => $title,
+            'rpd_file' => $file,
+            'default_date' => '2026-08-03',
+            'use_ai' => 1,
+        ]);
+
+        $response->assertRedirect();
+        $doc = RpdDocument::where('title', $title)->first();
+        $this->assertNotNull($doc);
+        $this->assertEquals(4, $doc->items()->count());
+
+        // Verifikasi tidak ada transaksi di hari Minggu
+        foreach ($doc->items as $it) {
+            $this->assertFalse(\Carbon\Carbon::parse($it->planned_date)->isSunday(), 'Tidak boleh ada transaksi BKU di hari Minggu');
+        }
+
+        // Verifikasi item upah jatuh pada hari Sabtu
+        $upahItem = $doc->items->firstWhere('category', 'upah');
+        $this->assertNotNull($upahItem);
+        $this->assertTrue(\Carbon\Carbon::parse($upahItem->planned_date)->isSaturday(), 'Upah tukang harus dijadwalkan pada hari Sabtu');
+
+        // Verifikasi toko otomatis disarankan di Situbondo (bukan kosong)
+        $this->assertNotEmpty($upahItem->supplier_name);
+        $this->assertNotEquals('....................', $upahItem->supplier_name);
+
+        // 2. Uji endpoint manual AI enhance (/rpd/{id}/ai-enhance)
+        $aiEnhanceResp = $this->post("/rpd/{$doc->id}/ai-enhance", [
+            'overwrite_supplier' => 1,
+        ]);
+        $aiEnhanceResp->assertRedirect();
+        $aiEnhanceResp->assertSessionHas('success');
+
+        // Bersihkan data tes
+        $doc->items()->delete();
+        $doc->delete();
+        @unlink($tempFile);
     }
 }
 

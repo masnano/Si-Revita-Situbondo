@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use Dompdf\Dompdf;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -208,8 +209,80 @@ class RpdBreakdownService
                 'status' => $unpostedCount > 0 ? 'analyzed' : 'posted_to_bku',
             ]);
 
+            // Jika opsi use_ai aktif, variasikan dan sempurnakan item menggunakan AI / Smart Engine
+            if (!empty($options['use_ai'])) {
+                $this->enhanceDocumentWithAi($document, $options);
+            }
+
             return $document;
         });
+    }
+
+    /**
+     * Memvariasikan dan menyempurnakan item-item pecahan bahan RPD yang belum diposting menggunakan Gemini AI.
+     */
+    public function enhanceDocumentWithAi(RpdDocument $document, array $options = []): array
+    {
+        $unpostedItems = $document->items()->where('is_posted', false)->get();
+        if ($unpostedItems->isEmpty()) {
+            return [
+                'success' => false,
+                'message' => 'Tidak ada item draf/belum diposting yang dapat disempurnakan.',
+                'items_count' => 0,
+            ];
+        }
+
+        $itemsArray = [];
+        foreach ($unpostedItems as $item) {
+            $itemsArray[] = [
+                'id' => $item->id,
+                'row_number' => $item->row_number,
+                'category' => $item->category,
+                'item_name' => $item->item_name,
+                'specification' => $item->specification,
+                'volume' => (float)$item->volume,
+                'unit' => $item->unit,
+                'total_price' => (float)$item->total_price,
+                'planned_date' => $item->planned_date ? $item->planned_date->format('Y-m-d') : null,
+                'supplier_name' => $item->supplier_name,
+                'bku_description' => $item->bku_description,
+            ];
+        }
+
+        $geminiService = app(GeminiRpdService::class);
+        $result = $geminiService->enhanceItems($itemsArray, array_merge($options, [
+            'base_date' => $options['default_date'] ?? ($unpostedItems->min('planned_date') ? Carbon::parse($unpostedItems->min('planned_date'))->format('Y-m-d') : now()->format('Y-m-d')),
+            'project_title' => $document->project?->title ?? 'Revitalisasi Sekolah',
+            'school_name' => $document->school?->name ?? 'Sekolah Dasar Situbondo',
+            'term_stage' => $document->term_stage ?? 'Tahap 1',
+        ]));
+
+        $updatedCount = 0;
+        foreach ($result['items'] as $resItem) {
+            $modelItem = $unpostedItems->firstWhere('id', $resItem['id'] ?? null) 
+                      ?? $unpostedItems->firstWhere('row_number', $resItem['row_number'] ?? null);
+
+            if ($modelItem) {
+                $payload = [];
+                if (!empty($resItem['planned_date'])) {
+                    $payload['planned_date'] = $resItem['planned_date'];
+                }
+                if (!empty($resItem['bku_description'])) {
+                    $payload['bku_description'] = $resItem['bku_description'];
+                }
+                if (!empty($resItem['supplier_name']) && ($modelItem->supplier_name === '....................' || empty($modelItem->supplier_name) || !empty($options['overwrite_supplier']))) {
+                    $payload['supplier_name'] = $resItem['supplier_name'];
+                }
+                if (!empty($payload)) {
+                    $modelItem->update($payload);
+                    $updatedCount++;
+                }
+            }
+        }
+
+        return array_merge($result, [
+            'items_count' => $updatedCount,
+        ]);
     }
 
     /**
@@ -2723,6 +2796,83 @@ class RpdBreakdownService
         });
 
         return $postedCount;
+    }
+
+    /**
+     * Membatalkan posting BKU dari suatu Dokumen RPD.
+     * Menghapus seluruh transaksi BKU (belanja bahan/upah, saldo masuk pencairan termin, dan tarik tunai kas)
+     * yang tercipta dari dokumen ini, serta mengembalikan status dokumen menjadi 'analyzed'.
+     */
+    public function unpostFromBku(RpdDocument $document): int
+    {
+        return DB::transaction(function () use ($document) {
+            $deletedCount = 0;
+
+            // 1. Ambil ID transaksi belanja dari item-item dokumen RPD
+            $itemTrxIds = $document->items()
+                ->whereNotNull('transaction_id')
+                ->pluck('transaction_id')
+                ->filter()
+                ->toArray();
+
+            // 2. Ambil transaksi otomatis (saldo masuk pencairan & tarik tunai) yang terkait dokumen RPD ini
+            $autoTrxIds = Transaction::where('project_id', $document->project_id)
+                ->where(function ($q) use ($document) {
+                    $q->where('notes', 'like', "%RPD #{$document->id}%")
+                      ->orWhere('notes', 'like', "%RPD: {$document->title}%")
+                      ->orWhere('notes', 'like', "%Hasil Pecah Bahan RPD: {$document->title}%");
+                })
+                ->pluck('id')
+                ->toArray();
+
+            $allTrxIds = array_unique(array_merge($itemTrxIds, $autoTrxIds));
+
+            if (!empty($allTrxIds)) {
+                $transactions = Transaction::whereIn('id', $allTrxIds)->get();
+                foreach ($transactions as $trx) {
+                    if ($trx->receipt_file && Storage::disk('public')->exists($trx->receipt_file)) {
+                        Storage::disk('public')->delete($trx->receipt_file);
+                    }
+                    $trx->delete();
+                    $deletedCount++;
+                }
+            }
+
+            // 3. Reset status pada seluruh item dokumen RPD
+            $document->items()->update([
+                'is_posted' => false,
+                'transaction_id' => null,
+                'bku_number' => null,
+            ]);
+
+            // 4. Reset status dokumen RPD
+            $document->update([
+                'status' => 'analyzed',
+                'posted_at' => null,
+            ]);
+
+            return $deletedCount;
+        });
+    }
+
+    /**
+     * Menghapus Dokumen RPD secara tuntas beserta seluruh transaksi BKU-nya jika sudah diposting.
+     */
+    public function deleteDocumentWithTransactions(RpdDocument $document): void
+    {
+        DB::transaction(function () use ($document) {
+            // 1. Batalkan posting dan hapus transaksi BKU terkait (jika pernah diposting)
+            $this->unpostFromBku($document);
+
+            // 2. Hapus berkas file RPD yang diunggah jika ada
+            if ($document->file_path && Storage::disk('public')->exists($document->file_path)) {
+                Storage::disk('public')->delete($document->file_path);
+            }
+
+            // 3. Hapus seluruh item pecahan dan dokumen induk
+            $document->items()->delete();
+            $document->delete();
+        });
     }
 
     /**

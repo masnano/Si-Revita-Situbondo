@@ -475,8 +475,166 @@
         </main>
     </div>
 
-    <!-- Initialize Lucide Icons & Print Filename Helper -->
+    <!-- Global Universal Confirmation Modal for Deletion / Critical Actions -->
+    <div x-data="globalConfirmHandler()"
+         x-cloak
+         x-show="isOpen"
+         @open-global-confirm.window="openModal($event.detail)"
+         @keydown.escape.window="closeModal()"
+         class="fixed inset-0 z-50 overflow-y-auto no-print"
+         style="display: none;">
+        <!-- Backdrop -->
+        <div x-show="isOpen"
+             x-transition:enter="ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+             @click="closeModal()"></div>
+
+        <!-- Dialog Container -->
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div x-show="isOpen"
+                 x-transition:enter="ease-out duration-200"
+                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave="ease-in duration-150"
+                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-slate-200"
+                 @click.stop>
+                
+                <div class="bg-white p-6 sm:p-7">
+                    <div class="flex items-start gap-4">
+                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl sm:h-12 sm:w-12 shadow-sm"
+                             :class="isDanger ? 'bg-rose-100 text-rose-600 border border-rose-200' : 'bg-amber-100 text-amber-700 border border-amber-200'">
+                            <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                        </div>
+                        <div class="flex-1 mt-0.5">
+                            <h3 class="text-base sm:text-lg font-extrabold text-slate-900" x-text="title"></h3>
+                            <div class="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed font-normal" x-html="message"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50/90 px-6 py-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 border-t border-slate-200">
+                    <button type="button"
+                            x-ref="cancelBtn"
+                            @click="closeModal()"
+                            class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400">
+                        Batal
+                    </button>
+                    <button type="button"
+                            @click="confirmAction()"
+                            :class="isDanger ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/30' : 'bg-amber-600 hover:bg-amber-700 text-white shadow-amber-600/30'"
+                            class="w-full sm:w-auto inline-flex justify-center items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-rose-500">
+                        <i data-lucide="trash-2" class="w-4 h-4" x-show="isDanger"></i>
+                        <span x-text="confirmText"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Initialize Lucide Icons & Print Filename Helper & Global Confirm -->
     <script>
+        function globalConfirmHandler() {
+            return {
+                isOpen: false,
+                title: 'Konfirmasi Penghapusan Data',
+                message: 'Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.',
+                confirmText: 'Ya, Hapus Data',
+                isDanger: true,
+                targetForm: null,
+                callback: null,
+
+                openModal(detail) {
+                    this.title = detail.title || 'Konfirmasi Penghapusan Data';
+                    this.message = detail.message || 'Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.';
+                    this.confirmText = detail.confirmText || 'Ya, Hapus Data';
+                    this.isDanger = detail.isDanger !== undefined ? detail.isDanger : true;
+                    this.targetForm = detail.form || null;
+                    this.callback = detail.callback || null;
+                    this.isOpen = true;
+
+                    this.$nextTick(() => {
+                        if (window.lucide) {
+                            window.lucide.createIcons();
+                        }
+                        if (this.$refs.cancelBtn) {
+                            this.$refs.cancelBtn.focus();
+                        }
+                    });
+                },
+
+                closeModal() {
+                    this.isOpen = false;
+                    this.targetForm = null;
+                    this.callback = null;
+                },
+
+                confirmAction() {
+                    const form = this.targetForm;
+                    const cb = this.callback;
+                    this.isOpen = false;
+
+                    if (cb && typeof cb === 'function') {
+                        cb();
+                    } else if (form) {
+                        form.dataset.confirmed = 'true';
+                        form.submit();
+                    }
+                }
+            };
+        }
+
+        // Intersep seluruh form submit yang menghapus data atau memerlukan konfirmasi
+        document.addEventListener('submit', function (e) {
+            const form = e.target;
+            if (!form || form.dataset.confirmed === 'true') {
+                return;
+            }
+
+            const isDelete = form.querySelector('input[name="_method"][value="DELETE"]') !== null;
+            const hasConfirmAttr = form.hasAttribute('data-confirm');
+            const onsubmitAttr = form.getAttribute('onsubmit') || '';
+            const hasConfirmOnsubmit = onsubmitAttr.includes('confirm(');
+
+            if (isDelete || hasConfirmAttr || hasConfirmOnsubmit) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+
+                let message = form.getAttribute('data-confirm');
+                if (!message && hasConfirmOnsubmit) {
+                    const match = onsubmitAttr.match(/confirm\(\s*['"](.*?)['"]\s*\)/);
+                    if (match && match[1]) {
+                        message = match[1];
+                    }
+                }
+                if (!message) {
+                    message = isDelete 
+                        ? 'Apakah Anda yakin ingin menghapus data ini? Seluruh data yang berkaitan akan dihapus secara permanen.'
+                        : 'Apakah Anda yakin ingin memproses tindakan ini?';
+                }
+
+                const title = form.getAttribute('data-confirm-title') || (isDelete ? 'Konfirmasi Hapus Data' : 'Konfirmasi Tindakan');
+                const confirmText = form.getAttribute('data-confirm-button') || (isDelete ? 'Ya, Hapus Data' : 'Ya, Lanjutkan');
+                const isDanger = form.getAttribute('data-confirm-danger') !== 'false';
+
+                window.dispatchEvent(new CustomEvent('open-global-confirm', {
+                    detail: {
+                        title: title,
+                        message: message,
+                        confirmText: confirmText,
+                        isDanger: isDanger,
+                        form: form
+                    }
+                }));
+            }
+        }, true);
+
         document.addEventListener('DOMContentLoaded', () => {
             if (window.lucide) {
                 window.lucide.createIcons();

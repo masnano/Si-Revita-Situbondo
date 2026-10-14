@@ -314,7 +314,11 @@
                                     </button>
                                     @endpermission
                                     @permission('rab.delete')
-                                    <form action="{{ route('rab.destroy', $item->id) }}" method="POST" class="inline" onsubmit="return confirm('Hapus item RAB ini?')">
+                                    <form action="{{ route('rab.destroy', $item->id) }}" method="POST" class="inline"
+                                          data-confirm="Apakah Anda yakin ingin menghapus item anggaran RAB <strong>{{ $item->item_name }}</strong> (Rp {{ number_format($item->total_price, 0, ',', '.') }})?<br><br>Item ini akan dihapus dari rincian RAB proyek."
+                                          data-confirm-title="Hapus Item RAB"
+                                          data-confirm-button="Ya, Hapus Item"
+                                          onsubmit="return confirm('Hapus item RAB ini?')">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="p-1 text-rose-600 hover:bg-rose-50 rounded" title="Hapus Item">

@@ -111,7 +111,11 @@
                     @endpermission
 
                     @permission('proyek.delete')
-                    <form action="{{ route('projects.destroy', $p->id) }}" method="POST" onsubmit="return confirm('Hapus paket revitalisasi ini?')">
+                    <form action="{{ route('projects.destroy', $p->id) }}" method="POST"
+                          data-confirm="Apakah Anda yakin ingin menghapus paket revitalisasi <strong>{{ $p->title }}</strong>?<br><br>Seluruh data anggaran (RAB), dokumen RPD, dan transaksi BKU terkait paket ini akan <strong>dihapus secara permanen</strong>."
+                          data-confirm-title="Hapus Paket Revitalisasi"
+                          data-confirm-button="Ya, Hapus Paket"
+                          onsubmit="return confirm('Hapus paket revitalisasi ini?')">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg">

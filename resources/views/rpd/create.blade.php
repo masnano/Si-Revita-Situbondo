@@ -237,6 +237,53 @@
                             </div>
                         </div>
 
+                        <!-- 4. Pilihan Fitur AI Google Gemini (Gratis) -->
+                        <div class="p-4 rounded-xl bg-gradient-to-r from-teal-50 via-emerald-50 to-cyan-50 border border-teal-200 shadow-sm space-y-3" x-data="{ enableAi: true, showApiKey: false }">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="flex items-start gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-sm font-bold">
+                                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                                    </div>
+                                    <div>
+                                        <label for="use_ai" class="text-xs font-bold text-teal-950 flex items-center gap-1.5 cursor-pointer">
+                                            <span>Aktifkan Variasi Cerdas Google Gemini AI (Gratis)</span>
+                                            <span class="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-teal-100 text-teal-800 border border-teal-300">Rekomendasi</span>
+                                        </label>
+                                        <p class="text-[11px] text-teal-800/90 mt-1 leading-relaxed">
+                                            AI akan menyusun urutan jadwal tanggal belanja berfase konstruksi (pondasi &rarr; dinding &rarr; atap &rarr; finishing), menjadwalkan upah di hari Sabtu, memvariasikan kalimat narasi BKU resmi, dan merekomendasikan toko lokal Situbondo secara otomatis.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="pt-0.5">
+                                    <input type="checkbox" name="use_ai" id="use_ai" value="1" x-model="enableAi" checked
+                                           class="w-4 h-4 rounded text-teal-600 focus:ring-teal-500 border-slate-300 cursor-pointer">
+                                </div>
+                            </div>
+
+                            <div x-show="enableAi" x-transition class="pt-2 border-t border-teal-200/70 text-xs text-teal-900 space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[11px] text-teal-700">
+                                        Status: <strong>{{ config('services.gemini.api_key') ? 'API Key Siap Terhubung (Google Gemini)' : 'Mode Cerdas Lokal Aktif (Dapat Menggunakan API Key Sendiri)' }}</strong>
+                                    </span>
+                                    <button type="button" @click="showApiKey = !showApiKey" class="text-[11px] font-bold text-teal-700 hover:text-teal-900 underline flex items-center gap-1">
+                                        <i data-lucide="key" class="w-3 h-3"></i>
+                                        <span x-text="showApiKey ? 'Sembunyikan Pengaturan Key' : 'Atur / Masukkan API Key Gemini (Opsional)'"></span>
+                                    </button>
+                                </div>
+
+                                <div x-show="showApiKey" x-transition class="p-3 bg-white rounded-lg border border-teal-300 space-y-2">
+                                    <label class="block text-[11px] font-semibold text-slate-700">
+                                        Google Gemini API Key (Opsional / Free Tier)
+                                    </label>
+                                    <input type="password" name="gemini_api_key" placeholder="AIzaSy... (Dapatkan gratis di aistudio.google.com)"
+                                           class="w-full text-xs rounded-lg border border-slate-300 p-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+                                    <p class="text-[10px] text-slate-500">
+                                        Jika dikosongkan, sistem tetap menghasilkan variasi menggunakan Algoritma Cerdas Heuristik Lokal Situbondo (100% offline).
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
                         <div>
                             <label for="notes" class="block text-xs font-semibold text-slate-700 mb-1.5">
                                 Catatan / Keterangan Dokumen (Opsional)

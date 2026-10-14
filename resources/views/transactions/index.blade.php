@@ -152,6 +152,9 @@
 
                                 @permission('transaksi.delete')
                                 <form action="{{ route('transactions.destroy', $tx->id) }}" method="POST" class="inline"
+                                      data-confirm="Apakah Anda yakin ingin menghapus transaksi <strong>{{ $tx->transaction_number }}</strong> (Rp {{ number_format($tx->amount, 0, ',', '.') }})?<br><br>Data pada <strong>Buku Kas Umum (BKU), BPK, BB, dan Buku Pembantu Pajak</strong> akan ikut terhapus secara permanen."
+                                      data-confirm-title="Hapus Transaksi Keuangan"
+                                      data-confirm-button="Ya, Hapus Transaksi"
                                       onsubmit="return confirm('Hapus transaksi ini? Data di BKU/BPK/BB/BP akan ikut terhapus.')">
                                     @csrf
                                     @method('DELETE')

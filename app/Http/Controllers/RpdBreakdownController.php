@@ -182,6 +182,8 @@ class RpdBreakdownController extends Controller
             'title' => 'nullable|string|max:255',
             'default_date' => 'nullable|date',
             'default_store' => 'nullable|string|max:255',
+            'use_ai' => 'nullable|boolean',
+            'gemini_api_key' => 'nullable|string|max:255',
         ], [
             'rpd_file.required' => 'Pilih berkas file RPD yang akan diunggah.',
             'project_id.required' => 'Pilih paket proyek revitalisasi yang dituju.',
@@ -199,6 +201,7 @@ class RpdBreakdownController extends Controller
         $defaultStore = $rawStore !== '' ? $rawStore : '....................';
 
         try {
+            $useAi = $request->boolean('use_ai', false);
             $document = $this->breakdownService->processUpload($file, $project, [
                 'term_stage' => $request->term_stage,
                 'target_column' => $request->target_column ?: 'auto',
@@ -207,10 +210,13 @@ class RpdBreakdownController extends Controller
                 'default_date' => $request->default_date ?: now()->format('Y-m-d'),
                 'default_store' => $defaultStore,
                 'notes' => $request->notes,
+                'use_ai' => $useAi,
+                'api_key' => $request->input('gemini_api_key'),
             ]);
 
+            $aiNotice = $useAi ? ' (✨ Variasi Jadwal & Narasi Cerdas Aktif)' : '';
             return redirect()->route('rpd.show', $document->id)
-                ->with('success', "Alhamdulillah! Berkas RPD (" . strtoupper($ext) . ") berhasil diproses. Sebanyak {$document->total_items_count} item berhasil dipecah menjadi draf isian BKU.");
+                ->with('success', "Alhamdulillah! Berkas RPD (" . strtoupper($ext) . ") berhasil diproses{$aiNotice}. Sebanyak {$document->total_items_count} item berhasil dipecah menjadi draf isian BKU.");
         } catch (\Exception $e) {
             return back()->withInput()->with('error', 'Gagal memproses berkas RPD: ' . $e->getMessage());
         }
@@ -534,16 +540,62 @@ class RpdBreakdownController extends Controller
 
     /**
      * Hapus Dokumen RPD & Item-itemnya.
+     * Jika dokumen sudah diposting ke BKU, otomatis membatalkan posting dan menghapus seluruh transaksi terkait di BKU.
      */
     public function destroy(RpdDocument $rpd)
     {
-        if ($rpd->status === 'posted_to_bku') {
-            return back()->with('error', 'Dokumen RPD yang transaksinya sudah diposting ke BKU tidak dapat dihapus langsung untuk menjaga integritas pembukuan.');
+        try {
+            $isPosted = $rpd->status === 'posted_to_bku' || $rpd->items()->where('is_posted', true)->exists();
+
+            $this->breakdownService->deleteDocumentWithTransactions($rpd);
+
+            $message = $isPosted
+                ? 'Dokumen RPD berhasil dihapus. Seluruh pembukuan transaksinya di BKU, BPK, BB, dan Buku Pembantu Pajak telah otomatis dibatalkan dan dibersihkan.'
+                : 'Dokumen RPD berhasil dihapus.';
+
+            return redirect()->route('rpd.index')->with('success', $message);
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal menghapus dokumen RPD: ' . $e->getMessage());
         }
+    }
 
-        $rpd->delete();
+    /**
+     * Batalkan posting BKU dari dokumen RPD tanpa menghapus dokumen itu sendiri.
+     */
+    public function unpost(RpdDocument $rpd)
+    {
+        try {
+            $deletedCount = $this->breakdownService->unpostFromBku($rpd);
 
-        return redirect()->route('rpd.index')->with('success', 'Dokumen RPD berhasil dihapus.');
+            return redirect()->route('rpd.show', $rpd->id)->with('success', "Posting ke BKU berhasil dibatalkan. Sebanyak {$deletedCount} transaksi terkait di Buku Kas Umum (BKU) telah dihapus. Status dokumen dikembalikan menjadi Draf Siap Posting.");
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal membatalkan posting BKU: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Memvariasikan dan menyempurnakan draf isian BKU dengan AI Google Gemini atau Mesin Cerdas Lokal.
+     */
+    public function enhanceWithAi(Request $request, RpdDocument $rpd)
+    {
+        try {
+            $apiKey = $request->input('gemini_api_key');
+            $overwriteSupplier = $request->boolean('overwrite_supplier', false);
+
+            $result = $this->breakdownService->enhanceDocumentWithAi($rpd, [
+                'api_key' => $apiKey,
+                'overwrite_supplier' => $overwriteSupplier,
+            ]);
+
+            if (!$result['success']) {
+                return back()->with('warning', $result['message']);
+            }
+
+            $prefix = $result['used_ai'] ? "✨ Gemini AI ({$result['model']})" : "⚡ Mesin Cerdas Lokal";
+            return back()->with('success', "{$prefix}: {$result['message']} ({$result['items_count']} baris item berhasil divariasikan).");
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Gagal memproses variasi AI: ' . $e->getMessage());
+        }
     }
 }
 

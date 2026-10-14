@@ -111,7 +111,11 @@
                                 </a>
 
                                 @if($u->id !== auth()->id())
-                                <form action="{{ route('users.destroy', $u->id) }}" method="POST" class="inline" onsubmit="return confirm('Hapus user ini?')">
+                                <form action="{{ route('users.destroy', $u->id) }}" method="POST" class="inline"
+                                      data-confirm="Apakah Anda yakin ingin menghapus user <strong>{{ $u->name }}</strong> ({{ $u->email }})?<br><br>Akses pengguna ini ke aplikasi Si Revita akan dicabut permanen."
+                                      data-confirm-title="Hapus Pengguna Sistem"
+                                      data-confirm-button="Ya, Hapus User"
+                                      onsubmit="return confirm('Hapus user ini?')">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg">
