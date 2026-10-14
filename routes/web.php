@@ -45,6 +45,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/bpk', [ReportController::class, 'bpk'])->name('bpk')->middleware('permission:bpk.view');
         Route::get('/bb', [ReportController::class, 'bb'])->name('bb')->middleware('permission:bb.view');
         Route::get('/bp', [ReportController::class, 'bp'])->name('bp')->middleware('permission:bp.view');
+        Route::post('/bp/auto-setor', [ReportController::class, 'autoSetorPajak'])->name('bp.auto_setor')->middleware('role:root,admin');
+        Route::get('/ai-audit', [ReportController::class, 'aiAudit'])->name('ai_audit')->middleware('permission:laporan.view');
         Route::get('/realisasi', [ReportController::class, 'realisasi'])->name('realisasi')->middleware('permission:laporan.view');
         Route::get('/kuitansi', [ReportController::class, 'kuitansi'])->name('kuitansi')->middleware('permission:kuitansi.view');
         Route::get('/kuitansi/{id}/print', [ReportController::class, 'printKuitansi'])->name('kuitansi.print')->middleware('permission:kuitansi.print');
@@ -52,6 +54,8 @@ Route::middleware('auth')->group(function () {
     });
 
     // 3. Modul Transaksi Keuangan (BKU / Kas / Bank / Pajak)
+    Route::post('/transactions/ai/generate-description', [TransactionController::class, 'generateAiDescription'])->name('transactions.ai.generate_description');
+    Route::get('/transactions/ai/generate-ntpn', [TransactionController::class, 'generateAiNtpn'])->name('transactions.ai.generate_ntpn');
     Route::resource('transactions', TransactionController::class);
     Route::post('/transactions/{transaction}/setor-pajak', [TransactionController::class, 'setorPajak'])->name('transactions.setor_pajak');
 
@@ -60,7 +64,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('projects', ProjectController::class);
     Route::get('/rab/template', [BudgetItemController::class, 'template'])->name('rab.template');
     Route::post('/rab/import', [BudgetItemController::class, 'import'])->name('rab.import')->middleware('permission:rab.create');
-    Route::resource('rab', BudgetItemController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('rab', BudgetItemController::class)->parameters(['rab' => 'budgetItem'])->only(['index', 'store', 'update', 'destroy']);
 
     // 5. Modul Pecah Bahan RPD (Upload RPD & Generate Isian BKU)
     Route::prefix('rpd')->name('rpd.')->group(function () {

@@ -240,6 +240,18 @@
                         </div>
                     </a>
 
+                    <a href="{{ route('reports.ai_audit') }}" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all {{ request()->routeIs('reports.ai_audit') ? 'bg-purple-700 text-white font-semibold shadow-md shadow-purple-700/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-purple-400"></i>
+                        <div class="flex-1">
+                            <div class="leading-tight flex items-center justify-between">
+                                <span>Audit Kepatuhan AI</span>
+                                <span class="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/30 text-purple-200 font-bold">GEMINI</span>
+                            </div>
+                            <span class="text-[11px] text-slate-400 font-sans">Deteksi Anomali SPJ</span>
+                        </div>
+                    </a>
+
                     <a href="{{ route('reports.realisasi') }}" 
                        class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all {{ request()->routeIs('reports.realisasi') ? 'bg-emerald-600 text-white font-semibold shadow-md shadow-emerald-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                         <i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-400"></i>

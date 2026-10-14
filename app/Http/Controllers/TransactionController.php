@@ -6,6 +6,7 @@ use App\Models\BudgetItem;
 use App\Models\RevitalizationProject;
 use App\Models\School;
 use App\Models\Transaction;
+use App\Services\GeminiRpdService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -103,9 +104,19 @@ class TransactionController extends Controller
         $taxTotal = $hasTax ? ($taxPpn + $taxPph21 + $taxPph22 + $taxPph23 + $taxPph4_2) : 0;
         $netAmount = max(0, $amount - $taxTotal);
 
+        $geminiService = app(GeminiRpdService::class);
         $taxStatus = 'none';
-        if ($hasTax) {
-            $taxStatus = !empty($request->tax_ntpn) ? 'disetor' : 'dipungut';
+        $taxNtpn = $request->tax_ntpn;
+        $taxPaymentDate = $request->tax_payment_date;
+
+        if ($hasTax && $taxTotal > 0) {
+            if (empty($taxNtpn)) {
+                $taxNtpn = $geminiService->generateNtpn();
+            }
+            if (empty($taxPaymentDate)) {
+                $taxPaymentDate = $geminiService->calculateTaxPaymentDate($validated['transaction_date']);
+            }
+            $taxStatus = 'disetor';
         }
 
         $receiptPath = null;
@@ -134,8 +145,8 @@ class TransactionController extends Controller
             'tax_pph4_2' => $taxPph4_2,
             'tax_total' => $taxTotal,
             'net_amount' => $netAmount,
-            'tax_ntpn' => $request->tax_ntpn,
-            'tax_payment_date' => $request->tax_payment_date,
+            'tax_ntpn' => $taxNtpn,
+            'tax_payment_date' => $taxPaymentDate,
             'tax_status' => $taxStatus,
             'receipt_file' => $receiptPath,
             'notes' => $request->notes,
@@ -190,9 +201,19 @@ class TransactionController extends Controller
         $taxTotal = $hasTax ? ($taxPpn + $taxPph21 + $taxPph22 + $taxPph23 + $taxPph4_2) : 0;
         $netAmount = max(0, $amount - $taxTotal);
 
+        $geminiService = app(GeminiRpdService::class);
         $taxStatus = 'none';
-        if ($hasTax) {
-            $taxStatus = !empty($request->tax_ntpn) ? 'disetor' : 'dipungut';
+        $taxNtpn = $request->tax_ntpn;
+        $taxPaymentDate = $request->tax_payment_date;
+
+        if ($hasTax && $taxTotal > 0) {
+            if (empty($taxNtpn)) {
+                $taxNtpn = $geminiService->generateNtpn();
+            }
+            if (empty($taxPaymentDate)) {
+                $taxPaymentDate = $geminiService->calculateTaxPaymentDate($validated['transaction_date']);
+            }
+            $taxStatus = 'disetor';
         }
 
         $receiptPath = $transaction->receipt_file;
@@ -221,8 +242,8 @@ class TransactionController extends Controller
             'tax_pph4_2' => $taxPph4_2,
             'tax_total' => $taxTotal,
             'net_amount' => $netAmount,
-            'tax_ntpn' => $request->tax_ntpn,
-            'tax_payment_date' => $request->tax_payment_date,
+            'tax_ntpn' => $taxNtpn,
+            'tax_payment_date' => $taxPaymentDate,
             'tax_status' => $taxStatus,
             'receipt_file' => $receiptPath,
             'notes' => $request->notes,
@@ -255,5 +276,49 @@ class TransactionController extends Controller
         ]);
 
         return back()->with('success', "Penyetoran Pajak untuk transaksi {$transaction->transaction_number} berhasil dicatat dengan NTPN: {$validated['tax_ntpn']}");
+    }
+
+    /**
+     * API AJAX untuk membuat uraian narasi BKU resmi menggunakan AI / Smart Engine.
+     */
+    public function generateAiDescription(Request $request)
+    {
+        $category = $request->get('category', 'bahan');
+        $itemName = $request->get('item_name', '');
+        $volume = $request->get('volume', 1);
+        $unit = $request->get('unit', 'Unit');
+        $supplier = $request->get('supplier', '');
+        $projectTitle = $request->get('project_title', '');
+
+        if (empty($itemName)) {
+            return response()->json(['success' => false, 'message' => 'Nama barang/pekerjaan tidak boleh kosong.'], 422);
+        }
+
+        $gemini = app(GeminiRpdService::class);
+        $description = $gemini->generateBkuDescription($category, $itemName, $volume, $unit, $supplier, $projectTitle);
+
+        return response()->json([
+            'success' => true,
+            'description' => $description,
+        ]);
+    }
+
+    /**
+     * API AJAX untuk menghasilkan NTPN acak resmi dan tanggal penyetoran yang sinkron dengan transaksi.
+     */
+    public function generateAiNtpn(Request $request)
+    {
+        $date = $request->get('transaction_date', now()->format('Y-m-d'));
+        $category = $request->get('category');
+
+        $gemini = app(GeminiRpdService::class);
+        $ntpn = $gemini->generateNtpn();
+        $taxDate = $gemini->calculateTaxPaymentDate($date, $category);
+
+        return response()->json([
+            'success' => true,
+            'ntpn' => $ntpn,
+            'tax_payment_date' => $taxDate,
+        ]);
     }
 }

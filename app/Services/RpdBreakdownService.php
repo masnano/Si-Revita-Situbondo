@@ -48,6 +48,45 @@ class RpdBreakdownService
             throw new \Exception('File RPD tidak memiliki data baris yang valid atau format tabel tidak dikenali. Pastikan file berisi tabel RPD dengan uraian pekerjaan, volume, dan nominal anggaran.');
         }
 
+        // Auto-breakdown jika ada baris pagu gelondongan Mobilisasi atau Biaya Pengelolaan yang belum dipecah
+        $expandedRows = [];
+        foreach ($rawRows as $r) {
+            $uLower = strtolower(trim($r['uraian'] ?? ''));
+            $tot = (float)($r['total'] ?? 0);
+
+            $isLumpMobilisasi = (str_contains($uLower, 'mobilisasi') || str_contains($uLower, 'demobilisasi'))
+                && !str_contains($uLower, 'ongkos angkut')
+                && !str_contains($uLower, 'ongkos kirim')
+                && !str_contains($uLower, 'pengiriman bahan')
+                && !str_contains($uLower, 'mesin molen')
+                && !str_contains($uLower, 'scaffolding')
+                && $tot > 0;
+
+            $isLumpPengelolaan = str_contains($uLower, 'pengelolaan')
+                && !str_contains($uLower, 'atk')
+                && !str_contains($uLower, 'konsumsi')
+                && !str_contains($uLower, 'transport')
+                && !str_contains($uLower, 'sppd')
+                && !str_contains($uLower, 'spanduk')
+                && !str_contains($uLower, 'materai')
+                && $tot > 0;
+
+            if ($isLumpMobilisasi) {
+                $decomposed = $this->decomposeBelanjaMobilisasi($tot, $r['room_name'] ?? null, $extractOptions);
+                foreach ($decomposed as $d) {
+                    $expandedRows[] = $d;
+                }
+            } elseif ($isLumpPengelolaan) {
+                $decomposed = $this->decomposeBiayaPengelolaan($tot, $extractOptions);
+                foreach ($decomposed as $d) {
+                    $expandedRows[] = $d;
+                }
+            } else {
+                $expandedRows[] = $r;
+            }
+        }
+        $rawRows = $expandedRows;
+
         return DB::transaction(function () use ($project, $title, $termStage, $storedPath, $originalName, $extension, $rawRows, $options, $existingRabItems) {
             // Cek apakah dokumen RPD untuk proyek ini sudah ada (berdasarkan ID atau Judul Dokumen)
             $document = null;
@@ -601,7 +640,7 @@ class RpdBreakdownService
             return $this->parseOfficialRpdMatrix($sheetData, $options);
         }
 
-        return $this->mapMatrixToStructuredRows($sheetData);
+        return $this->mapMatrixToStructuredRows($sheetData, $options);
     }
 
     /**
@@ -890,13 +929,13 @@ class RpdBreakdownService
             return $this->parseOfficialRpdMatrix($matrix, $options);
         }
 
-        return $this->mapMatrixToStructuredRows($matrix);
+        return $this->mapMatrixToStructuredRows($matrix, $options);
     }
 
     /**
      * Menemukan baris header dan memetakan baris data format rincian ke array asosiatif.
      */
-    protected function mapMatrixToStructuredRows(array $matrix): array
+    protected function mapMatrixToStructuredRows(array $matrix, array $options = []): array
     {
         $headerRowIndex = null;
         $headerMap = [];
@@ -986,6 +1025,33 @@ class RpdBreakdownService
             }
 
             if ($total <= 0) {
+                continue;
+            }
+
+            // Auto-breakdown untuk Mobilisasi & Biaya Pengelolaan
+            $uLower = strtolower($uraian);
+            $isLumpMob = (str_contains($uLower, 'mobilisasi') || str_contains($uLower, 'demobilisasi'))
+                && !str_contains($uLower, 'ongkos angkut')
+                && !str_contains($uLower, 'ongkos kirim')
+                && !str_contains($uLower, 'pengiriman bahan');
+            $isLumpPeng = str_contains($uLower, 'pengelolaan')
+                && !str_contains($uLower, 'atk')
+                && !str_contains($uLower, 'konsumsi')
+                && !str_contains($uLower, 'sppd');
+
+            if ($isLumpMob) {
+                $decomposed = $this->decomposeBelanjaMobilisasi($total, null, $options);
+                foreach ($decomposed as $d) {
+                    $results[] = $d;
+                }
+                continue;
+            }
+
+            if ($isLumpPeng) {
+                $decomposed = $this->decomposeBiayaPengelolaan($total, $options);
+                foreach ($decomposed as $d) {
+                    $results[] = $d;
+                }
                 continue;
             }
 
@@ -1478,8 +1544,9 @@ class RpdBreakdownService
     }
 
     /**
-     * Memecah pagu gelondongan Belanja Mobilisasi menjadi biaya tambahan ongkos angkut / pengiriman barang material
-     * yang diambilkan dari anggaran Belanja Mobilisasi sesuai jadwal tahapan pembelian bahan.
+     * Memecah pagu gelondongan Belanja Mobilisasi secara otomatis menggunakan AI Google Gemini
+     * (atau Smart Heuristic Engine Situbondo jika offline / tanpa API key) menjadi biaya tambahan
+     * ongkos kirim/angkut bahan material dari toko ke sekolah/tempat yang ditentukan serta sewa peralatan kerja.
      */
     public function decomposeBelanjaMobilisasi(float $totalAmount, ?string $roomName = null, array $options = []): array
     {
@@ -1487,97 +1554,24 @@ class RpdBreakdownService
             return [];
         }
 
-        $defaultDate = $options['default_date'] ?? now()->format('Y-m-d');
-        $existingRab = $options['existing_rab'] ?? null;
-        $supplier = 'Penyedia Jasa Angkutan & Ekspedisi Material Situbondo';
+        $project = $options['project'] ?? null;
+        $aiOptions = array_merge($options, [
+            'room_name' => $roomName,
+            'default_date' => $options['default_date'] ?? now()->format('Y-m-d'),
+            'existing_rab' => $options['existing_rab'] ?? null,
+            'school_name' => $options['school_name'] ?? ($project?->school?->name ?? 'Satuan Pendidikan Kab. Situbondo'),
+            'project_title' => $options['project_title'] ?? ($project?->title ?? 'Revitalisasi Sekolah'),
+            'term_stage' => $options['term_stage'] ?? 'Tahap 1',
+        ]);
 
-        // Cari pos RAB Belanja Mobilisasi
-        $rabMatch = !empty($existingRab) 
-            ? $this->findBestRabMatch('Belanja Mobilisasi', 'alat', $existingRab, $roomName) 
-            : null;
-        $budgetItemId = $rabMatch?->id;
-        $itemCode = $rabMatch?->code ?? '5.1.02.03';
-
-        // 4 Komponen Pengiriman / Angkut Bahan Material
-        $components = [
-            [
-                'name' => 'Ongkos Angkut & Pengiriman Bahan Material Pondasi & Struktur Beton',
-                'spec' => 'Biaya pengiriman armada truk angkutan material semen, pasir pasang, split, dan besi beton ke lokasi satuan pendidikan',
-                'pct' => 0.35,
-                'satuan' => 'Rit',
-                'volume' => 2.0,
-                'day_offset' => 2,
-            ],
-            [
-                'name' => 'Ongkos Angkut & Pengiriman Bahan Material Dinding, Kusen & Rangka Atap',
-                'spec' => 'Biaya pengiriman armada truk/pick-up angkutan material bata merah, baja ringan, genteng, dan kusen ke sekolah',
-                'pct' => 0.35,
-                'satuan' => 'Rit',
-                'volume' => 2.0,
-                'day_offset' => 10,
-            ],
-            [
-                'name' => 'Ongkos Angkut & Pengiriman Bahan Material Lantai, Finishing & Sanitair',
-                'spec' => 'Biaya pengiriman armada pick-up angkutan keramik, cat tembok, pipa PVC, kloset, dan kelengkapan finishing',
-                'pct' => 0.20,
-                'satuan' => 'Rit',
-                'volume' => 1.0,
-                'day_offset' => 18,
-            ],
-            [
-                'name' => 'Mobilisasi & Demobilisasi Peralatan Kerja (Mesin Molen & Scaffolding)',
-                'spec' => 'Biaya pengangkutan mobilisasi dan penarikan kembali peralatan kerja proyek (molen cor dan steger scaffolding)',
-                'pct' => 0.10,
-                'satuan' => 'Paket',
-                'volume' => 1.0,
-                'day_offset' => 4,
-            ],
-        ];
-
-        $results = [];
-        $runningSum = 0;
-        $count = count($components);
-
-        foreach ($components as $idx => $comp) {
-            $isLast = ($idx === $count - 1);
-            if ($isLast) {
-                $subTotal = round($totalAmount - $runningSum, 2);
-            } else {
-                $subTotal = round($totalAmount * $comp['pct'], 0);
-                $runningSum += $subTotal;
-            }
-
-            if ($subTotal <= 0) continue;
-
-            $vol = (float) $comp['volume'];
-            $unitPrice = round($subTotal / $vol, 2);
-            $planDate = Carbon::parse($defaultDate)->addDays($comp['day_offset'])->format('Y-m-d');
-
-            $results[] = [
-                'budget_item_id' => $budgetItemId,
-                'uraian' => $comp['name'],
-                'kode' => $itemCode,
-                'kategori' => 'alat',
-                'spesifikasi' => $comp['spec'],
-                'volume' => $vol,
-                'satuan' => $comp['satuan'],
-                'harga_satuan' => $unitPrice,
-                'total' => $subTotal,
-                'tanggal' => $planDate,
-                'toko' => $supplier,
-                'npwp' => null,
-                'metode' => $subTotal > 5000000 ? 'Transfer Bank' : 'Kas Tunai',
-                'room_name' => $roomName,
-            ];
-        }
-
-        return $results;
+        return app(GeminiRpdService::class)->decomposeMobilisasiWithAi($totalAmount, $aiOptions);
     }
 
     /**
-     * Memecah pagu gelondongan Biaya Pengelolaan Non-Fisik menjadi pos operasional riil Tim P2SP
-     * yang relevan (ATK, Konsumsi Rapat, Transportasi Konsultasi, Spanduk Transparansi, dan Materai)
-     * sesuai petunjuk teknis swakelola DAK Fisik / Revitalisasi dan anti-temuan BPK.
+     * Memecah pagu gelondongan Biaya Pengelolaan Non-Fisik secara otomatis menggunakan AI Google Gemini
+     * (atau Smart Heuristic Engine Situbondo jika offline / tanpa API key) menjadi pos kegiatan operasional riil
+     * Tim P2SP selama revitalisasi berlangsung (ATK/SPJ, konsumsi rapat, SPPD koordinasi dinas/bank,
+     * spanduk transparansi, dan materai 10.000) yang rasional dan anti-temuan BPK.
      */
     public function decomposeBiayaPengelolaan(float $totalAmount, array $options = []): array
     {
@@ -1585,118 +1579,16 @@ class RpdBreakdownService
             return [];
         }
 
-        $defaultDate = $options['default_date'] ?? now()->format('Y-m-d');
-        $existingRab = $options['existing_rab'] ?? null;
+        $project = $options['project'] ?? null;
+        $aiOptions = array_merge($options, [
+            'default_date' => $options['default_date'] ?? now()->format('Y-m-d'),
+            'existing_rab' => $options['existing_rab'] ?? null,
+            'school_name' => $options['school_name'] ?? ($project?->school?->name ?? 'Satuan Pendidikan Kab. Situbondo'),
+            'project_title' => $options['project_title'] ?? ($project?->title ?? 'Revitalisasi Sekolah'),
+            'term_stage' => $options['term_stage'] ?? 'Tahap 1',
+        ]);
 
-        // Cari pos RAB Biaya Pengelolaan
-        $rabMatch = !empty($existingRab) 
-            ? $this->findBestRabMatch('Biaya Pengelolaan', 'operasional', $existingRab, null) 
-            : null;
-        $budgetItemId = $rabMatch?->id;
-        $itemCode = $rabMatch?->code ?? '5.1.02.04';
-
-        // 5 Komponen Biaya Pengelolaan P2SP Sesuai Juknis Swakelola & Standar Pemeriksaan BPK
-        $components = [
-            [
-                'name' => 'Pengadaan ATK, Format Isian BKU, & Penggandaan Dokumen SPJ Revitalisasi',
-                'spec' => 'Kertas HVS F4/A4, map dokumen, binder, buku kas, dan penggandaan/penjilidan laporan pertanggungjawaban (SPJ) 3 rangkap Tim P2SP',
-                'toko' => 'Toko ATK & Penggandaan Situbondo',
-                'pct' => 0.25,
-                'satuan' => 'Paket',
-                'volume' => 1.0,
-                'day_offset' => 3,
-            ],
-            [
-                'name' => 'Konsumsi Rapat Koordinasi Tim P2SP, Komite Sekolah, & Tokoh Masyarakat',
-                'spec' => 'Penyediaan snack dan makan rapat koordinasi persiapan pelaksanaan, rapat teknis mingguan, dan evaluasi berkala Tim P2SP dengan Komite Sekolah',
-                'toko' => 'Katering / Warung Makan Lokal Situbondo',
-                'pct' => 0.25,
-                'satuan' => 'Paket',
-                'volume' => 1.0,
-                'day_offset' => 5,
-            ],
-            [
-                'name' => 'Biaya Transportasi Tim P2SP (Konsultasi Teknis Dinas Pendidikan & Transaksi Bank)',
-                'spec' => 'Biaya transportasi perjalanan dinas Tim P2SP untuk koordinasi teknis ke Dinas Pendidikan Kab. Situbondo dan pengurusan rekening/pencairan dana ke Bank',
-                'toko' => 'Tim Pelaksana P2SP Satuan Pendidikan',
-                'pct' => 0.25,
-                'satuan' => 'Paket',
-                'volume' => 1.0,
-                'day_offset' => 7,
-            ],
-            [
-                'name' => 'Spanduk Publikasi Revitalisasi & Papan Informasi Transparansi Swakelola',
-                'spec' => 'Pembuatan spanduk sosialisasi program revitalisasi sekolah dan papan informasi transparansi publik swakelola P2SP',
-                'toko' => 'Percetakan & Banner Reklame Situbondo',
-                'pct' => 0.15,
-                'satuan' => 'Paket',
-                'volume' => 1.0,
-                'day_offset' => 1,
-            ],
-            [
-                'name' => 'Pengadaan Bea Materai Administrasi Kuitansi & Berita Acara SPJ (Materai 10.000)',
-                'spec' => 'Materai tempel Rp 10.000 untuk legalitas dokumen kuitansi pengeluaran di atas Rp 5 juta, SPK, BAPHP, dan BAST hasil pekerjaan swakelola',
-                'toko' => 'Kantor Pos Situbondo / Agen Pos',
-                'pct' => 0.10,
-                'satuan' => 'Lembar',
-                'volume' => 1.0,
-                'day_offset' => 15,
-            ],
-        ];
-
-        $results = [];
-        $runningSum = 0;
-        $count = count($components);
-
-        foreach ($components as $idx => $comp) {
-            $isLast = ($idx === $count - 1);
-            if ($isLast) {
-                $subTotal = round($totalAmount - $runningSum, 2);
-            } else {
-                $subTotal = round($totalAmount * $comp['pct'], 0);
-                $runningSum += $subTotal;
-            }
-
-            if ($subTotal <= 0) continue;
-
-            $vol = (float) $comp['volume'];
-            if ($comp['satuan'] === 'Lembar' && $subTotal >= 10000) {
-                $vol = max(1.0, round($subTotal / 10000));
-                $unitPrice = 10000;
-                $subTotal = $vol * $unitPrice;
-            } else {
-                $unitPrice = round($subTotal / $vol, 2);
-            }
-
-            $planDate = Carbon::parse($defaultDate)->addDays($comp['day_offset'])->format('Y-m-d');
-
-            $results[] = [
-                'budget_item_id' => $budgetItemId,
-                'uraian' => $comp['name'],
-                'kode' => $itemCode,
-                'kategori' => 'operasional',
-                'spesifikasi' => $comp['spec'],
-                'volume' => $vol,
-                'satuan' => $comp['satuan'],
-                'harga_satuan' => $unitPrice,
-                'total' => $subTotal,
-                'tanggal' => $planDate,
-                'toko' => $comp['toko'],
-                'npwp' => null,
-                'metode' => $subTotal > 5000000 ? 'Transfer Bank' : 'Kas Tunai',
-                'room_name' => null,
-            ];
-        }
-
-        // Pastikan total pas sama dengan $totalAmount
-        $finalSum = array_sum(array_column($results, 'total'));
-        $diff = round($totalAmount - $finalSum, 2);
-        if ($diff != 0 && !empty($results)) {
-            $results[0]['total'] += $diff;
-            $results[0]['harga_satuan'] = round($results[0]['total'] / $results[0]['volume'], 2);
-        }
-
-        return $results;
+        return app(GeminiRpdService::class)->decomposePengelolaanWithAi($totalAmount, $aiOptions);
     }
 
     /**
@@ -2655,7 +2547,10 @@ class RpdBreakdownService
                 $existingReceipt->update(['amount' => $totalBudget]);
             }
         } elseif ($totalBudget > 0) {
-            $sp2dNumber = sprintf('SP2D-REVITA/%s/%s/%04d', $year, $month, $counter++);
+            do {
+                $sp2dNumber = sprintf('SP2D-REVITA/%s/%s/%04d', $year, $month, $counter++);
+            } while (Transaction::where('transaction_number', $sp2dNumber)->exists());
+
             $recipientName = str_contains(strtolower($fundingSource), 'kas daerah') ? $fundingSource : "Kas Daerah ({$fundingSource})";
             $receipt = Transaction::create([
                 'school_id' => $school->id,
@@ -2692,7 +2587,9 @@ class RpdBreakdownService
                 $existingWithdrawal->update(['amount' => $totalCashExpenses]);
             }
         } elseif ($totalCashExpenses > 0) {
-            $trkNumber = sprintf('TRK-REVITA/%s/%s/%04d', $year, $month, $counter++);
+            do {
+                $trkNumber = sprintf('TRK-REVITA/%s/%s/%04d', $year, $month, $counter++);
+            } while (Transaction::where('transaction_number', $trkNumber)->exists());
             $withdrawal = Transaction::create([
                 'school_id' => $school->id,
                 'project_id' => $project->id,
@@ -2749,10 +2646,18 @@ class RpdBreakdownService
             $postedCount += count($disbursementTxs);
 
             // 2. Pencatatan Transaksi Belanja Bahan & Upah
+            $geminiService = app(GeminiRpdService::class);
+
             foreach ($items as $item) {
                 $month = Carbon::parse($item->planned_date)->format('m');
-                $kwtNumber = sprintf('KWT-REVITA/%s/%s/%04d', $year, $month, $counter);
-                $counter++;
+                do {
+                    $kwtNumber = sprintf('KWT-REVITA/%s/%s/%04d', $year, $month, $counter++);
+                } while (Transaction::where('transaction_number', $kwtNumber)->exists());
+
+                $hasTax = $item->has_tax && $item->tax_total > 0;
+                $taxStatus = $hasTax ? 'disetor' : 'none';
+                $taxNtpn = $hasTax ? $geminiService->generateNtpn() : null;
+                $taxPaymentDate = $hasTax ? $geminiService->calculateTaxPaymentDate($item->planned_date, $item->category) : null;
 
                 $transaction = Transaction::create([
                     'school_id' => $school->id,
@@ -2775,7 +2680,9 @@ class RpdBreakdownService
                     'tax_pph4_2' => 0,
                     'tax_total' => $item->tax_total,
                     'net_amount' => $item->net_amount,
-                    'tax_status' => $item->tax_total > 0 ? 'dipungut' : 'none',
+                    'tax_ntpn' => $taxNtpn,
+                    'tax_payment_date' => $taxPaymentDate,
+                    'tax_status' => $taxStatus,
                     'notes' => "Hasil Pecah Bahan RPD: {$document->title} (Item #{$item->row_number})",
                     'created_by' => auth()->id() ?? 1,
                 ]);

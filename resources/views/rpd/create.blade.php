@@ -252,6 +252,26 @@
                                         <p class="text-[11px] text-teal-800/90 mt-1 leading-relaxed">
                                             AI akan menyusun urutan jadwal tanggal belanja berfase konstruksi (pondasi &rarr; dinding &rarr; atap &rarr; finishing), menjadwalkan upah di hari Sabtu, memvariasikan kalimat narasi BKU resmi, dan merekomendasikan toko lokal Situbondo secara otomatis.
                                         </p>
+                                        <div class="mt-2.5 grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px]">
+                                            <div class="p-2.5 rounded-lg bg-white/80 border border-teal-200 shadow-xs">
+                                                <div class="font-bold text-teal-900 flex items-center gap-1.5">
+                                                    <i data-lucide="truck" class="w-3.5 h-3.5 text-teal-600"></i>
+                                                    <span>Auto-Pecah Biaya Mobilisasi (AI)</span>
+                                                </div>
+                                                <p class="text-slate-600 text-[10.5px] mt-1 leading-snug">
+                                                    Pagu mobilisasi otomatis dipecah AI menjadi <strong>ongkos kirim/angkut material</strong> (pondasi, dinding/atap, finishing) dari toko ke sekolah serta sewa peralatan kerja.
+                                                </p>
+                                            </div>
+                                            <div class="p-2.5 rounded-lg bg-white/80 border border-teal-200 shadow-xs">
+                                                <div class="font-bold text-teal-900 flex items-center gap-1.5">
+                                                    <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-600"></i>
+                                                    <span>Auto-Pecah Pengelolaan P2SP (AI)</span>
+                                                </div>
+                                                <p class="text-slate-600 text-[10.5px] mt-1 leading-snug">
+                                                    Pagu pengelolaan otomatis dipecah AI menjadi <strong>kegiatan riil operasional P2SP</strong> (ATK/SPJ, konsumsi rapat, SPPD dinas & bank, spanduk transparansi, materai 10.000) yang <strong>anti-temuan BPK</strong>.
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="pt-0.5">

@@ -171,6 +171,11 @@ class BudgetItemController extends Controller
 
     public function update(Request $request, BudgetItem $budgetItem)
     {
+        if (!$budgetItem->exists) {
+            $id = $request->route('budgetItem') ?? $request->route('rab');
+            $budgetItem = BudgetItem::findOrFail($id);
+        }
+
         $validated = $request->validate([
             'menu_pekerjaan' => 'nullable|string|max:150',
             'code' => 'nullable|string|max:50',
@@ -204,8 +209,13 @@ class BudgetItemController extends Controller
         return back()->with('success', 'Item RAB berhasil diperbarui!');
     }
 
-    public function destroy(BudgetItem $budgetItem)
+    public function destroy(Request $request, BudgetItem $budgetItem)
     {
+        if (!$budgetItem->exists) {
+            $id = $request->route('budgetItem') ?? $request->route('rab');
+            $budgetItem = BudgetItem::findOrFail($id);
+        }
+
         $budgetItem->delete();
         return back()->with('success', 'Item RAB berhasil dihapus!');
     }

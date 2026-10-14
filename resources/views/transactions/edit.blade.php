@@ -71,8 +71,14 @@
 
         <div class="space-y-4">
             <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Uraian Transaksi *</label>
-                <textarea name="description" rows="2" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs">{{ old('description', $transaction->description) }}</textarea>
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-xs font-semibold text-slate-700">Uraian Transaksi *</label>
+                    <button type="button" @click="generateAiDescription()" :disabled="loadingAiDesc" class="text-[11px] font-bold text-purple-600 hover:text-purple-800 flex items-center gap-1 transition-colors">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
+                        <span x-text="loadingAiDesc ? 'Menyusun Narasi AI...' : '✨ Asisten AI Uraian Resmi'"></span>
+                    </button>
+                </div>
+                <textarea name="description" rows="2" required x-model="description" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs"></textarea>
             </div>
 
             <div>
@@ -129,12 +135,18 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
                     <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Nomor NTPN</label>
-                        <input type="text" name="tax_ntpn" value="{{ old('tax_ntpn', $transaction->tax_ntpn) }}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-[11px] font-semibold text-slate-600">Nomor NTPN (Standar DJP 16 Digit)</label>
+                            <button type="button" @click="generateTaxNtpn()" class="text-[10px] font-bold text-purple-600 hover:text-purple-800 flex items-center gap-1">
+                                <i data-lucide="sparkles" class="w-3 h-3 text-amber-500"></i>
+                                <span>Generate AI</span>
+                            </button>
+                        </div>
+                        <input type="text" name="tax_ntpn" x-model="taxNtpn" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono font-bold tracking-wider uppercase focus:outline-none focus:border-rose-500">
                     </div>
                     <div>
                         <label class="block text-[11px] font-semibold text-slate-600 mb-1">Tanggal Penyetoran Pajak</label>
-                        <input type="date" name="tax_payment_date" value="{{ old('tax_payment_date', $transaction->tax_payment_date ? $transaction->tax_payment_date->format('Y-m-d') : '') }}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs">
+                        <input type="date" name="tax_payment_date" x-model="taxPaymentDate" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-rose-500">
                     </div>
                 </div>
             </div>
@@ -162,6 +174,56 @@
             taxPph22: {{ (float) $transaction->tax_pph22 }},
             taxPph23: {{ (float) $transaction->tax_pph23 }},
             taxPph4_2: {{ (float) $transaction->tax_pph4_2 }},
+            description: `{{ addslashes(old('description', $transaction->description)) }}`,
+            loadingAiDesc: false,
+            taxNtpn: `{{ old('tax_ntpn', $transaction->tax_ntpn) }}`,
+            taxPaymentDate: `{{ old('tax_payment_date', $transaction->tax_payment_date ? $transaction->tax_payment_date->format('Y-m-d') : '') }}`,
+
+            generateTaxNtpn() {
+                const chars = '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+                let code = '';
+                for (let i = 0; i < 16; i++) {
+                    code += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                this.taxNtpn = code;
+                const txDateInput = document.querySelector('input[name="transaction_date"]');
+                if (txDateInput && txDateInput.value) {
+                    this.taxPaymentDate = txDateInput.value;
+                }
+            },
+
+            async generateAiDescription() {
+                this.loadingAiDesc = true;
+                const recipientInput = document.querySelector('input[name="recipient_name"]');
+                const recipient = recipientInput ? recipientInput.value : '';
+                const promptDesc = this.description || 'Bahan Material Bangunan';
+
+                try {
+                    const res = await fetch('{{ route("transactions.ai.generate_description") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            item_name: promptDesc,
+                            category: 'bahan',
+                            supplier: recipient,
+                            project_title: 'Revitalisasi Satuan Pendidikan'
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.success && data.description) {
+                        this.description = data.description;
+                    }
+                } catch (e) {
+                    this.description = 'Pembayaran belanja material ' + promptDesc + (recipient ? ' pada ' + recipient : '') + ' untuk pekerjaan Revitalisasi Sekolah';
+                } finally {
+                    this.loadingAiDesc = false;
+                    if (window.lucide) window.lucide.createIcons();
+                }
+            }
         };
     }
 </script>

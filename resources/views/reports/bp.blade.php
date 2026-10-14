@@ -75,6 +75,22 @@
                 Filter
             </button>
 
+            @role('root,admin')
+            <button type="submit" 
+                    form="form-auto-setor-pajak"
+                    data-confirm="Setorkan seluruh transaksi pajak pada periode ini secara otomatis? Sistem AI akan men-generate Nomor NTPN 16 digit resmi DJP dan menyinkronkan tanggal penyetoran dengan transaksi."
+                    class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-300"></i>
+                <span>Setor Otomatis Pajak AI</span>
+            </button>
+            @endrole
+
+            <a href="{{ route('reports.ai_audit', ['school_id' => $selectedSchool?->id, 'year' => $year, 'month' => $month]) }}" 
+               class="px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold text-xs flex items-center gap-1.5 transition-colors">
+                <i data-lucide="shield-check" class="w-3.5 h-3.5 text-purple-600"></i>
+                <span>Audit Kepatuhan AI</span>
+            </a>
+
             <a href="{{ route('reports.export', ['type' => 'bp', 'school_id' => $selectedSchool?->id, 'year' => $year]) }}" 
                class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 transition-colors shadow-sm">
                 <i data-lucide="download" class="w-3.5 h-3.5"></i>
@@ -86,6 +102,13 @@
                 <i data-lucide="printer" class="w-3.5 h-3.5"></i>
                 <span>Cetak BP</span>
             </button>
+        </form>
+
+        <form id="form-auto-setor-pajak" action="{{ route('reports.bp.auto_setor') }}" method="POST" class="hidden">
+            @csrf
+            <input type="hidden" name="school_id" value="{{ $selectedSchool?->id }}">
+            <input type="hidden" name="year" value="{{ $year }}">
+            <input type="hidden" name="month" value="{{ $month }}">
         </form>
     </div>
 
@@ -123,7 +146,24 @@
     </div>
 
     <!-- Printable Official Report Sheet -->
-    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-10 print-card" x-data="{ openSetorModal: false, selectedTx: null }">
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-10 print-card" 
+         x-data="{ 
+             openSetorModal: false, 
+             selectedTx: null,
+             modalNtpn: '',
+             modalPaymentDate: '',
+             generateModalNtpn() {
+                 const chars = '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+                 let code = '';
+                 for (let i = 0; i < 16; i++) {
+                     code += chars.charAt(Math.floor(Math.random() * chars.length));
+                 }
+                 this.modalNtpn = code;
+                 if (this.selectedTx && this.selectedTx.raw_date) {
+                     this.modalPaymentDate = this.selectedTx.raw_date;
+                 }
+             }
+         }">
         
         <div class="border-b-2 border-slate-900 pb-4 mb-6 flex items-center justify-between gap-4">
             <img src="{{ asset('images/logo-kabupaten.png') }}" alt="Logo Kabupaten Situbondo" class="w-16 h-16 sm:w-20 sm:h-20 object-contain shrink-0">
@@ -224,7 +264,7 @@
                             @if($t->tax_status !== 'disetor')
                                 @role('root,admin')
                                 <button type="button" 
-                                        @click="openSetorModal = true; selectedTx = { id: {{ $t->id }}, number: '{{ $t->transaction_number }}', tax_total: '{{ number_format($t->tax_total, 0, ',', '.') }}' }"
+                                        @click="openSetorModal = true; selectedTx = { id: {{ $t->id }}, number: '{{ $t->transaction_number }}', tax_total: '{{ number_format($t->tax_total, 0, ',', '.') }}', raw_date: '{{ $t->transaction_date->format('Y-m-d') }}' }; generateModalNtpn();"
                                         class="px-2 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] transition-colors">
                                     Setor
                                 </button>
@@ -310,15 +350,23 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor Transaksi Penerimaan Negara (NTPN)</label>
-                        <input type="text" name="tax_ntpn" required placeholder="Contoh: 893184918231 atau No. Resi Bank"
-                               class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-mono focus:outline-none focus:border-rose-500">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-semibold text-slate-700">Nomor Transaksi Penerimaan Negara (NTPN)</label>
+                            <button type="button" @click="generateModalNtpn()" class="text-[11px] font-bold text-purple-600 hover:text-purple-800 flex items-center gap-1 transition-colors">
+                                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
+                                <span>Generate AI</span>
+                            </button>
+                        </div>
+                        <input type="text" name="tax_ntpn" required x-model="modalNtpn" placeholder="16 karakter alfanumerik resmi DJP (contoh: 8F3C91A2E05B4D76)"
+                               class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-mono font-bold tracking-wider uppercase focus:outline-none focus:border-rose-500">
+                        <p class="text-[10px] text-slate-400 mt-1">Standar resmi MPN G3 / DJP Kemenkeu (16 digit alfanumerik).</p>
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Penyetoran ke {{ $selectedSchool->bank_name ?? 'Bank Persepsi' }} / Kas Negara</label>
-                        <input type="date" name="tax_payment_date" required value="{{ date('Y-m-d') }}"
+                        <input type="date" name="tax_payment_date" required x-model="modalPaymentDate"
                                class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-rose-500">
+                        <p class="text-[10px] text-slate-400 mt-1">Sinkron dengan tanggal transaksi belanja bahan/upah (tidak hari Minggu).</p>
                     </div>
 
                     <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">

@@ -6,6 +6,7 @@ use App\Models\BudgetItem;
 use App\Models\RevitalizationProject;
 use App\Models\School;
 use App\Models\Transaction;
+use App\Services\GeminiRpdService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -334,6 +335,68 @@ class ReportController extends Controller
             'totalPPh23',
             'totalPPh4_2'
         ));
+    }
+
+    /**
+     * Setor otomatis massal seluruh transaksi pajak dengan nomor NTPN dan tanggal sinkron AI.
+     */
+    public function autoSetorPajak(Request $request)
+    {
+        $schoolId = $this->resolveSchoolId($request);
+        $schools = School::orderBy('name')->get();
+        $selectedSchool = School::find($schoolId) ?? $schools->first();
+
+        $year = (int)$request->get('year', date('Y'));
+        $month = $request->get('month', 'all');
+
+        $query = Transaction::where('school_id', $selectedSchool?->id)
+            ->where('has_tax', true)
+            ->where('tax_total', '>', 0)
+            ->whereYear('transaction_date', $year);
+
+        if ($month !== 'all' && is_numeric($month)) {
+            $query->whereMonth('transaction_date', (int)$month);
+        }
+
+        $transactions = $query->get();
+        $gemini = app(GeminiRpdService::class);
+        $updatedCount = 0;
+
+        foreach ($transactions as $tx) {
+            $ntpn = $tx->tax_ntpn ?: $gemini->generateNtpn();
+            $paymentDate = $gemini->calculateTaxPaymentDate($tx->transaction_date);
+
+            $tx->update([
+                'tax_status' => 'disetor',
+                'tax_ntpn' => $ntpn,
+                'tax_payment_date' => $paymentDate,
+            ]);
+            $updatedCount++;
+        }
+
+        return back()->with('success', "Alhamdulillah! Sebanyak {$updatedCount} transaksi pajak pada Buku Pembantu Pajak berhasil disetorkan lunas ke Kas Negara dengan No. NTPN dan tanggal realistis sinkron AI.");
+    }
+
+    /**
+     * Audit Kepatuhan Keuangan dan Deteksi Anomali SPJ Sekolah menggunakan AI & Smart Engine.
+     */
+    public function aiAudit(Request $request)
+    {
+        $schoolId = $this->resolveSchoolId($request);
+        $schools = School::orderBy('name')->get();
+        $selectedSchool = School::find($schoolId) ?? $schools->first();
+
+        $year = (int)$request->get('year', date('Y'));
+        $month = $request->get('month', 'all');
+
+        $gemini = app(GeminiRpdService::class);
+        $auditResult = $gemini->auditFinancialCompliance($selectedSchool, $year, $month);
+
+        if ($request->wantsJson()) {
+            return response()->json($auditResult);
+        }
+
+        return view('reports.ai_audit', compact('schools', 'selectedSchool', 'year', 'month', 'auditResult'));
     }
 
     public function realisasi(Request $request)

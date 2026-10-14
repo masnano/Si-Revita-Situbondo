@@ -396,7 +396,20 @@
                                 {!! $it->category_badge !!}
                             </td>
                             <td class="py-3 px-4">
-                                <div class="font-bold text-slate-900">{{ $it->item_name }}</div>
+                                <div class="font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
+                                    <span>{{ $it->item_name }}</span>
+                                    @if(str_contains(strtolower($it->item_name), 'ongkos angkut') || str_contains(strtolower($it->item_name), 'ongkos kirim') || (str_contains(strtolower($it->item_name), 'mobilisasi') && $it->category === 'alat'))
+                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                                            <i data-lucide="truck" class="w-3 h-3 text-amber-600"></i>
+                                            <span>Ongkos Kirim Bahan</span>
+                                        </span>
+                                    @elseif($it->category === 'operasional' && !str_contains(strtolower($it->item_name), 'perencanaan') && !str_contains(strtolower($it->item_name), 'pengawasan'))
+                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-100 text-cyan-800 border border-cyan-200">
+                                            <i data-lucide="shield-check" class="w-3 h-3 text-cyan-600"></i>
+                                            <span>Pengelolaan P2SP (Anti-Temuan BPK)</span>
+                                        </span>
+                                    @endif
+                                </div>
                                 @if($it->specification)
                                     <div class="text-[11px] text-slate-500">Spek: {{ $it->specification }}</div>
                                 @endif

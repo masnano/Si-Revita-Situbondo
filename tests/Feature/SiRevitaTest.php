@@ -584,6 +584,71 @@ class SiRevitaTest extends TestCase
         $project->delete();
     }
 
+    public function test_update_rab_item()
+    {
+        $root = User::where('username', 'root')->first();
+        $this->actingAs($root);
+
+        $project = \App\Models\RevitalizationProject::first();
+        $item = \App\Models\BudgetItem::create([
+            'project_id' => $project->id,
+            'menu_pekerjaan' => 'Rehabilitasi Ruang Kelas',
+            'category' => 'Material/Bahan',
+            'name' => 'Initial Name For Test',
+            'volume' => 1,
+            'unit' => 'ls',
+            'unit_price' => 50000,
+            'total_price' => 50000,
+        ]);
+
+        $newName = 'Updated Name By Test';
+
+        $res = $this->put('/rab/' . $item->id, [
+            'menu_pekerjaan' => $item->menu_pekerjaan,
+            'code' => $item->code,
+            'category' => $item->category,
+            'name' => $newName,
+            'volume' => 5,
+            'unit' => $item->unit,
+            'unit_price' => 100000,
+            'notes' => 'Catatan test update',
+        ]);
+
+        $res->assertSessionHas('success');
+        $item->refresh();
+
+        $this->assertEquals($newName, $item->name);
+        $this->assertEquals(5, (float)$item->volume);
+        $this->assertEquals(500000, (float)$item->total_price);
+
+        $item->delete();
+    }
+
+    public function test_delete_rab_item()
+    {
+        $root = User::where('username', 'root')->first();
+        $this->actingAs($root);
+
+        $project = \App\Models\RevitalizationProject::first();
+        $item = \App\Models\BudgetItem::create([
+            'project_id' => $project->id,
+            'menu_pekerjaan' => 'Rehabilitasi Ruang Kelas',
+            'category' => 'Material/Bahan',
+            'name' => 'To Be Deleted',
+            'volume' => 1,
+            'unit' => 'ls',
+            'unit_price' => 100,
+            'total_price' => 100,
+        ]);
+
+        $res = $this->delete('/rab/' . $item->id);
+        $res->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('budget_items', ['id' => $item->id]);
+    }
+
+
+
     public function test_upload_rpd_new_official_format_with_mobilisasi_and_non_fisik_maps_accurately()
     {
         $admin = User::where('username', 'admin')->first();
@@ -1081,6 +1146,200 @@ class SiRevitaTest extends TestCase
         $doc->items()->delete();
         $doc->delete();
         @unlink($tempFile);
+    }
+
+    public function test_tax_is_default_deposited_with_ai_generated_ntpn_and_synchronized_date()
+    {
+        $admin = User::where('username', 'admin')->first();
+        $this->actingAs($admin);
+
+        $gemini = app(\App\Services\GeminiRpdService::class);
+
+        // 1. Uji Mesin Generator NTPN (Harus 16 karakter alfanumerik kapital resmi DJP)
+        $ntpn = $gemini->generateNtpn();
+        $this->assertEquals(16, strlen($ntpn));
+        $this->assertMatchesRegularExpression('/^[0-9A-Z]{16}$/', $ntpn);
+
+        // 2. Uji Penanggalan Pajak Cerdas (Sinkron dengan transaksi, tidak hari Minggu)
+        $wednesday = '2026-08-05'; // Rabu
+        $taxWed = $gemini->calculateTaxPaymentDate($wednesday);
+        $this->assertTrue(in_array($taxWed, ['2026-08-05', '2026-08-06']));
+        $this->assertFalse(\Carbon\Carbon::parse($taxWed)->isSunday());
+
+        $saturday = '2026-08-08'; // Sabtu
+        $taxSat = $gemini->calculateTaxPaymentDate($saturday, 'upah');
+        $this->assertTrue(in_array($taxSat, ['2026-08-08', '2026-08-10']));
+        $this->assertFalse(\Carbon\Carbon::parse($taxSat)->isSunday(), 'Tanggal penyetoran pajak dilarang hari Minggu');
+
+        // 3. Uji Manual Transaction Store: Pajak Otomatis 'disetor' lengkap dengan NTPN & Tanggal Sinkron
+        $school = School::first();
+        $project = RevitalizationProject::where('school_id', $school->id)->first();
+        $trxNumber = 'BKU-TEST-TAX/' . uniqid();
+
+        $storeResp = $this->post('/transactions', [
+            'school_id' => $school->id,
+            'project_id' => $project->id,
+            'transaction_number' => $trxNumber,
+            'transaction_date' => '2026-08-10',
+            'type' => 'belanja_tunai',
+            'payment_method' => 'kas_tunai',
+            'description' => 'Pembelian semen PCC untuk renovasi kelas',
+            'amount' => 3000000,
+            'has_tax' => 1,
+            'tax_type' => 'PPN & PPh 22',
+            'tax_ppn' => 300000,
+            'tax_pph22' => 45000,
+            // tax_ntpn dan tax_payment_date sengaja dikosongkan untuk menguji auto-generate default
+        ]);
+        $storeResp->assertRedirect();
+
+        $savedTx = Transaction::where('transaction_number', $trxNumber)->first();
+        $this->assertNotNull($savedTx);
+        $this->assertTrue($savedTx->has_tax);
+        $this->assertEquals('disetor', $savedTx->tax_status, 'Status pajak harus default disetor');
+        $this->assertNotEmpty($savedTx->tax_ntpn, 'Nomor NTPN harus otomatis digenerate');
+        $this->assertEquals(16, strlen($savedTx->tax_ntpn));
+        $this->assertNotNull($savedTx->tax_payment_date);
+        $this->assertTrue(in_array($savedTx->tax_payment_date->format('Y-m-d'), ['2026-08-10', '2026-08-11']));
+
+        // 4. Uji Route Massal Auto Setor Pajak Buku Pembantu Pajak (/laporan/bp/auto-setor)
+        $autoSetorResp = $this->post('/laporan/bp/auto-setor', [
+            'school_id' => $school->id,
+            'year' => 2026,
+            'month' => 'all',
+        ]);
+        $autoSetorResp->assertRedirect();
+        $autoSetorResp->assertSessionHas('success');
+
+        // 5. Uji Akses Halaman Laporan Buku Pembantu Pajak (BP)
+        $bpResp = $this->get('/laporan/bp?school_id=' . $school->id . '&year=2026');
+        $bpResp->assertStatus(200);
+        $bpResp->assertSee('Setor Otomatis Pajak AI');
+
+        // 6. Uji Fitur Audit Kepatuhan Keuangan AI (/laporan/ai-audit)
+        $auditResp = $this->get('/laporan/ai-audit?school_id=' . $school->id . '&year=2026');
+        $auditResp->assertStatus(200);
+        $auditResp->assertSee('Skor Kepatuhan SPJ');
+
+        // 7. Uji AJAX Endpoint AI Description & AI NTPN
+        $aiDescResp = $this->postJson('/transactions/ai/generate-description', [
+            'category' => 'bahan',
+            'item_name' => 'Semen Gresik 50 Kg',
+            'volume' => 50,
+            'unit' => 'Zak',
+            'supplier' => 'UD Berkah Situbondo',
+            'project_title' => 'Revitalisasi Sekolah',
+        ]);
+        $aiDescResp->assertStatus(200);
+        $this->assertTrue($aiDescResp->json('success'));
+        $this->assertNotEmpty($aiDescResp->json('description'));
+
+        $aiNtpnResp = $this->getJson('/transactions/ai/generate-ntpn?transaction_date=2026-08-10');
+        $aiNtpnResp->assertStatus(200);
+        $this->assertTrue($aiNtpnResp->json('success'));
+        $this->assertEquals(16, strlen($aiNtpnResp->json('ntpn')));
+
+        // Bersihkan data tes
+        $savedTx->delete();
+    }
+
+    /**
+     * Uji pemecahan otomatis biaya mobilisasi (menjadi ongkos kirim bahan toko -> sekolah)
+     * dan biaya pengelolaan (menjadi operasional tim P2SP anti-temuan BPK) menggunakan AI.
+     */
+    public function test_ai_breakdown_mobilisasi_and_pengelolaan_auto_decompose_with_zero_variance()
+    {
+        $admin = User::where('username', 'admin')->first();
+        $this->actingAs($admin);
+
+        $project = \App\Models\RevitalizationProject::first();
+        $breakdownService = app(\App\Services\RpdBreakdownService::class);
+
+        // 1. Uji dekomposisi Belanja Mobilisasi secara langsung (misal pagu Rp 30.000.000)
+        $mobPagu = 30000000;
+        $mobItems = $breakdownService->decomposeBelanjaMobilisasi($mobPagu, 'Ruang Kelas', [
+            'project' => $project,
+            'default_date' => '2026-08-01',
+        ]);
+
+        $this->assertCount(4, $mobItems);
+        $this->assertEquals($mobPagu, (int)array_sum(array_column($mobItems, 'total')));
+        $mobNames = array_column($mobItems, 'uraian');
+        $this->assertContains('Ongkos Angkut & Pengiriman Bahan Material Pondasi & Struktur Beton', $mobNames);
+        $this->assertContains('Ongkos Angkut & Pengiriman Bahan Material Dinding, Kusen & Rangka Atap', $mobNames);
+        $this->assertContains('Ongkos Angkut & Pengiriman Bahan Material Lantai, Finishing & Sanitair', $mobNames);
+        $this->assertContains('Mobilisasi & Demobilisasi Peralatan Kerja (Mesin Molen & Scaffolding)', $mobNames);
+
+        // 2. Uji dekomposisi Biaya Pengelolaan secara langsung (misal pagu Rp 15.000.000)
+        $pengPagu = 15000000;
+        $pengItems = $breakdownService->decomposeBiayaPengelolaan($pengPagu, [
+            'project' => $project,
+            'default_date' => '2026-08-01',
+        ]);
+
+        $this->assertCount(5, $pengItems);
+        $this->assertEquals($pengPagu, (int)array_sum(array_column($pengItems, 'total')));
+        $pengNames = array_column($pengItems, 'uraian');
+        $this->assertContains('Pengadaan ATK, Format Isian BKU, & Penggandaan Dokumen SPJ Revitalisasi', $pengNames);
+        $this->assertContains('Konsumsi Rapat Koordinasi Tim P2SP, Komite Sekolah, & Tokoh Masyarakat', $pengNames);
+        $this->assertContains('Biaya Transportasi Tim P2SP (Konsultasi Teknis Dinas Pendidikan & Transaksi Bank)', $pengNames);
+        $this->assertContains('Spanduk Publikasi Revitalisasi & Papan Informasi Transparansi Swakelola', $pengNames);
+        $this->assertContains('Pengadaan Bea Materai Administrasi Kuitansi & Berita Acara SPJ (Materai 10.000)', $pengNames);
+
+        // 3. Uji Upload File RPD Generic CSV yang memuat pagu gelondongan Mobilisasi dan Biaya Pengelolaan
+        $csvContent = "No,Kode Rekening,Kategori,Uraian Barang / Kegiatan / Bahan,Spesifikasi,Volume,Satuan,Harga Satuan,Total Biaya,Tanggal Rencana Belanja,Toko / Rekanan,Metode Bayar\n" .
+                      "1,5.1.02.01,Bahan,Semen Gresik 50 Kg,SNI PCC Type 1,100,Zak,68000,6800000,2026-08-05,Toko Bangunan Berkah Situbondo,Transfer Bank\n" .
+                      "2,5.1.02.03,Alat,Belanja Mobilisasi,Mobilisasi material dan alat proyek,1,Paket,25000000,25000000,2026-08-02,,Transfer Bank\n" .
+                      "3,5.1.02.04,Operasional,Biaya Pengelolaan,Operasional Tim P2SP,1,Paket,12000000,12000000,2026-08-03,,Kas Tunai\n";
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'test_rpd_generic_') . '.csv';
+        file_put_contents($tempFile, $csvContent);
+
+        $uploadedFile = new \Illuminate\Http\UploadedFile(
+            $tempFile,
+            'RPD_Generic_Test.csv',
+            'text/csv',
+            null,
+            true
+        );
+
+        $response = $this->post(route('rpd.store'), [
+            'school_id' => $project->school_id,
+            'project_id' => $project->id,
+            'term_stage' => 'Tahap 1 Uji AI',
+            'title' => 'RPD Generic Auto Breakdown Test',
+            'default_date' => '2026-08-01',
+            'breakdown_mode' => 'detailed',
+            'rpd_file' => $uploadedFile,
+            'use_ai' => 1,
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $doc = \App\Models\RpdDocument::where('title', 'RPD Generic Auto Breakdown Test')->first();
+        $this->assertNotNull($doc);
+
+        // 1 item bahan + 4 item mobilisasi (ongkos kirim) + 5 item pengelolaan P2SP = 10 items
+        $this->assertEquals(10, $doc->items()->count());
+        $this->assertEquals(6800000 + 25000000 + 12000000, (int)$doc->total_budget);
+
+        // Verifikasi item mobilisasi
+        $mobInDoc = $doc->items()->where('category', 'alat')->get();
+        $this->assertCount(4, $mobInDoc);
+        $this->assertEquals(25000000, (int)$mobInDoc->sum('total_price'));
+
+        // Verifikasi item pengelolaan
+        $pengInDoc = $doc->items()->where('category', 'operasional')->get();
+        $this->assertCount(5, $pengInDoc);
+        $this->assertEquals(12000000, (int)$pengInDoc->sum('total_price'));
+
+        // Bersihkan
+        $doc->items()->delete();
+        $doc->delete();
+        if (file_exists($tempFile)) {
+            @unlink($tempFile);
+        }
     }
 }
 

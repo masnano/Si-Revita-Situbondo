@@ -21,6 +21,16 @@
     editMenu: '',
     isCustomEditMenu: false,
     customEditMenu: '',
+    editItem: {
+        id: null,
+        code: '',
+        category: 'Material/Bahan',
+        name: '',
+        volume: '',
+        unit: '',
+        unit_price: '',
+        notes: ''
+    },
     handleFileSelect(e) {
         const file = e.target.files[0];
         if (file) {
@@ -30,6 +40,16 @@
     },
     openEdit(item) {
         this.activeItem = item;
+        this.editItem = {
+            id: item.id,
+            code: item.code || '',
+            category: item.category || 'Material/Bahan',
+            name: item.name || '',
+            volume: item.volume || '',
+            unit: item.unit || '',
+            unit_price: item.unit_price || '',
+            notes: item.notes || ''
+        };
         this.editMenu = item.menu_pekerjaan || 'Rehabilitasi Ruang Kelas';
         this.isCustomEditMenu = false;
         this.customEditMenu = '';
@@ -315,7 +335,7 @@
                                     @endpermission
                                     @permission('rab.delete')
                                     <form action="{{ route('rab.destroy', $item->id) }}" method="POST" class="inline"
-                                          data-confirm="Apakah Anda yakin ingin menghapus item anggaran RAB <strong>{{ $item->item_name }}</strong> (Rp {{ number_format($item->total_price, 0, ',', '.') }})?<br><br>Item ini akan dihapus dari rincian RAB proyek."
+                                          data-confirm="Apakah Anda yakin ingin menghapus item anggaran RAB <strong>{{ $item->name }}</strong> (Rp {{ number_format($item->total_price, 0, ',', '.') }})?<br><br>Item ini akan dihapus dari rincian RAB proyek."
                                           data-confirm-title="Hapus Item RAB"
                                           data-confirm-button="Ya, Hapus Item"
                                           onsubmit="return confirm('Hapus item RAB ini?')">
@@ -458,7 +478,7 @@
                 <span>Edit Pos Belanja RAB</span>
             </h3>
             
-            <form :action="'{{ url('/rab') }}/' + (activeItem ? activeItem.id : '')" method="POST" class="space-y-4 text-xs">
+            <form :action="'{{ url('/rab') }}/' + (editItem.id || (activeItem ? activeItem.id : ''))" method="POST" class="space-y-4 text-xs">
                 @csrf
                 @method('PUT')
 
@@ -495,11 +515,11 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Kode Rekening / AHSP</label>
-                        <input type="text" name="code" :value="activeItem ? activeItem.code : ''" class="w-full px-3 py-2 border rounded-xl font-mono">
+                        <input type="text" name="code" x-model="editItem.code" class="w-full px-3 py-2 border rounded-xl font-mono">
                     </div>
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Kategori Belanja *</label>
-                        <select name="category" required class="w-full px-3 py-2 border rounded-xl bg-white" x-model="activeItem ? activeItem.category : ''">
+                        <select name="category" required class="w-full px-3 py-2 border rounded-xl bg-white" x-model="editItem.category">
                             <option value="Material/Bahan">Material/Bahan</option>
                             <option value="Upah Tenaga Kerja">Upah Tenaga Kerja</option>
                             <option value="Peralatan/Sewa">Peralatan/Sewa</option>
@@ -510,27 +530,27 @@
 
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">Uraian Pekerjaan / Nama Barang *</label>
-                    <input type="text" name="name" required :value="activeItem ? activeItem.name : ''" class="w-full px-3 py-2 border rounded-xl">
+                    <input type="text" name="name" required x-model="editItem.name" class="w-full px-3 py-2 border rounded-xl">
                 </div>
 
                 <div class="grid grid-cols-3 gap-3">
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Volume *</label>
-                        <input type="number" step="any" name="volume" required :value="activeItem ? activeItem.volume : ''" class="w-full px-3 py-2 border rounded-xl font-mono">
+                        <input type="number" step="any" name="volume" required x-model="editItem.volume" class="w-full px-3 py-2 border rounded-xl font-mono">
                     </div>
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Satuan *</label>
-                        <input type="text" name="unit" required :value="activeItem ? activeItem.unit : ''" class="w-full px-3 py-2 border rounded-xl">
+                        <input type="text" name="unit" required x-model="editItem.unit" class="w-full px-3 py-2 border rounded-xl">
                     </div>
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Harga Satuan (Rp) *</label>
-                        <input type="number" step="any" name="unit_price" required :value="activeItem ? activeItem.unit_price : ''" class="w-full px-3 py-2 border rounded-xl font-mono">
+                        <input type="number" step="any" name="unit_price" required x-model="editItem.unit_price" class="w-full px-3 py-2 border rounded-xl font-mono">
                     </div>
                 </div>
 
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">Catatan</label>
-                    <input type="text" name="notes" :value="activeItem ? activeItem.notes : ''" class="w-full px-3 py-2 border rounded-xl">
+                    <input type="text" name="notes" x-model="editItem.notes" class="w-full px-3 py-2 border rounded-xl">
                 </div>
 
                 <div class="flex justify-end gap-2 pt-3 border-t">
