@@ -89,7 +89,7 @@
                 <label class="block text-xs font-semibold text-slate-700 mb-1.5">Metode Pembayaran *</label>
                 <select name="payment_method" required x-model="paymentMethod" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-slate-50 focus:outline-none focus:border-emerald-500">
                     <option value="kas_tunai">Kas Tunai</option>
-                    <option value="bank_transfer">Transfer Bank (Bank Jatim)</option>
+                    <option value="bank_transfer">Transfer Bank</option>
                 </select>
             </div>
         </div>

@@ -84,12 +84,24 @@ class RpdBreakdownController extends Controller
     }
 
     /**
-     * Unduh Template Format RPD (Excel .xlsx atau CSV).
+     * Unduh Template Format RPD (Excel .xlsx, PDF, atau CSV).
      */
     public function template(Request $request)
     {
-        $format = $request->get('format', 'xlsx');
+        $format = strtolower($request->get('format', 'xlsx'));
+        $type = strtolower($request->get('type', 'official'));
 
+        // 1. Ekspor Format PDF Resmi Dinas
+        if ($format === 'pdf') {
+            $pdfContent = $this->breakdownService->generateOfficialTemplatePdf();
+            $fileName = 'Template_Resmi_RPD_Revitalisasi_Situbondo.pdf';
+            return response($pdfContent, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => "attachment; filename=\"{$fileName}\"",
+            ]);
+        }
+
+        // 2. Ekspor Format CSV
         if ($format === 'csv') {
             $fileName = 'Template_RPD_Revitalisasi_Situbondo.csv';
             $headers = [
@@ -136,9 +148,14 @@ class RpdBreakdownController extends Controller
             }, 200, $headers);
         }
 
-        // Default Excel format
-        $spreadsheet = $this->breakdownService->generateTemplateSpreadsheet();
-        $fileName = 'Template_RPD_Revitalisasi_Situbondo_2026.xlsx';
+        // 3. Format Excel (.xlsx)
+        if ($type === 'itemized') {
+            $spreadsheet = $this->breakdownService->generateItemizedTemplateSpreadsheet();
+            $fileName = 'Template_RPD_Rincian_Item_Situbondo_2026.xlsx';
+        } else {
+            $spreadsheet = $this->breakdownService->generateOfficialTemplateSpreadsheet();
+            $fileName = 'Template_Resmi_RPD_Revitalisasi_Situbondo_2026.xlsx';
+        }
 
         return new StreamedResponse(function () use ($spreadsheet) {
             $writer = new Xlsx($spreadsheet);
@@ -151,7 +168,7 @@ class RpdBreakdownController extends Controller
     }
 
     /**
-     * Memproses upload file RPD dan menghasilkan output Pecah Bahan BKU.
+     * Memproses upload file RPD (Excel / PDF / CSV) dan menghasilkan output Pecah Bahan BKU.
      */
     public function store(Request $request)
     {
@@ -159,31 +176,43 @@ class RpdBreakdownController extends Controller
             'school_id' => 'required|exists:schools,id',
             'project_id' => 'required|exists:revitalization_projects,id',
             'term_stage' => 'required|string|max:100',
-            'rpd_file' => 'required|file|mimes:xlsx,xls,csv,txt|max:10240',
+            'target_column' => 'nullable|string|in:auto,termin_1,termin_2,termin_3,total',
+            'breakdown_mode' => 'nullable|string|in:detailed,summary',
+            'rpd_file' => 'required|file|max:20480',
             'title' => 'nullable|string|max:255',
             'default_date' => 'nullable|date',
             'default_store' => 'nullable|string|max:255',
         ], [
-            'rpd_file.required' => 'Pilih file RPD yang akan diunggah.',
-            'rpd_file.mimes' => 'Format file harus berupa Excel (.xlsx, .xls) atau CSV (.csv).',
-            'project_id.required' => 'Pilih proyek revitalisasi yang dituju.',
+            'rpd_file.required' => 'Pilih berkas file RPD yang akan diunggah.',
+            'project_id.required' => 'Pilih paket proyek revitalisasi yang dituju.',
         ]);
+
+        $file = $request->file('rpd_file');
+        $ext = strtolower($file->getClientOriginalExtension());
+        if (!in_array($ext, ['xlsx', 'xls', 'csv', 'txt', 'pdf'])) {
+            return back()->withInput()->with('error', 'Format berkas tidak didukung. Harap unggah berkas Excel (.xlsx, .xls), PDF (.pdf), atau CSV (.csv).');
+        }
 
         $project = RevitalizationProject::findOrFail($request->project_id);
 
+        $rawStore = trim((string) $request->input('default_store', ''));
+        $defaultStore = $rawStore !== '' ? $rawStore : '....................';
+
         try {
-            $document = $this->breakdownService->processUpload($request->file('rpd_file'), $project, [
+            $document = $this->breakdownService->processUpload($file, $project, [
                 'term_stage' => $request->term_stage,
+                'target_column' => $request->target_column ?: 'auto',
+                'breakdown_mode' => $request->input('breakdown_mode', 'detailed'),
                 'title' => $request->title ?: ('RPD ' . $request->term_stage . ' - ' . $project->title),
                 'default_date' => $request->default_date ?: now()->format('Y-m-d'),
-                'default_store' => $request->default_store ?: 'Toko Bangunan Berkah Situbondo',
+                'default_store' => $defaultStore,
                 'notes' => $request->notes,
             ]);
 
             return redirect()->route('rpd.show', $document->id)
-                ->with('success', "File RPD berhasil diproses! {$document->total_items_count} item berhasil dipecah menjadi kandidat isian BKU.");
+                ->with('success', "Alhamdulillah! Berkas RPD (" . strtoupper($ext) . ") berhasil diproses. Sebanyak {$document->total_items_count} item berhasil dipecah menjadi draf isian BKU.");
         } catch (\Exception $e) {
-            return back()->withInput()->with('error', 'Gagal memproses file RPD: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Gagal memproses berkas RPD: ' . $e->getMessage());
         }
     }
 
@@ -195,6 +224,10 @@ class RpdBreakdownController extends Controller
         $rpd->load(['school', 'project', 'items.budgetItem', 'items.transaction']);
 
         $items = $rpd->items;
+        $unpostedItems = $items->where('is_posted', false);
+        $postedItems = $items->where('is_posted', true);
+        $unpostedCount = $unpostedItems->count();
+        $postedCount = $postedItems->count();
 
         $summary = [
             'total_items' => $items->count(),
@@ -212,9 +245,13 @@ class RpdBreakdownController extends Controller
             'bank_count' => $items->where('payment_method', 'belanja_transfer')->count(),
             'cash_amount' => $items->where('payment_method', 'belanja_tunai')->sum('total_price'),
             'bank_amount' => $items->where('payment_method', 'belanja_transfer')->sum('total_price'),
+            'unposted_count' => $unpostedCount,
+            'posted_count' => $postedCount,
+            'unposted_budget' => $unpostedItems->sum('total_price'),
+            'posted_budget' => $postedItems->sum('total_price'),
         ];
 
-        return view('rpd.show', compact('rpd', 'items', 'summary'));
+        return view('rpd.show', compact('rpd', 'items', 'summary', 'unpostedCount', 'postedCount'));
     }
 
     /**
@@ -248,12 +285,27 @@ class RpdBreakdownController extends Controller
                 $taxPpn = round($totalPrice - $dpp, 2);
                 $taxPph22 = round($dpp * 0.015, 2);
             } elseif ($category === 'upah') {
-                $taxPph21 = round($totalPrice * 0.05, 2);
+                $unit = strtoupper(trim($request->unit ?? ''));
+                $unitPrice = (float) $request->unit_price;
+                $isHok = in_array($unit, ['OH', 'HOK', 'HARI']);
+                $dailyRate = $isHok ? $unitPrice : 0;
+
+                if ($dailyRate > 2500000) {
+                    $taxPph21 = round($totalPrice * 0.5 * 0.05, 2);
+                } elseif ($dailyRate > 450000) {
+                    $taxPph21 = round($totalPrice * 0.005, 2);
+                } else {
+                    $taxPph21 = 0;
+                    $hasTax = false;
+                }
             }
         }
 
         $taxTotal = $taxPpn + $taxPph22 + $taxPph21;
         $netAmount = $totalPrice - ($taxPph22 + $taxPph21);
+
+        $rawSupplier = trim((string) $request->input('supplier_name', ''));
+        $supplierName = $rawSupplier !== '' ? $rawSupplier : '....................';
 
         $item->update([
             'category' => $category,
@@ -263,7 +315,7 @@ class RpdBreakdownController extends Controller
             'unit_price' => $request->unit_price,
             'total_price' => $totalPrice,
             'planned_date' => $request->planned_date,
-            'supplier_name' => $request->supplier_name,
+            'supplier_name' => $supplierName,
             'payment_method' => $request->payment_method,
             'has_tax' => $hasTax,
             'tax_ppn' => $taxPpn,
@@ -291,6 +343,7 @@ class RpdBreakdownController extends Controller
 
     /**
      * Eksekusi "Posting ke BKU" - Menjadikan seluruh pecahan bahan transaksi resmi BKU.
+     * Otomatis menyertakan pencatatan saldo masuk pencairan dana dan penarikan kas tunai.
      */
     public function postToBku(RpdDocument $rpd)
     {
@@ -298,13 +351,31 @@ class RpdBreakdownController extends Controller
             $count = $this->breakdownService->postToBku($rpd);
 
             if ($count === 0) {
-                return back()->with('warning', 'Semua item dalam dokumen RPD ini sudah pernah diposting ke BKU.');
+                return back()->with('warning', 'Semua item dalam dokumen RPD ini dan transaksi saldo masuk pencairan sudah pernah diposting ke BKU.');
             }
 
             return redirect()->route('rpd.show', $rpd->id)
-                ->with('success', "Alhamdulillah! Sebanyak {$count} transaksi berhasil dibukukan ke Buku Kas Umum (BKU), BPK, BB, dan Buku Pembantu Pajak!");
+                ->with('success', "Alhamdulillah! Sebanyak {$count} transaksi resmi (termasuk Saldo Masuk Pencairan & Penarikan Tunai Kas) berhasil dibukukan ke Buku Kas Umum (BKU), BPK, BB, dan Buku Pembantu Pajak!");
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal memposting ke BKU: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Catat / Sinkronkan Otomatis Saldo Masuk Pencairan Termin & Tarik Tunai Kas.
+     */
+    public function syncDisbursement(RpdDocument $rpd)
+    {
+        try {
+            $created = $this->breakdownService->recordDisbursementTransactions($rpd);
+
+            if (empty($created)) {
+                return back()->with('info', 'Transaksi Saldo Masuk (Pencairan Termin) dan Penarikan Tunai Kas untuk dokumen ini sudah tercatat lengkap di BKU.');
+            }
+
+            return back()->with('success', 'Alhamdulillah! Berhasil mencatat otomatis ' . count($created) . ' transaksi Saldo Masuk Pencairan Termin & Penarikan Tunai Kas ke BKU.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal mencatat saldo masuk: ' . $e->getMessage());
         }
     }
 

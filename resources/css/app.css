@@ -37,22 +37,65 @@
 
 /* Print Styles for Official School Reports */
 @media print {
+  /* 1. Global Page Setup: A4 Landscape by default for multi-column financial ledgers */
   @page {
+    size: A4 landscape;
+    margin: 8mm 8mm 10mm 8mm;
+  }
+
+  @page portrait-page {
     size: A4 portrait;
     margin: 12mm 10mm 15mm 10mm;
   }
-  
-  .landscape-page {
-    size: A4 landscape;
+
+  .print-portrait {
+    page: portrait-page;
   }
 
-  body {
-    background: white !important;
-    color: black !important;
-    font-size: 10pt;
+  /* 2. Critical Reset for Root & Layout Wrappers: Allow Natural Page Flow */
+  html, body {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: visible !important;
+    position: static !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 8.5pt !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  .no-print {
+  /* Prevent Tailwind flex-1 / overflow-hidden from clipping multi-page documents */
+  .h-full,
+  .min-h-screen,
+  .overflow-hidden,
+  .overflow-y-auto,
+  .overflow-x-auto,
+  div.flex-1,
+  main {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+    position: static !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 3. Hide Screen-Only Elements */
+  .no-print,
+  aside,
+  header,
+  nav,
+  button,
+  .btn,
+  form.no-print {
     display: none !important;
   }
 
@@ -60,34 +103,72 @@
     display: block !important;
   }
 
+  /* 4. Sheet Card Container */
   .print-card {
     border: none !important;
     box-shadow: none !important;
+    border-radius: 0 !important;
     padding: 0 !important;
     margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: transparent !important;
   }
 
+  /* 5. Table Styling - Fitted and Repeating Headers on Every Page */
   table.report-table {
     width: 100% !important;
+    max-width: 100% !important;
+    table-layout: auto !important;
     border-collapse: collapse !important;
-    font-size: 9pt !important;
+    font-size: 8pt !important;
+    margin-top: 6px !important;
+    margin-bottom: 6px !important;
+  }
+
+  table.report-table thead {
+    display: table-header-group !important; /* Repeats table header on every printed page */
+  }
+
+  table.report-table tfoot {
+    display: table-footer-group !important;
+  }
+
+  table.report-table tbody tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   table.report-table th,
   table.report-table td {
-    border: 1px solid #1f2937 !important;
-    padding: 4px 6px !important;
+    border: 1px solid #000000 !important;
+    padding: 3px 5px !important;
+    line-height: 1.25 !important;
+    color: #000000 !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
   }
 
   table.report-table th {
-    background-color: #f3f4f6 !important;
-    color: #111827 !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    background-color: #f1f5f9 !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    text-align: center !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* 6. Avoid Breaking Signature Blocks & Summaries */
+  .avoid-break,
+  .signature-block,
+  .closing-box {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   .page-break {
-    page-break-after: always;
+    page-break-after: always !important;
+    break-after: page !important;
   }
 }
 

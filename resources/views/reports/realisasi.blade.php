@@ -1,6 +1,19 @@
 @extends('layouts.app')
 
-@section('title', 'Laporan Realisasi Anggaran Revitalisasi')
+@php
+    $bulanIndo = [
+        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+    ];
+    $currentMonth = $month ?? date('n');
+    $currentYear = $year ?? date('Y');
+    $currentMonthName = $namaBulan ?? ($bulanIndo[(int)$currentMonth] ?? \Carbon\Carbon::create(null, (int)$currentMonth, 1)->translatedFormat('F'));
+    $schoolCleanName = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $selectedSchool->name ?? 'Sekolah');
+    $pageTitle = "{$currentMonthName} {$currentYear} - Laporan Realisasi Anggaran - {$schoolCleanName}";
+@endphp
+
+@section('title', $pageTitle)
 
 @section('content')
 <div class="space-y-6">
@@ -39,6 +52,27 @@
             </select>
             @endif
 
+            @if(!empty($availableMenus))
+            <select name="menu_pekerjaan" onchange="this.form.submit()" class="text-xs font-semibold px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 text-slate-800">
+                <option value="all" {{ ($selectedMenu ?? 'all') === 'all' ? 'selected' : '' }}>Semua Menu Pekerjaan</option>
+                @foreach($availableMenus as $m)
+                    <option value="{{ $m }}" {{ ($selectedMenu ?? '') === $m ? 'selected' : '' }}>{{ $m }}</option>
+                @endforeach
+            </select>
+            @endif
+
+            <select name="month" onchange="this.form.submit()" class="text-xs font-semibold px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 text-slate-800">
+                @for($m = 1; $m <= 12; $m++)
+                    <option value="{{ $m }}" {{ ($currentMonth ?? date('n')) == $m ? 'selected' : '' }}>{{ $bulanIndo[$m] }}</option>
+                @endfor
+            </select>
+
+            <select name="year" onchange="this.form.submit()" class="text-xs font-semibold px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 text-slate-800">
+                @for($y = date('Y') - 1; $y <= date('Y') + 2; $y++)
+                    <option value="{{ $y }}" {{ ($currentYear ?? date('Y')) == $y ? 'selected' : '' }}>{{ $y }}</option>
+                @endfor
+            </select>
+
             <button type="button" onclick="window.print()" 
                     class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs flex items-center gap-1.5 transition-colors shadow-sm">
                 <i data-lucide="printer" class="w-3.5 h-3.5"></i>
@@ -57,21 +91,35 @@
             <span class="text-[11px] font-semibold text-emerald-600 uppercase">Total Realisasi Belanja</span>
             <div class="text-base font-bold text-emerald-600 mt-1">@rupiah($totalRealisasi)</div>
         </div>
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <span class="text-[11px] font-semibold text-amber-600 uppercase">Sisa Anggaran Belum Terserap</span>
-            <div class="text-base font-bold text-amber-600 mt-1">@rupiah($sisaTotal)</div>
+        <div class="{{ $sisaTotal < 0 ? 'bg-rose-50 border-rose-300' : 'bg-white border-slate-200' }} p-4 rounded-xl border shadow-sm">
+            <span class="text-[11px] font-semibold {{ $sisaTotal < 0 ? 'text-rose-600' : 'text-amber-600' }} uppercase">
+                {{ $sisaTotal < 0 ? 'Defisit / Melebihi Pagu' : 'Sisa Anggaran Belum Terserap' }}
+            </span>
+            <div class="text-base font-bold {{ $sisaTotal < 0 ? 'text-rose-700' : 'text-amber-600' }} mt-1">
+                {{ $sisaTotal < 0 ? '-' : '' }}@rupiah(abs($sisaTotal))
+            </div>
         </div>
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <span class="text-[11px] font-semibold text-indigo-600 uppercase">Persentase Serapan Keuangan</span>
-            <div class="text-base font-black text-indigo-600 mt-1">{{ $persenTotal }}%</div>
+            <span class="text-[11px] font-semibold {{ $persenTotal > 100 ? 'text-rose-600' : 'text-indigo-600' }} uppercase">Persentase Serapan Keuangan</span>
+            <div class="text-base font-black {{ $persenTotal > 100 ? 'text-rose-600' : 'text-indigo-600' }} mt-1">{{ $persenTotal }}%</div>
         </div>
     </div>
+
+    @if($sisaTotal < 0)
+    <div class="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 no-print">
+        <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-600 shrink-0 mt-0.5"></i>
+        <div class="text-xs text-rose-900">
+            <strong class="font-bold">Peringatan: Total Realisasi Belanja Melebihi Pagu Kontrak sebesar @rupiah(abs($sisaTotal)) ({{ $persenTotal }}%)!</strong>
+            <p class="mt-1 text-slate-700">Penyebab umum: (1) Dokumen RPD diposting lebih dari 1 kali ke BKU (duplikasi transaksi), (2) Nominal transaksi belanja diinput tanpa memilih kolom termin target, atau (3) Nilai Pagu Kontrak Proyek di master data baru mencakup sebagian termin dan belum disesuaikan dengan nilai total kontrak.</p>
+        </div>
+    </div>
+    @endif
 
     <!-- Printable Official Sheet -->
     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-10 print-card">
         
         <div class="border-b-2 border-slate-900 pb-4 mb-6 flex items-center justify-between gap-4">
-            <img src="{{ asset('images/logo.png') }}" alt="Logo Si Revita Situbondo" class="w-16 h-16 sm:w-20 sm:h-20 object-contain shrink-0">
+            <img src="{{ asset('images/logo-kabupaten.png') }}" alt="Logo Kabupaten Situbondo" class="w-16 h-16 sm:w-20 sm:h-20 object-contain shrink-0">
             <div class="flex-1 text-center">
                 <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-800">Pemerintah Kabupaten Situbondo</h3>
                 <h2 class="text-sm sm:text-base font-black uppercase tracking-wider text-slate-900">Dinas Pendidikan dan Kebudayaan</h2>
@@ -86,15 +134,22 @@
         </div>
 
         <div class="text-center mb-6">
-            <h2 class="text-lg font-extrabold uppercase text-slate-900 underline decoration-slate-400 underline-offset-4">
+            <h2 class="text-lg font-black uppercase text-slate-900 tracking-wider underline decoration-slate-400 underline-offset-4">
                 Laporan Realisasi Penggunaan Dana Revitalisasi Sekolah
             </h2>
-            <p class="text-xs font-semibold text-slate-700 mt-1">
+            <p class="text-xs font-bold text-slate-700 mt-1">
                 Paket: {{ $selectedProject->title ?? 'Revitalisasi Sekolah' }}
+            </p>
+            <p class="text-xs font-bold text-slate-700 mt-0.5 uppercase">
+                Periode: s.d. Bulan <span class="text-slate-900">{{ $currentMonthName }} {{ $currentYear }}</span>
             </p>
             <p class="text-[11px] text-slate-500 font-mono mt-0.5">
                 No. SPK: {{ $selectedProject->spk_number ?? '-' }} | Sumber Dana: {{ $selectedProject->funding_source ?? '-' }}
             </p>
+            <div class="inline-flex items-center gap-2 mt-2 px-3 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs font-semibold">
+                <i data-lucide="credit-card" class="w-3.5 h-3.5"></i>
+                <span>Rekening Penampung: <strong>{{ $selectedSchool->bank_name ?? '-' }}</strong> &mdash; No. Rek: <strong class="font-mono">{{ $selectedSchool->bank_account_number ?? '-' }}</strong> a.n <strong>{{ $selectedSchool->bank_account_holder ?? '-' }}</strong></span>
+            </div>
         </div>
 
         <div class="overflow-x-auto">
@@ -119,7 +174,12 @@
                         <td class="py-2 px-2 border border-slate-300 text-center">{{ $no++ }}</td>
                         <td class="py-2 px-3 border border-slate-300 font-mono text-center">{{ $item['code'] ?? '-' }}</td>
                         <td class="py-2 px-3 border border-slate-300 font-semibold text-slate-700">{{ $item['category'] }}</td>
-                        <td class="py-2 px-4 border border-slate-300 text-slate-800">{{ $item['name'] }}</td>
+                        <td class="py-2 px-4 border border-slate-300 text-slate-800">
+                            @if(!empty($item['menu_pekerjaan']) && ($selectedMenu ?? 'all') === 'all')
+                                <span class="inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 mr-1 mb-0.5">{{ $item['menu_pekerjaan'] }}</span>
+                            @endif
+                            {{ $item['name'] }}
+                        </td>
                         <td class="py-2 px-2 border border-slate-300 text-center font-mono">{{ $item['volume'] }} {{ $item['unit'] }}</td>
                         <td class="py-2 px-3 border border-slate-300 text-right font-mono">{{ number_format($item['pagu'], 0, ',', '.') }}</td>
                         <td class="py-2 px-3 border border-slate-300 text-right font-mono text-emerald-700 font-bold">{{ number_format($item['realisasi'], 0, ',', '.') }}</td>
@@ -155,7 +215,7 @@
             </table>
         </div>
 
-        <div class="mt-12 grid grid-cols-2 gap-8 text-center text-xs text-slate-900">
+        <div class="mt-12 grid grid-cols-2 gap-8 text-center text-xs text-slate-900 signature-block avoid-break">
             <div>
                 <p>Mengetahui,</p>
                 <p class="font-bold">Kepala Sekolah</p>
@@ -164,7 +224,7 @@
                 <p class="text-slate-600">NIP. {{ $selectedSchool->principal_nip ?? '...................................' }}</p>
             </div>
             <div>
-                <p>Situbondo, {{ date('d F Y') }}</p>
+                <p>Situbondo, {{ \Carbon\Carbon::create($currentYear, (int)$currentMonth, 1)->endOfMonth()->translatedFormat('d F Y') }}</p>
                 <p class="font-bold">Bendahara Pengeluaran Revitalisasi</p>
                 <div class="h-24"></div>
                 <p class="font-bold text-sm underline">{{ $selectedSchool->treasurer_name ?? '................................................' }}</p>

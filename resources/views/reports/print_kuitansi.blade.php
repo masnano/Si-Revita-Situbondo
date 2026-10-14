@@ -3,7 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kuitansi {{ $transaction->transaction_number }} - Si Revita Situbondo</title>
+    @php
+        $bulanIndo = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+        $txDate = \Carbon\Carbon::parse($transaction->transaction_date);
+        $namaBulan = $bulanIndo[(int)$txDate->format('n')] ?? $txDate->translatedFormat('F');
+        $year = $txDate->format('Y');
+        $schoolCleanName = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $transaction->school->name ?? 'Sekolah');
+        $receiptTitle = "{$namaBulan} {$year} - Kuitansi {$transaction->transaction_number} - {$schoolCleanName}";
+    @endphp
+    <title>{{ $receiptTitle }}</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
@@ -60,7 +72,7 @@
         
         <!-- Header Kop -->
         <div class="border-b-2 border-slate-900 pb-4 mb-6 flex items-center justify-between gap-4">
-            <img src="{{ asset('images/logo.png') }}" alt="Logo Si Revita Situbondo" class="w-16 h-16 object-contain shrink-0">
+            <img src="{{ asset('images/logo-kabupaten.png') }}" alt="Logo Kabupaten Situbondo" class="w-16 h-16 object-contain shrink-0">
             <div class="flex-1 text-center">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">Pemerintah Kabupaten Situbondo</h3>
                 <h2 class="text-sm font-black uppercase tracking-wider text-slate-900">Dinas Pendidikan dan Kebudayaan</h2>
@@ -97,6 +109,9 @@
             <h2 class="text-lg font-black uppercase tracking-widest text-slate-900 underline decoration-slate-400 underline-offset-4">
                 Kuitansi / Bukti Pembayaran
             </h2>
+            <p class="text-[11px] text-slate-500 font-medium mt-1">
+                Bantuan Revitalisasi Satuan Pendidikan Kab. Situbondo TA {{ $transaction->transaction_date->format('Y') }}
+            </p>
         </div>
 
         <!-- Receipt Body Lines -->
@@ -127,6 +142,22 @@
                         <div class="text-[11px] text-slate-500 font-medium mt-1">
                             Kegiatan: {{ $transaction->project->title }} (No. SPK: {{ $transaction->project->spk_number }})
                         </div>
+                    @endif
+                </div>
+            </div>
+
+            <div class="grid grid-cols-12 gap-2 items-center">
+                <div class="col-span-3 text-slate-600 font-semibold">Metode Pembayaran</div>
+                <div class="col-span-1 text-center font-bold">:</div>
+                <div class="col-span-8 text-xs text-slate-800">
+                    @if($transaction->type === 'belanja_transfer')
+                        <span class="inline-flex items-center gap-1.5 font-semibold text-indigo-900 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">
+                            Transfer {{ $transaction->school->bank_name ?? 'Bank Penampung' }} &mdash; No. Rek: <strong class="font-mono">{{ $transaction->school->bank_account_number ?? '-' }}</strong> a.n <strong>{{ $transaction->school->bank_account_holder ?? '-' }}</strong>
+                        </span>
+                    @else
+                        <span class="inline-flex items-center gap-1.5 font-semibold text-amber-900 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+                            Kas Tunai (Melalui Kas Brankas Bendahara Sekolah)
+                        </span>
                     @endif
                 </div>
             </div>

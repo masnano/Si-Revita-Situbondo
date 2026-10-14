@@ -20,8 +20,14 @@ class ReportController extends Controller
 
         $month = $request->get('month', date('n'));
         $year = $request->get('year', date('Y'));
-        $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
-        $endDate = Carbon::createFromDate($year, $month, 1)->endOfMonth();
+
+        if ($month === 'all') {
+            $startDate = Carbon::createFromDate($year, 1, 1)->startOfYear();
+            $endDate = Carbon::createFromDate($year, 12, 31)->endOfYear();
+        } else {
+            $startDate = Carbon::createFromDate($year, (int)$month, 1)->startOfMonth();
+            $endDate = Carbon::createFromDate($year, (int)$month, 1)->endOfMonth();
+        }
 
         $pastTransactions = Transaction::where('school_id', $selectedSchool?->id)
             ->where('transaction_date', '<', $startDate)
@@ -41,6 +47,13 @@ class ReportController extends Controller
         $transactions = Transaction::where('school_id', $selectedSchool?->id)
             ->whereBetween('transaction_date', [$startDate, $endDate])
             ->orderBy('transaction_date')
+            ->orderByRaw("CASE 
+                WHEN type = 'penerimaan_dana' THEN 1 
+                WHEN type = 'tarik_tunai' THEN 2 
+                WHEN type = 'bunga_bank' THEN 3 
+                WHEN type = 'setor_tunai' THEN 4 
+                ELSE 5 
+            END ASC")
             ->orderBy('id')
             ->get();
 
@@ -83,11 +96,14 @@ class ReportController extends Controller
         $bankKeluar = $allTxUpToNow->whereIn('type', ['belanja_transfer', 'tarik_tunai', 'biaya_bank'])->sum('amount');
         $rincianBank = max(0, $bankMasuk - $bankKeluar);
 
+        $namaBulan = ($month === 'all') ? 'Semua Bulan' : self::getIndonesianMonthName($month);
+
         return view('reports.bku', compact(
             'schools',
             'selectedSchool',
             'month',
             'year',
+            'namaBulan',
             'saldoAwal',
             'bkuRows',
             'totalPenerimaanBulan',
@@ -106,8 +122,14 @@ class ReportController extends Controller
 
         $month = $request->get('month', date('n'));
         $year = $request->get('year', date('Y'));
-        $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
-        $endDate = Carbon::createFromDate($year, $month, 1)->endOfMonth();
+
+        if ($month === 'all') {
+            $startDate = Carbon::createFromDate($year, 1, 1)->startOfYear();
+            $endDate = Carbon::createFromDate($year, 12, 31)->endOfYear();
+        } else {
+            $startDate = Carbon::createFromDate($year, (int)$month, 1)->startOfMonth();
+            $endDate = Carbon::createFromDate($year, (int)$month, 1)->endOfMonth();
+        }
 
         $pastTransactions = Transaction::where('school_id', $selectedSchool?->id)
             ->where('transaction_date', '<', $startDate)
@@ -120,6 +142,11 @@ class ReportController extends Controller
             ->whereBetween('transaction_date', [$startDate, $endDate])
             ->whereIn('type', ['tarik_tunai', 'belanja_tunai', 'setor_tunai'])
             ->orderBy('transaction_date')
+            ->orderByRaw("CASE 
+                WHEN type = 'tarik_tunai' THEN 1 
+                WHEN type = 'setor_tunai' THEN 2 
+                ELSE 3 
+            END ASC")
             ->orderBy('id')
             ->get();
 
@@ -150,11 +177,14 @@ class ReportController extends Controller
             ];
         }
 
+        $namaBulan = ($month === 'all') ? 'Semua Bulan' : self::getIndonesianMonthName($month);
+
         return view('reports.bpk', compact(
             'schools',
             'selectedSchool',
             'month',
             'year',
+            'namaBulan',
             'saldoAwalKas',
             'bpkRows',
             'totalPenerimaanKas',
@@ -171,8 +201,14 @@ class ReportController extends Controller
 
         $month = $request->get('month', date('n'));
         $year = $request->get('year', date('Y'));
-        $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
-        $endDate = Carbon::createFromDate($year, $month, 1)->endOfMonth();
+
+        if ($month === 'all') {
+            $startDate = Carbon::createFromDate($year, 1, 1)->startOfYear();
+            $endDate = Carbon::createFromDate($year, 12, 31)->endOfYear();
+        } else {
+            $startDate = Carbon::createFromDate($year, (int)$month, 1)->startOfMonth();
+            $endDate = Carbon::createFromDate($year, (int)$month, 1)->endOfMonth();
+        }
 
         $pastTransactions = Transaction::where('school_id', $selectedSchool?->id)
             ->where('transaction_date', '<', $startDate)
@@ -186,6 +222,13 @@ class ReportController extends Controller
             ->whereBetween('transaction_date', [$startDate, $endDate])
             ->whereIn('type', ['penerimaan_dana', 'bunga_bank', 'setor_tunai', 'belanja_transfer', 'tarik_tunai', 'biaya_bank'])
             ->orderBy('transaction_date')
+            ->orderByRaw("CASE 
+                WHEN type = 'penerimaan_dana' THEN 1 
+                WHEN type = 'bunga_bank' THEN 2 
+                WHEN type = 'tarik_tunai' THEN 3 
+                WHEN type = 'setor_tunai' THEN 4 
+                ELSE 5 
+            END ASC")
             ->orderBy('id')
             ->get();
 
@@ -216,11 +259,14 @@ class ReportController extends Controller
             ];
         }
 
+        $namaBulan = ($month === 'all') ? 'Semua Bulan' : self::getIndonesianMonthName($month);
+
         return view('reports.bb', compact(
             'schools',
             'selectedSchool',
             'month',
             'year',
+            'namaBulan',
             'saldoAwalBank',
             'bbRows',
             'totalSetoranBank',
@@ -238,10 +284,15 @@ class ReportController extends Controller
         $taxType = $request->get('tax_type', 'all');
         $status = $request->get('status', 'all');
         $year = $request->get('year', date('Y'));
+        $month = $request->get('month', 'all');
 
         $query = Transaction::where('school_id', $selectedSchool?->id)
             ->where('has_tax', true)
             ->whereYear('transaction_date', $year);
+
+        if ($month !== 'all' && is_numeric($month)) {
+            $query->whereMonth('transaction_date', (int)$month);
+        }
 
         if ($taxType !== 'all') {
             $query->where('tax_type', 'like', "%{$taxType}%");
@@ -263,12 +314,16 @@ class ReportController extends Controller
         $totalPPh23 = $transactions->sum('tax_pph23');
         $totalPPh4_2 = $transactions->sum('tax_pph4_2');
 
+        $namaBulan = ($month !== 'all' && is_numeric($month)) ? self::getIndonesianMonthName($month) : 'Semua Bulan';
+
         return view('reports.bp', compact(
             'schools',
             'selectedSchool',
             'taxType',
             'status',
             'year',
+            'month',
+            'namaBulan',
             'transactions',
             'totalPungut',
             'totalSetor',
@@ -290,15 +345,29 @@ class ReportController extends Controller
         $projects = RevitalizationProject::where('school_id', $selectedSchool?->id)->get();
         $projectId = $request->get('project_id', $projects->first()?->id);
         $selectedProject = RevitalizationProject::with('budgetItems')->find($projectId) ?? $projects->first();
+        $selectedMenu = $request->get('menu_pekerjaan', 'all');
 
-        $budgetItems = [];
+        $budgetItems = collect();
+        $availableMenus = [];
         $totalPagu = 0;
         $totalRealisasi = 0;
 
         if ($selectedProject) {
-            $budgetItems = BudgetItem::where('project_id', $selectedProject->id)
-                ->with(['transactions'])
-                ->get()
+            $availableMenus = BudgetItem::where('project_id', $selectedProject->id)
+                ->whereNotNull('menu_pekerjaan')
+                ->where('menu_pekerjaan', '!=', '')
+                ->distinct()
+                ->pluck('menu_pekerjaan')
+                ->toArray();
+
+            $query = BudgetItem::where('project_id', $selectedProject->id)
+                ->with(['transactions']);
+
+            if ($selectedMenu && $selectedMenu !== 'all') {
+                $query->where('menu_pekerjaan', $selectedMenu);
+            }
+
+            $budgetItems = $query->get()
                 ->map(function ($item) {
                     $realisasi = $item->transactions
                         ->whereIn('type', ['belanja_tunai', 'belanja_transfer'])
@@ -309,6 +378,7 @@ class ReportController extends Controller
                     return [
                         'code' => $item->code,
                         'category' => $item->category,
+                        'menu_pekerjaan' => $item->menu_pekerjaan,
                         'name' => $item->name,
                         'volume' => $item->volume,
                         'unit' => $item->unit,
@@ -320,9 +390,18 @@ class ReportController extends Controller
                     ];
                 });
 
-            $totalPagu = $selectedProject->contract_amount;
-            $totalRealisasi = $selectedProject->total_realization;
+            if ($selectedMenu && $selectedMenu !== 'all') {
+                $totalPagu = $budgetItems->sum('pagu');
+                $totalRealisasi = $budgetItems->sum('realisasi');
+            } else {
+                $totalPagu = $selectedProject->contract_amount;
+                $totalRealisasi = $selectedProject->total_realization;
+            }
         }
+
+        $month = $request->get('month', date('n'));
+        $year = $request->get('year', date('Y'));
+        $namaBulan = self::getIndonesianMonthName($month);
 
         $sisaTotal = $totalPagu - $totalRealisasi;
         $persenTotal = $totalPagu > 0 ? round(($totalRealisasi / $totalPagu) * 100, 2) : 0;
@@ -332,11 +411,16 @@ class ReportController extends Controller
             'selectedSchool',
             'projects',
             'selectedProject',
+            'availableMenus',
+            'selectedMenu',
             'budgetItems',
             'totalPagu',
             'totalRealisasi',
             'sisaTotal',
-            'persenTotal'
+            'persenTotal',
+            'month',
+            'year',
+            'namaBulan'
         ));
     }
 
@@ -374,7 +458,11 @@ class ReportController extends Controller
     {
         $schoolId = $this->resolveSchoolId($request);
         $school = School::find($schoolId) ?? School::first();
-        $fileName = "SiRevita_{$type}_" . str_replace(' ', '_', $school->name) . '_' . date('Ymd_His') . '.csv';
+        $month = $request->get('month', date('n'));
+        $year = $request->get('year', date('Y'));
+        $namaBulan = ($month === 'all') ? 'Semua_Bulan' : self::getIndonesianMonthName($month);
+        $schoolSlug = str_replace([' ', '/', '\\'], '_', $school->name);
+        $fileName = "{$namaBulan}_{$year}_SiRevita_{$type}_{$schoolSlug}_" . date('Ymd_His') . '.csv';
 
         $headers = [
             "Content-type" => "text/csv; charset=UTF-8",
@@ -392,20 +480,51 @@ class ReportController extends Controller
                 fputcsv($file, ['PEMERINTAH KABUPATEN SITUBONDO']);
                 fputcsv($file, ['DINAS PENDIDIKAN DAN KEBUDAYAAN']);
                 fputcsv($file, ["BUKU KAS UMUM (BKU) - {$school->name}"]);
+                fputcsv($file, ["Rekening Operasional: {$school->bank_name} | No. Rek: {$school->bank_account_number} a.n {$school->bank_account_holder}"]);
                 fputcsv($file, []);
                 fputcsv($file, ['No', 'Tanggal', 'No. Bukti', 'Uraian Transaksi', 'Penerimaan (Rp)', 'Pengeluaran (Rp)', 'Saldo Kumulatif (Rp)']);
 
                 $month = $request->get('month', date('n'));
                 $year = $request->get('year', date('Y'));
-                $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
-                $endDate = Carbon::createFromDate($year, $month, 1)->endOfMonth();
+                if ($month === 'all') {
+                    $startDate = Carbon::createFromDate($year, 1, 1)->startOfYear();
+                    $endDate = Carbon::createFromDate($year, 12, 31)->endOfYear();
+                } else {
+                    $startDate = Carbon::createFromDate($year, (int)$month, 1)->startOfMonth();
+                    $endDate = Carbon::createFromDate($year, (int)$month, 1)->endOfMonth();
+                }
+
+                $pastTransactions = Transaction::where('school_id', $school->id)
+                    ->where('transaction_date', '<', $startDate)
+                    ->get();
+                $saldoAwalPenerimaan = $pastTransactions->whereIn('type', ['penerimaan_dana', 'bunga_bank'])->sum('amount');
+                $saldoAwalPengeluaran = $pastTransactions->whereIn('type', ['belanja_tunai', 'belanja_transfer', 'biaya_bank'])->sum('amount');
+                $saldoAwal = $saldoAwalPenerimaan - $saldoAwalPengeluaran;
 
                 $txs = Transaction::where('school_id', $school->id)
                     ->whereBetween('transaction_date', [$startDate, $endDate])
                     ->orderBy('transaction_date')
+                    ->orderByRaw("CASE 
+                        WHEN type = 'penerimaan_dana' THEN 1 
+                        WHEN type = 'tarik_tunai' THEN 2 
+                        WHEN type = 'bunga_bank' THEN 3 
+                        WHEN type = 'setor_tunai' THEN 4 
+                        ELSE 5 
+                    END ASC")
+                    ->orderBy('id')
                     ->get();
 
-                $bal = 0;
+                $bal = $saldoAwal;
+                fputcsv($file, [
+                    '-',
+                    $month === 'all' ? "01/01/{$year}" : '01/' . sprintf('%02d', (int)$month) . "/{$year}",
+                    '-',
+                    $month === 'all' ? "Saldo Awal Tahun Anggaran {$year}" : 'Saldo Awal Bulan',
+                    0,
+                    0,
+                    $bal
+                ]);
+
                 $no = 1;
                 foreach ($txs as $t) {
                     $p = in_array($t->type, ['penerimaan_dana', 'bunga_bank']) ? $t->amount : 0;
@@ -423,15 +542,52 @@ class ReportController extends Controller
                     ]);
                 }
             } elseif ($type === 'bpk') {
+                fputcsv($file, ['PEMERINTAH KABUPATEN SITUBONDO']);
+                fputcsv($file, ['DINAS PENDIDIKAN DAN KEBUDAYAAN']);
                 fputcsv($file, ["BUKU PEMBANTU KAS (BPK) - {$school->name}"]);
+                fputcsv($file, ["Sumber Penarikan Kas: {$school->bank_name} | No. Rek: {$school->bank_account_number} a.n {$school->bank_account_holder}"]);
+                fputcsv($file, []);
                 fputcsv($file, ['No', 'Tanggal', 'No. Bukti', 'Uraian', 'Penerimaan Kas (Rp)', 'Pengeluaran Kas (Rp)', 'Saldo Kas (Rp)']);
 
+                $month = $request->get('month', date('n'));
+                $year = $request->get('year', date('Y'));
+                if ($month === 'all') {
+                    $startDate = Carbon::createFromDate($year, 1, 1)->startOfYear();
+                    $endDate = Carbon::createFromDate($year, 12, 31)->endOfYear();
+                } else {
+                    $startDate = Carbon::createFromDate($year, (int)$month, 1)->startOfMonth();
+                    $endDate = Carbon::createFromDate($year, (int)$month, 1)->endOfMonth();
+                }
+
+                $pastTransactions = Transaction::where('school_id', $school->id)
+                    ->where('transaction_date', '<', $startDate)
+                    ->get();
+                $saldoAwalKas = $pastTransactions->where('type', 'tarik_tunai')->sum('amount')
+                    - ($pastTransactions->where('type', 'belanja_tunai')->sum('amount') + $pastTransactions->where('type', 'setor_tunai')->sum('amount'));
+
                 $txs = Transaction::where('school_id', $school->id)
+                    ->whereBetween('transaction_date', [$startDate, $endDate])
                     ->whereIn('type', ['tarik_tunai', 'belanja_tunai', 'setor_tunai'])
                     ->orderBy('transaction_date')
+                    ->orderByRaw("CASE 
+                        WHEN type = 'tarik_tunai' THEN 1 
+                        WHEN type = 'setor_tunai' THEN 2 
+                        ELSE 3 
+                    END ASC")
+                    ->orderBy('id')
                     ->get();
 
-                $bal = 0;
+                $bal = $saldoAwalKas;
+                fputcsv($file, [
+                    '-',
+                    $month === 'all' ? "01/01/{$year}" : '01/' . sprintf('%02d', (int)$month) . "/{$year}",
+                    '-',
+                    $month === 'all' ? "Saldo Awal Kas Tunai (Awal Tahun {$year})" : 'Saldo Awal Kas Tunai',
+                    0,
+                    0,
+                    $bal
+                ]);
+
                 $no = 1;
                 foreach ($txs as $t) {
                     $p = ($t->type === 'tarik_tunai') ? $t->amount : 0;
@@ -449,15 +605,55 @@ class ReportController extends Controller
                     ]);
                 }
             } elseif ($type === 'bb') {
+                fputcsv($file, ['PEMERINTAH KABUPATEN SITUBONDO']);
+                fputcsv($file, ['DINAS PENDIDIKAN DAN KEBUDAYAAN']);
                 fputcsv($file, ["BUKU PEMBANTU BANK (BB) - {$school->name}"]);
+                fputcsv($file, ["Bank: {$school->bank_name} | No. Rekening: {$school->bank_account_number} a.n {$school->bank_account_holder}"]);
+                fputcsv($file, []);
                 fputcsv($file, ['No', 'Tanggal', 'No. Bukti', 'Uraian', 'Setoran Bank (Rp)', 'Penarikan Bank (Rp)', 'Saldo Bank (Rp)']);
 
+                $month = $request->get('month', date('n'));
+                $year = $request->get('year', date('Y'));
+                if ($month === 'all') {
+                    $startDate = Carbon::createFromDate($year, 1, 1)->startOfYear();
+                    $endDate = Carbon::createFromDate($year, 12, 31)->endOfYear();
+                } else {
+                    $startDate = Carbon::createFromDate($year, (int)$month, 1)->startOfMonth();
+                    $endDate = Carbon::createFromDate($year, (int)$month, 1)->endOfMonth();
+                }
+
+                $pastTransactions = Transaction::where('school_id', $school->id)
+                    ->where('transaction_date', '<', $startDate)
+                    ->get();
+                $pastBankMasuk = $pastTransactions->whereIn('type', ['penerimaan_dana', 'bunga_bank', 'setor_tunai'])->sum('amount');
+                $pastBankKeluar = $pastTransactions->whereIn('type', ['belanja_transfer', 'tarik_tunai', 'biaya_bank'])->sum('amount');
+                $saldoAwalBank = $pastBankMasuk - $pastBankKeluar;
+
                 $txs = Transaction::where('school_id', $school->id)
+                    ->whereBetween('transaction_date', [$startDate, $endDate])
                     ->whereIn('type', ['penerimaan_dana', 'bunga_bank', 'setor_tunai', 'belanja_transfer', 'tarik_tunai', 'biaya_bank'])
                     ->orderBy('transaction_date')
+                    ->orderByRaw("CASE 
+                        WHEN type = 'penerimaan_dana' THEN 1 
+                        WHEN type = 'bunga_bank' THEN 2 
+                        WHEN type = 'tarik_tunai' THEN 3 
+                        WHEN type = 'setor_tunai' THEN 4 
+                        ELSE 5 
+                    END ASC")
+                    ->orderBy('id')
                     ->get();
 
-                $bal = 0;
+                $bal = $saldoAwalBank;
+                fputcsv($file, [
+                    '-',
+                    $month === 'all' ? "01/01/{$year}" : '01/' . sprintf('%02d', (int)$month) . "/{$year}",
+                    '-',
+                    $month === 'all' ? "Saldo Awal Rekening Bank (Awal Tahun {$year})" : 'Saldo Awal Rekening Bank',
+                    0,
+                    0,
+                    $bal
+                ]);
+
                 $no = 1;
                 foreach ($txs as $t) {
                     $s = in_array($t->type, ['penerimaan_dana', 'bunga_bank', 'setor_tunai']) ? $t->amount : 0;
@@ -475,7 +671,11 @@ class ReportController extends Controller
                     ]);
                 }
             } elseif ($type === 'bp') {
+                fputcsv($file, ['PEMERINTAH KABUPATEN SITUBONDO']);
+                fputcsv($file, ['DINAS PENDIDIKAN DAN KEBUDAYAAN']);
                 fputcsv($file, ["BUKU PEMBANTU PAJAK (BP) - {$school->name}"]);
+                fputcsv($file, ["Rekening Operasional: {$school->bank_name} | No. Rek: {$school->bank_account_number} a.n {$school->bank_account_holder}"]);
+                fputcsv($file, []);
                 fputcsv($file, ['No', 'Tanggal', 'No. Bukti', 'Uraian', 'Jenis Pajak', 'Pungutan (Rp)', 'Setoran (Rp)', 'Status', 'No NTPN']);
 
                 $txs = Transaction::where('school_id', $school->id)->where('has_tax', true)->get();
@@ -500,6 +700,20 @@ class ReportController extends Controller
         };
 
         return new StreamedResponse($callback, 200, $headers);
+    }
+
+    public static function getIndonesianMonthName(int|string|null $month): string
+    {
+        $bulanIndo = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+        if ($month === 'all' || empty($month)) {
+            return 'Semua Bulan';
+        }
+        $m = (int)$month;
+        return $bulanIndo[$m] ?? Carbon::create(null, $m, 1)->locale('id')->translatedFormat('F');
     }
 
     private function resolveSchoolId(Request $request)

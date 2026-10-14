@@ -1,6 +1,20 @@
 @extends('layouts.app')
 
-@section('title', 'Buku Pembantu Pajak (BP) - Si Revita Situbondo')
+@php
+    $bulanIndo = [
+        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+    ];
+    $hasSpecificMonth = isset($month) && $month !== 'all' && is_numeric($month);
+    $currentMonthName = $hasSpecificMonth 
+        ? ($bulanIndo[(int)$month] ?? \Carbon\Carbon::create(null, (int)$month, 1)->translatedFormat('F'))
+        : ($bulanIndo[(int)date('n')] ?? date('F'));
+    $schoolCleanName = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $selectedSchool->name ?? 'Sekolah');
+    $pageTitle = "{$currentMonthName} {$year} - Buku Pembantu Pajak (BP) - {$schoolCleanName}";
+@endphp
+
+@section('title', $pageTitle)
 
 @section('content')
 <div class="space-y-6">
@@ -42,6 +56,13 @@
                 <option value="all" {{ $status == 'all' ? 'selected' : '' }}>Semua Status</option>
                 <option value="dipungut" {{ $status == 'dipungut' ? 'selected' : '' }}>Belum Disetor</option>
                 <option value="disetor" {{ $status == 'disetor' ? 'selected' : '' }}>Sudah Disetor (NTPN)</option>
+            </select>
+
+            <select name="month" class="text-xs font-semibold px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 text-slate-800 focus:outline-none focus:border-rose-500">
+                <option value="all" {{ ($month ?? 'all') == 'all' ? 'selected' : '' }}>Semua Bulan</option>
+                @for($m = 1; $m <= 12; $m++)
+                    <option value="{{ $m }}" {{ ($month ?? '') == (string)$m ? 'selected' : '' }}>{{ $bulanIndo[$m] }}</option>
+                @endfor
             </select>
 
             <select name="year" class="text-xs font-semibold px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 text-slate-800 focus:outline-none focus:border-rose-500">
@@ -105,7 +126,7 @@
     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-10 print-card" x-data="{ openSetorModal: false, selectedTx: null }">
         
         <div class="border-b-2 border-slate-900 pb-4 mb-6 flex items-center justify-between gap-4">
-            <img src="{{ asset('images/logo.png') }}" alt="Logo Si Revita Situbondo" class="w-16 h-16 sm:w-20 sm:h-20 object-contain shrink-0">
+            <img src="{{ asset('images/logo-kabupaten.png') }}" alt="Logo Kabupaten Situbondo" class="w-16 h-16 sm:w-20 sm:h-20 object-contain shrink-0">
             <div class="flex-1 text-center">
                 <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-800">Pemerintah Kabupaten Situbondo</h3>
                 <h2 class="text-sm sm:text-base font-black uppercase tracking-wider text-slate-900">Dinas Pendidikan dan Kebudayaan</h2>
@@ -120,12 +141,23 @@
         </div>
 
         <div class="text-center mb-6">
-            <h2 class="text-lg font-extrabold uppercase text-slate-900 underline decoration-slate-400 underline-offset-4">
+            <h2 class="text-lg font-black uppercase text-slate-900 tracking-wider underline decoration-slate-400 underline-offset-4">
                 Buku Pembantu Pajak (BP)
             </h2>
-            <p class="text-xs font-semibold text-slate-600 mt-1">
-                Tahun Anggaran: <span class="text-slate-900">{{ $year }}</span>
+            <p class="text-xs font-bold text-slate-700 mt-1 uppercase">
+                @if($hasSpecificMonth)
+                    Bulan: <span class="text-slate-900">{{ $currentMonthName }} {{ $year }}</span>
+                @else
+                    Tahun Anggaran: <span class="text-slate-900">{{ $year }}</span> (Semua Bulan)
+                @endif
             </p>
+            <p class="text-[11px] text-slate-500 font-mono mt-0.5">
+                Kegiatan: Bantuan Revitalisasi Sarana Prasarana Sekolah TA {{ $year }}
+            </p>
+            <div class="inline-flex items-center gap-2 mt-2 px-3 py-1 rounded-lg bg-rose-50 border border-rose-200 text-rose-900 text-xs font-semibold">
+                <i data-lucide="receipt-tax" class="w-3.5 h-3.5"></i>
+                <span>Rekening Operasional: <strong>{{ $selectedSchool->bank_name ?? 'Bank Penampung' }}</strong> &mdash; No. Rek: <strong class="font-mono">{{ $selectedSchool->bank_account_number ?? '-' }}</strong> a.n <strong>{{ $selectedSchool->bank_account_holder ?? '-' }}</strong></span>
+            </div>
         </div>
 
         <div class="overflow-x-auto">
@@ -230,7 +262,7 @@
         </div>
 
         <!-- Official Signatures -->
-        <div class="mt-12 grid grid-cols-2 gap-8 text-center text-xs text-slate-900">
+        <div class="mt-12 grid grid-cols-2 gap-8 text-center text-xs text-slate-900 signature-block avoid-break">
             <div>
                 <p>Mengetahui,</p>
                 <p class="font-bold">Kepala Sekolah</p>
@@ -284,7 +316,7 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Penyetoran ke Bank Persepsi / Kas Negara</label>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Penyetoran ke {{ $selectedSchool->bank_name ?? 'Bank Persepsi' }} / Kas Negara</label>
                         <input type="date" name="tax_payment_date" required value="{{ date('Y-m-d') }}"
                                class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-rose-500">
                     </div>

@@ -20,6 +20,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Set Carbon locale to Indonesian for dates and month names
+        \Carbon\Carbon::setLocale('id');
+
         // Custom Blade Directives
         Blade::if('role', function ($roles) {
             if (!auth()->check()) {

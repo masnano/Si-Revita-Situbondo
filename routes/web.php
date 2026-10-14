@@ -58,6 +58,8 @@ Route::middleware('auth')->group(function () {
     // 4. Modul Data Master Sekolah & Proyek & RAB
     Route::resource('schools', SchoolController::class);
     Route::resource('projects', ProjectController::class);
+    Route::get('/rab/template', [BudgetItemController::class, 'template'])->name('rab.template');
+    Route::post('/rab/import', [BudgetItemController::class, 'import'])->name('rab.import')->middleware('permission:rab.create');
     Route::resource('rab', BudgetItemController::class)->only(['index', 'store', 'update', 'destroy']);
 
     // 5. Modul Pecah Bahan RPD (Upload RPD & Generate Isian BKU)
@@ -69,6 +71,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/{rpd}', [RpdBreakdownController::class, 'show'])->name('show');
         Route::put('/items/{item}', [RpdBreakdownController::class, 'updateItem'])->name('items.update')->middleware('role:root,admin');
         Route::post('/{rpd}/post-bku', [RpdBreakdownController::class, 'postToBku'])->name('post_bku')->middleware('role:root,admin');
+        Route::post('/{rpd}/sync-disbursement', [RpdBreakdownController::class, 'syncDisbursement'])->name('sync_disbursement')->middleware('role:root,admin');
         Route::get('/{rpd}/export-bku', [RpdBreakdownController::class, 'exportBku'])->name('export_bku');
         Route::delete('/{rpd}', [RpdBreakdownController::class, 'destroy'])->name('destroy')->middleware('role:root,admin');
     });

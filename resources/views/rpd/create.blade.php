@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Unggah File RPD & Mulai Pecah Bahan - Si Revita Situbondo')
+@section('title', 'Unggah Berkas RPD & Mulai Pecah Bahan - Si Revita Situbondo')
 
 @section('content')
 <div class="max-w-5xl mx-auto space-y-6" x-data="rpdUploader()">
@@ -14,10 +14,10 @@
             </nav>
             <h1 class="text-2xl font-extrabold text-slate-900 flex items-center gap-2.5">
                 <i data-lucide="upload-cloud" class="w-7 h-7 text-emerald-600"></i>
-                <span>Unggah Dokumen RPD & Pecah Bahan</span>
+                <span>Unggah Berkas RPD & Pecah Bahan</span>
             </h1>
             <p class="text-xs md:text-sm text-slate-500 mt-1">
-                Sistem akan membaca file RPD, mengelompokkan bahan material, menghitung PPN & PPh, lalu menyusun draf isian Buku Kas Umum (BKU).
+                Sistem membaca berkas RPD secara fleksibel (<strong class="text-emerald-700">Excel .xlsx/.xls</strong> atau <strong class="text-rose-700">PDF .pdf</strong>), memecah belanja bahan & upah per ruang, menghitung pajak PPN & PPh otomatis, lalu menyusun draf isian Buku Kas Umum (BKU).
             </p>
         </div>
 
@@ -51,7 +51,7 @@
                                     <option value="" class="bg-white text-slate-800">-- Pilih Sekolah --</option>
                                     @foreach($schools as $school)
                                         <option value="{{ $school->id }}" class="bg-white text-slate-800" {{ old('school_id', $selectedSchoolId) == $school->id ? 'selected' : '' }}>
-                                            {{ $school->name }} ({{ $school->npsn }})
+                                            {{ $school->name }} (NPSN: {{ $school->npsn }})
                                         </option>
                                     @endforeach
                                 </select>
@@ -86,21 +86,36 @@
                                 </label>
                                 <select name="term_stage" id="term_stage" required
                                         class="w-full text-xs md:text-sm rounded-xl border border-slate-300 bg-white text-slate-800 font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none">
-                                    <option value="Tahap 1" class="bg-white text-slate-800" {{ old('term_stage') == 'Tahap 1' ? 'selected' : '' }}>Tahap 1 (Pencairan Awal / Pondasi & Struktur)</option>
-                                    <option value="Tahap 2" class="bg-white text-slate-800" {{ old('term_stage') == 'Tahap 2' ? 'selected' : '' }}>Tahap 2 (Dinding, Atap & Kusen)</option>
-                                    <option value="Tahap 3" class="bg-white text-slate-800" {{ old('term_stage') == 'Tahap 3' ? 'selected' : '' }}>Tahap 3 (Finishing, Pengecatan & Penyerahan)</option>
+                                    <option value="Tahap 1" class="bg-white text-slate-800" {{ old('term_stage') == 'Tahap 1' ? 'selected' : '' }}>Tahap 1 (Pencairan Awal / Termin 1 70%)</option>
+                                    <option value="Tahap 2" class="bg-white text-slate-800" {{ old('term_stage') == 'Tahap 2' ? 'selected' : '' }}>Tahap 2 (Pencairan Lanjutan / Termin 2 30%)</option>
+                                    <option value="Tahap 3" class="bg-white text-slate-800" {{ old('term_stage') == 'Tahap 3' ? 'selected' : '' }}>Tahap 3 (Finishing & Penyerahan)</option>
+                                    <option value="Semua Tahap (Total 100%)" class="bg-white text-slate-800" {{ old('term_stage') == 'Semua Tahap (Total 100%)' ? 'selected' : '' }}>Semua Tahap / Total 100% (Akumulasi Penuh)</option>
                                     <option value="RPD Operasional & Bahan Mingguan" class="bg-white text-slate-800" {{ old('term_stage') == 'RPD Operasional & Bahan Mingguan' ? 'selected' : '' }}>RPD Operasional / Belanja Mingguan</option>
                                 </select>
                             </div>
 
                             <div>
-                                <label for="title" class="block text-xs font-semibold text-slate-700 mb-1.5">
-                                    Nama / Judul Dokumen (Opsional)
+                                <label for="target_column" class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                    Alokasi Kolom Anggaran RPD
                                 </label>
-                                <input type="text" name="title" id="title" value="{{ old('title') }}" 
-                                       placeholder="Contoh: RPD Tahap 1 - Rehabilitasi 3 Ruang Kelas"
-                                       class="w-full text-xs md:text-sm rounded-xl border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none placeholder-slate-400">
+                                <select name="target_column" id="target_column"
+                                        class="w-full text-xs md:text-sm rounded-xl border border-slate-300 bg-white text-slate-800 font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none">
+                                    <option value="auto" {{ old('target_column', 'auto') == 'auto' ? 'selected' : '' }}>Otomatis (Sesuai Tahap yang dipilih di samping)</option>
+                                    <option value="termin_1" {{ old('target_column') == 'termin_1' ? 'selected' : '' }}>Kolom Termin 1 (70%)</option>
+                                    <option value="termin_2" {{ old('target_column') == 'termin_2' ? 'selected' : '' }}>Kolom Termin 2 (30%)</option>
+                                    <option value="termin_3" {{ old('target_column') == 'termin_3' ? 'selected' : '' }}>Kolom Termin 3</option>
+                                    <option value="total" {{ old('target_column') == 'total' ? 'selected' : '' }}>Kolom Jumlah Total (100%)</option>
+                                </select>
                             </div>
+                        </div>
+
+                        <div>
+                            <label for="title" class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Nama / Judul Dokumen (Opsional)
+                            </label>
+                            <input type="text" name="title" id="title" value="{{ old('title') }}" 
+                                   placeholder="Contoh: RPD Tahap 1 - Rehabilitasi Ruang Kelas, Perpustakaan & Toilet"
+                                   class="w-full text-xs md:text-sm rounded-xl border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none placeholder-slate-400">
                         </div>
                     </div>
 
@@ -108,28 +123,46 @@
                     <div class="space-y-4">
                         <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2 pb-2 border-b border-slate-100">
                             <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 text-xs flex items-center justify-center font-bold">2</span>
-                            <span>Unggah Berkas File RPD (Excel / CSV)</span>
+                            <span>Unggah Berkas RPD (Fleksibel: Excel / PDF / CSV)</span>
                         </h3>
 
                         <!-- Drag and drop zone -->
-                        <div class="relative border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-6 md:p-8 text-center transition-all bg-slate-50/50 group">
-                            <input type="file" name="rpd_file" id="rpd_file" accept=".xlsx,.xls,.csv" required
+                        <div class="relative border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-6 md:p-8 text-center transition-all bg-slate-50/50 group"
+                             :class="{ 'border-rose-400 bg-rose-50/20': fileExt === 'pdf', 'border-emerald-500 bg-emerald-50/20': fileExt === 'xlsx' || fileExt === 'xls' }">
+                            <input type="file" name="rpd_file" id="rpd_file" accept=".xlsx,.xls,.pdf,.csv" required
                                    @change="handleFileSelect($event)"
                                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
 
                             <div class="space-y-3 pointer-events-none">
-                                <div class="w-16 h-16 mx-auto rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform shadow-sm">
-                                    <i data-lucide="file-up" class="w-8 h-8"></i>
+                                <div class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm"
+                                     :class="{
+                                         'bg-rose-50 text-rose-600 border border-rose-200': fileExt === 'pdf',
+                                         'bg-emerald-50 text-emerald-600 border border-emerald-200': fileExt === 'xlsx' || fileExt === 'xls',
+                                         'bg-cyan-50 text-cyan-600 border border-cyan-200': fileExt === 'csv',
+                                         'bg-slate-100 text-slate-500 border border-slate-200': !fileExt
+                                     }">
+                                    <template x-if="fileExt === 'pdf'">
+                                        <i data-lucide="file-text" class="w-8 h-8"></i>
+                                    </template>
+                                    <template x-if="fileExt === 'xlsx' || fileExt === 'xls'">
+                                        <i data-lucide="file-spreadsheet" class="w-8 h-8"></i>
+                                    </template>
+                                    <template x-if="fileExt !== 'pdf' && fileExt !== 'xlsx' && fileExt !== 'xls'">
+                                        <i data-lucide="upload-cloud" class="w-8 h-8"></i>
+                                    </template>
                                 </div>
                                 <div>
                                     <p class="text-sm font-bold text-slate-800">
                                         <span x-text="fileName ? fileName : 'Pilih file RPD atau seret file ke sini'"></span>
                                     </p>
                                     <p class="text-xs text-slate-500 mt-1">
-                                        Mendukung format <strong class="text-emerald-600">.xlsx</strong>, <strong class="text-teal-600">.xls</strong>, atau <strong class="text-cyan-600">.csv</strong> (Maks. 10 MB)
+                                        Mendukung berkas <strong class="text-emerald-600 font-bold">Excel (.xlsx, .xls)</strong> dan <strong class="text-rose-600 font-bold">PDF (.pdf)</strong> resmi RPD Revitalisasi (Maks. 20 MB)
                                     </p>
                                 </div>
-                                <div x-show="fileSize" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs bg-emerald-100 text-emerald-800 font-mono">
+                                <div x-show="fileSize" class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono"
+                                     :class="fileExt === 'pdf' ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'">
+                                    <span class="font-bold uppercase" x-text="fileExt"></span>
+                                    <span>&bull;</span>
                                     <span x-text="fileSize"></span>
                                 </div>
                             </div>
@@ -143,27 +176,64 @@
                     <div class="space-y-4">
                         <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2 pb-2 border-b border-slate-100">
                             <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 text-xs flex items-center justify-center font-bold">3</span>
-                            <span>Parameter Nilai Default (Bila di Dokumen Kosong)</span>
+                            <span>Parameter Nilai Default & Konfigurasi Pecah Bahan</span>
                         </h3>
+
+                        <!-- Mode Pecah Bahan -->
+                        <div class="p-4 rounded-xl bg-emerald-50/60 border border-emerald-200 space-y-3">
+                            <label class="block text-xs font-bold text-emerald-950 uppercase tracking-wider">
+                                Mode Pecah Bahan untuk Isian BKU <span class="text-rose-500">*</span>
+                            </label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <label class="relative flex items-start gap-3 p-3.5 rounded-xl border border-emerald-300 bg-white shadow-sm cursor-pointer hover:border-emerald-500 transition-all">
+                                    <input type="radio" name="breakdown_mode" value="detailed" {{ old('breakdown_mode', 'detailed') === 'detailed' ? 'checked' : '' }}
+                                           class="mt-1 text-emerald-600 focus:ring-emerald-500 border-slate-300">
+                                    <div class="text-xs">
+                                        <div class="font-bold text-slate-800 flex items-center gap-1.5">
+                                            <span>Pecah Bahan Rinci / Detail</span>
+                                            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">Rekomendasi BKU</span>
+                                        </div>
+                                        <p class="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                                            Memecah pagu Belanja Bahan & Upah menjadi item material riil (Semen, Pasir, Bata, Besi, Cat, Keramik, Plafon, Kusen, Pipa, Kloset) dan HOK Tukang/Pekerja sesuai jenis pekerjaan ruang tanpa selisih anggaran.
+                                        </p>
+                                    </div>
+                                </label>
+
+                                <label class="relative flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 bg-white shadow-sm cursor-pointer hover:border-slate-400 transition-all">
+                                    <input type="radio" name="breakdown_mode" value="summary" {{ old('breakdown_mode') === 'summary' ? 'checked' : '' }}
+                                           class="mt-1 text-emerald-600 focus:ring-emerald-500 border-slate-300">
+                                    <div class="text-xs">
+                                        <div class="font-bold text-slate-800">Ringkasan Global (Summary)</div>
+                                        <p class="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                                            Menyimpan 1 baris Belanja Bahan dan 1 baris Belanja Upah per ruang pekerjaan sesuai lembar format RPD dinas.
+                                        </p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label for="default_date" class="block text-xs font-semibold text-slate-700 mb-1.5">
-                                    Tanggal Transaksi BKU Bawaan
+                                <label for="default_date" class="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                                    <span>Tanggal Awal Transaksi BKU (Tanggal Pencairan Dana)</span>
+                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">Saldo Masuk Otomatis</span>
                                 </label>
                                 <input type="date" name="default_date" id="default_date" value="{{ old('default_date', date('Y-m-d')) }}"
                                        class="w-full text-xs md:text-sm rounded-xl border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none">
-                                <p class="text-[11px] text-slate-500 mt-1">Digunakan jika baris item tidak memiliki tanggal penarikan.</p>
+                                <p class="text-[11px] text-slate-500 mt-1">
+                                    Dianggap sebagai tanggal pencairan dana termin. Sistem otomatis mencatat <strong>Saldo Masuk (Penerimaan SP2D)</strong> dan <strong>Penarikan Kas Tunai</strong> pada tanggal ini, lalu menjadwalkan belanja bahan & upah bertahap tanpa hari Minggu.
+                                </p>
                             </div>
 
                             <div>
-                                <label for="default_store" class="block text-xs font-semibold text-slate-700 mb-1.5">
-                                    Toko Bahan Bangunan Bawaan
+                                <label for="default_store" class="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+                                    <span>Toko Rekanan Bahan Bangunan</span>
+                                    <span class="text-[11px] font-normal text-slate-400">Opsional</span>
                                 </label>
-                                <input type="text" name="default_store" id="default_store" value="{{ old('default_store', 'Toko Bangunan Berkah Situbondo') }}"
-                                       placeholder="Nama Toko Rekanan"
-                                       class="w-full text-xs md:text-sm rounded-xl border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none">
-                                <p class="text-[11px] text-slate-500 mt-1">Nama penerima belanja barang/bahan di Situbondo.</p>
+                                <input type="text" name="default_store" id="default_store" value="{{ old('default_store', '') }}"
+                                       placeholder="Kosongkan jika belum ada (otomatis diisi titik-titik untuk manual)"
+                                       class="w-full text-xs md:text-sm rounded-xl border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none placeholder:text-slate-400">
+                                <p class="text-[11px] text-slate-500 mt-1">Boleh dikosongkan. Jika tidak diisi, sistem otomatis mengisikan titik-titik (<span class="font-mono text-slate-600 font-bold">....................</span>) agar dapat diisi manual.</p>
                             </div>
                         </div>
 
@@ -172,7 +242,7 @@
                                 Catatan / Keterangan Dokumen (Opsional)
                             </label>
                             <textarea name="notes" id="notes" rows="2" 
-                                      placeholder="Tambahkan catatan pencairan dana atau catatan teknis revitalisasi..."
+                                      placeholder="Tambahkan catatan teknis pencairan atau progres revitalisasi..."
                                       class="w-full text-xs md:text-sm rounded-xl border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none"></textarea>
                         </div>
                     </div>
@@ -198,21 +268,26 @@
             <div class="bg-gradient-to-br from-emerald-900 to-teal-950 rounded-2xl p-6 text-white border border-emerald-700/50 shadow-lg space-y-4">
                 <div class="flex items-center gap-2.5 text-emerald-300 font-bold text-sm">
                     <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
-                    <span>Butuh Template Format RPD?</span>
+                    <span>Template Berkas RPD</span>
                 </div>
                 <p class="text-xs text-emerald-100/90 leading-relaxed">
-                    Unduh file template resmi yang telah dilengkapi rumus total biaya, kolom spesifikasi, dan contoh realistis belanja bahan bangunan (semen, pasir, bata, cat) serta upah tukang khas Situbondo.
+                    Unduh file template resmi sesuai format Dinas Pendidikan Situbondo (Pekerjaan Fisik: Ruang Kelas, Perpustakaan, Toilet dengan Belanja Bahan & Belanja Upah).
                 </p>
                 <div class="space-y-2 pt-1">
-                    <a href="{{ route('rpd.template', ['format' => 'xlsx']) }}" 
+                    <a href="{{ route('rpd.template', ['type' => 'official', 'format' => 'xlsx']) }}" 
                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-bold transition-all shadow-md">
-                        <i data-lucide="download" class="w-4 h-4"></i>
-                        <span>Unduh Template Excel (.xlsx)</span>
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                        <span>Template Resmi RPD (Excel .xlsx)</span>
                     </a>
-                    <a href="{{ route('rpd.template', ['format' => 'csv']) }}" 
-                       class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-semibold transition-all border border-white/20">
+                    <a href="{{ route('rpd.template', ['type' => 'official', 'format' => 'pdf']) }}" 
+                       class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-rose-600/90 hover:bg-rose-600 text-white rounded-xl text-xs font-semibold transition-all shadow-sm border border-rose-400/40">
                         <i data-lucide="file-text" class="w-4 h-4"></i>
-                        <span>Unduh Template CSV (.csv)</span>
+                        <span>Format Resmi RPD (PDF .pdf)</span>
+                    </a>
+                    <a href="{{ route('rpd.template', ['type' => 'itemized', 'format' => 'xlsx']) }}" 
+                       class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-semibold transition-all border border-white/20">
+                        <i data-lucide="list" class="w-4 h-4"></i>
+                        <span>Template Rincian Item Bahan (.xlsx)</span>
                     </a>
                 </div>
             </div>
@@ -221,14 +296,14 @@
             <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
                 <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
                     <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
-                    <span>Panduan Kolom File RPD</span>
+                    <span>Ketentuan Format & Pecah Bahan</span>
                 </h4>
                 <ul class="text-xs text-slate-600 space-y-2.5 list-disc list-inside">
-                    <li><strong class="text-slate-800">Uraian / Nama Bahan:</strong> Wajib ada (misal Semen Gresik, Pasir Kali, Upah Tukang).</li>
-                    <li><strong class="text-slate-800">Volume & Satuan:</strong> Contoh: 100 Zak, 8 M3, 24 OH.</li>
-                    <li><strong class="text-slate-800">Harga Satuan:</strong> Angka nominal tarif (Rp).</li>
-                    <li><strong class="text-slate-800">Kategori:</strong> Otomatis diidentifikasi sebagai <em>Bahan</em>, <em>Upah</em>, <em>Alat</em>, atau <em>Operasional</em> berdasarkan kata kunci.</li>
-                    <li><strong class="text-slate-800">Perhitungan Pajak:</strong> Belanja bahan &ge; Rp 2.000.000 otomatis dikenakan PPN 11% & PPh 22 1.5%. Upah dikenakan PPh 21.</li>
+                    <li><strong class="text-slate-800">Format Resmi RPD:</strong> Memuat kelompok pekerjaan (misal <em>Ruang Kelas</em>, <em>Perpustakaan</em>, <em>Toilet</em>) yang dipecah menjadi <strong class="text-emerald-700">Belanja Bahan</strong> dan <strong class="text-blue-700">Belanja Upah</strong>.</li>
+                    <li><strong class="text-slate-800">Fleksibilitas Berkas:</strong> Sistem mendukung upload dokumen dalam format <strong>Excel (.xlsx, .xls)</strong> maupun <strong>PDF (.pdf)</strong> digital.</li>
+                    <li><strong class="text-slate-800">Pemilihan Termin:</strong> Sistem cerdas mengambil nominal dari kolom <em>Termin 1 (70%)</em>, <em>Termin 2 (30%)</em>, atau <em>Jumlah Total (100%)</em> sesuai pilihan tahap.</li>
+                    <li><strong class="text-slate-800">Kalkulasi Pajak Otomatis:</strong> Belanja bahan &ge; Rp 2.000.000 dihitung PPN 11% & PPh 22 1.5%. Upah tukang &ge; Rp 2.500.000 dikenakan PPh 21 5%.</li>
+                    <li><strong class="text-slate-800">Siap Jadi BKU:</strong> Hasil pecah bahan langsung dapat diposting ke BKU, BPK, BB, dan BP hanya dengan satu klik.</li>
                 </ul>
             </div>
         </div>
@@ -242,6 +317,7 @@ function rpdUploader() {
         selectedSchool: '{{ old('school_id', $selectedSchoolId) }}',
         fileName: '',
         fileSize: '',
+        fileExt: '',
         init() {
             if (this.selectedSchool) {
                 this.onSchoolChange();
@@ -275,11 +351,14 @@ function rpdUploader() {
             const file = event.target.files[0];
             if (file) {
                 this.fileName = file.name;
+                const ext = file.name.split('.').pop().toLowerCase();
+                this.fileExt = ext;
                 const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
                 this.fileSize = sizeMb > 1 ? `${sizeMb} MB` : `${(file.size / 1024).toFixed(1)} KB`;
             } else {
                 this.fileName = '';
                 this.fileSize = '';
+                this.fileExt = '';
             }
         }
     };
@@ -287,4 +366,3 @@ function rpdUploader() {
 </script>
 @endpush
 @endsection
-

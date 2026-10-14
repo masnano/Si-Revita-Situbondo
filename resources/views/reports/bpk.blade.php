@@ -1,6 +1,19 @@
 @extends('layouts.app')
 
-@section('title', 'Buku Pembantu Kas (BPK) - Si Revita Situbondo')
+@php
+    $bulanIndo = [
+        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+    ];
+    $currentMonthName = ($month === 'all') 
+        ? 'Semua Bulan' 
+        : ($namaBulan ?? ($bulanIndo[(int)$month] ?? \Carbon\Carbon::create(null, (int)$month, 1)->translatedFormat('F')));
+    $schoolCleanName = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $selectedSchool->name ?? 'Sekolah');
+    $pageTitle = "{$currentMonthName} {$year} - Buku Pembantu Kas (BPK) - {$schoolCleanName}";
+@endphp
+
+@section('title', $pageTitle)
 
 @section('content')
 <div class="space-y-6">
@@ -30,8 +43,9 @@
             @endrole
 
             <select name="month" class="text-xs font-semibold px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 text-slate-800 focus:outline-none focus:border-amber-500">
+                <option value="all" {{ $month == 'all' ? 'selected' : '' }}>Semua Bulan</option>
                 @for($m = 1; $m <= 12; $m++)
-                    <option value="{{ $m }}" {{ $month == $m ? 'selected' : '' }}>
+                    <option value="{{ $m }}" {{ $month == (string)$m ? 'selected' : '' }}>
                         {{ \Carbon\Carbon::create(null, $m, 1)->translatedFormat('F') }}
                     </option>
                 @endfor
@@ -64,15 +78,15 @@
     <!-- Summary KPI Banner (No Print) -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 no-print">
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <span class="text-[11px] font-semibold text-slate-500 uppercase">Saldo Awal Kas Tunai</span>
+            <span class="text-[11px] font-semibold text-slate-500 uppercase">{{ $month == 'all' ? 'Saldo Awal Kas Tunai (Awal Tahun)' : 'Saldo Awal Kas Tunai' }}</span>
             <div class="text-base font-bold text-slate-900 mt-1">@rupiah($saldoAwalKas)</div>
         </div>
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <span class="text-[11px] font-semibold text-emerald-600 uppercase">Penarikan Tunai dari Bank</span>
+            <span class="text-[11px] font-semibold text-emerald-600 uppercase">{{ $month == 'all' ? 'Total Penarikan Kas Tunai' : 'Penarikan Tunai dari ' . ($selectedSchool->bank_name ?? 'Bank') }}</span>
             <div class="text-base font-bold text-emerald-600 mt-1">+ @rupiah($totalPenerimaanKas)</div>
         </div>
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <span class="text-[11px] font-semibold text-rose-600 uppercase">Belanja Kas Tunai</span>
+            <span class="text-[11px] font-semibold text-rose-600 uppercase">{{ $month == 'all' ? 'Total Belanja Kas Tunai' : 'Belanja Kas Tunai' }}</span>
             <div class="text-base font-bold text-rose-600 mt-1">- @rupiah($totalPengeluaranKas)</div>
         </div>
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
@@ -86,7 +100,7 @@
         
         <!-- Official Government Kop -->
         <div class="border-b-2 border-slate-900 pb-4 mb-6 flex items-center justify-between gap-4">
-            <img src="{{ asset('images/logo.png') }}" alt="Logo Si Revita Situbondo" class="w-16 h-16 sm:w-20 sm:h-20 object-contain shrink-0">
+            <img src="{{ asset('images/logo-kabupaten.png') }}" alt="Logo Kabupaten Situbondo" class="w-16 h-16 sm:w-20 sm:h-20 object-contain shrink-0">
             <div class="flex-1 text-center">
                 <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-800">Pemerintah Kabupaten Situbondo</h3>
                 <h2 class="text-sm sm:text-base font-black uppercase tracking-wider text-slate-900">Dinas Pendidikan dan Kebudayaan</h2>
@@ -101,12 +115,25 @@
         </div>
 
         <div class="text-center mb-6">
-            <h2 class="text-lg font-extrabold uppercase text-slate-900 underline decoration-slate-400 underline-offset-4">
+            <h2 class="text-lg font-black uppercase text-slate-900 tracking-wider underline decoration-slate-400 underline-offset-4">
                 Buku Pembantu Kas (BPK)
             </h2>
-            <p class="text-xs font-semibold text-slate-600 mt-1">
-                Bulan: <span class="text-slate-900 uppercase">{{ \Carbon\Carbon::create(null, (int)$month, 1)->translatedFormat('F') }} {{ $year }}</span>
+            @if($month == 'all')
+                <p class="text-xs font-bold text-slate-700 mt-1 uppercase">
+                    Tahun Anggaran: <span class="text-slate-900">{{ $year }}</span> (Semua Bulan)
+                </p>
+            @else
+                <p class="text-xs font-bold text-slate-700 mt-1 uppercase">
+                    Bulan: <span class="text-slate-900">{{ \Carbon\Carbon::create(null, (int)$month, 1)->translatedFormat('F') }} {{ $year }}</span>
+                </p>
+            @endif
+            <p class="text-[11px] text-slate-500 font-mono mt-0.5">
+                Kegiatan: Bantuan Revitalisasi Sarana Prasarana Sekolah TA {{ $year }}
             </p>
+            <div class="inline-flex items-center gap-2 mt-2 px-3 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold">
+                <i data-lucide="building-2" class="w-3.5 h-3.5"></i>
+                <span>Sumber Penarikan Kas: <strong>{{ $selectedSchool->bank_name ?? 'Bank Penampung' }}</strong> &mdash; No. Rek: <strong class="font-mono">{{ $selectedSchool->bank_account_number ?? '-' }}</strong> a.n <strong>{{ $selectedSchool->bank_account_holder ?? '-' }}</strong></span>
+            </div>
         </div>
 
         <div class="overflow-x-auto">
@@ -125,9 +152,9 @@
                 <tbody class="divide-y divide-slate-200">
                     <tr class="bg-slate-50/70 font-semibold text-slate-700">
                         <td class="py-2 px-2 border border-slate-300 text-center">-</td>
-                        <td class="py-2 px-3 border border-slate-300 text-center">01/{{ sprintf('%02d', $month) }}/{{ $year }}</td>
+                        <td class="py-2 px-3 border border-slate-300 text-center">{{ $month == 'all' ? '01/01/' . $year : '01/' . sprintf('%02d', (int)$month) . '/' . $year }}</td>
                         <td class="py-2 px-3 border border-slate-300 text-center">-</td>
-                        <td class="py-2 px-4 border border-slate-300 font-bold">Saldo Awal Kas Tunai</td>
+                        <td class="py-2 px-4 border border-slate-300 font-bold">{{ $month == 'all' ? 'Saldo Awal Kas Tunai (Awal Tahun ' . $year . ')' : 'Saldo Awal Kas Tunai' }}</td>
                         <td class="py-2 px-3 border border-slate-300 text-right font-mono">-</td>
                         <td class="py-2 px-3 border border-slate-300 text-right font-mono">-</td>
                         <td class="py-2 px-3 border border-slate-300 text-right font-mono font-bold text-slate-900">
@@ -165,14 +192,14 @@
                     @empty
                     <tr>
                         <td colspan="7" class="py-6 text-center text-slate-400 italic border border-slate-300">
-                            Tidak ada transaksi kas tunai pada bulan ini.
+                            {{ $month == 'all' ? 'Tidak ada transaksi kas tunai pada tahun anggaran ini.' : 'Tidak ada transaksi kas tunai pada bulan ini.' }}
                         </td>
                     </tr>
                     @endforelse
 
                     <tr class="bg-slate-100 font-bold text-slate-900">
                         <td colspan="4" class="py-2.5 px-4 border border-slate-300 text-right uppercase">
-                            Total Mutasi Kas Bulan Ini
+                            {{ $month == 'all' ? 'Total Mutasi Kas Semua Bulan' : 'Total Mutasi Kas Bulan Ini' }}
                         </td>
                         <td class="py-2.5 px-3 border border-slate-300 text-right font-mono">
                             {{ number_format($totalPenerimaanKas, 0, ',', '.') }}
@@ -189,7 +216,7 @@
         </div>
 
         <!-- Official Signatures -->
-        <div class="mt-12 grid grid-cols-2 gap-8 text-center text-xs text-slate-900">
+        <div class="mt-12 grid grid-cols-2 gap-8 text-center text-xs text-slate-900 signature-block avoid-break">
             <div>
                 <p>Mengetahui,</p>
                 <p class="font-bold">Kepala Sekolah</p>
@@ -198,7 +225,7 @@
                 <p class="text-slate-600">NIP. {{ $selectedSchool->principal_nip ?? '...................................' }}</p>
             </div>
             <div>
-                <p>Situbondo, {{ \Carbon\Carbon::create($year, $month, 1)->endOfMonth()->translatedFormat('d F Y') }}</p>
+                <p>Situbondo, {{ $month == 'all' ? \Carbon\Carbon::create($year, 12, 31)->translatedFormat('d F Y') : \Carbon\Carbon::create($year, (int)$month, 1)->endOfMonth()->translatedFormat('d F Y') }}</p>
                 <p class="font-bold">Bendahara Pengeluaran Revitalisasi</p>
                 <div class="h-24"></div>
                 <p class="font-bold text-sm underline">{{ $selectedSchool->treasurer_name ?? '................................................' }}</p>

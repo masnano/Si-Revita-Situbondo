@@ -20,26 +20,26 @@
                     <span>Pecah Bahan RPD & Isian BKU</span>
                 </h1>
                 <p class="text-sm md:text-base text-emerald-100/90 leading-relaxed">
-                    Unggah dokumen <strong class="text-white">RPD (Rencana Penarikan / Penggunaan Dana)</strong> format Excel/CSV. Sistem secara otomatis memecah bahan material, memisahkan upah tukang & alat, menghitung potongan pajak PPN/PPh, serta menghasilkan draf transaksi yang <strong class="text-amber-300">langsung siap dibukukan ke BKU, BPK, BB, dan BP</strong>.
+                    Unggah berkas <strong class="text-white">RPD (Rencana Penggunaan Dana)</strong> fleksibel dalam format <strong class="text-emerald-200 font-semibold">Excel (.xlsx, .xls)</strong> maupun <strong class="text-rose-200 font-semibold">PDF (.pdf)</strong>. Sistem otomatis memecah belanja bahan material dan upah tukang per pekerjaan fisik, menghitung pajak PPN & PPh, serta menghasilkan draf isian yang <strong class="text-amber-300 font-bold">langsung siap diposting ke BKU, BPK, BB, dan BP</strong>.
                 </p>
             </div>
 
             <div class="flex flex-wrap items-center gap-2.5">
-                <a href="{{ route('rpd.template', ['format' => 'xlsx']) }}" 
+                <a href="{{ route('rpd.template', ['type' => 'official', 'format' => 'xlsx']) }}" 
                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs md:text-sm font-semibold border border-white/20 backdrop-blur-md transition-all shadow-sm hover:shadow">
                     <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-300"></i>
-                    <span>Unduh Template Excel</span>
+                    <span>Template Resmi (Excel)</span>
                 </a>
-                <a href="{{ route('rpd.template', ['format' => 'csv']) }}" 
-                   class="inline-flex items-center gap-2 px-3.5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs md:text-sm font-semibold border border-white/20 backdrop-blur-md transition-all shadow-sm hover:shadow">
-                    <i data-lucide="download" class="w-4 h-4 text-teal-300"></i>
-                    <span>CSV</span>
+                <a href="{{ route('rpd.template', ['type' => 'official', 'format' => 'pdf']) }}" 
+                   class="inline-flex items-center gap-2 px-3.5 py-2.5 bg-rose-600/80 hover:bg-rose-600 text-white rounded-xl text-xs md:text-sm font-semibold border border-rose-400/30 backdrop-blur-md transition-all shadow-sm hover:shadow">
+                    <i data-lucide="file-text" class="w-4 h-4 text-rose-200"></i>
+                    <span>Template Resmi (PDF)</span>
                 </a>
                 @role('root,admin')
                 <a href="{{ route('rpd.create') }}" 
                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-900 rounded-xl text-xs md:text-sm font-bold shadow-lg shadow-amber-500/30 transition-all hover:-translate-y-0.5">
                     <i data-lucide="upload-cloud" class="w-4 h-4"></i>
-                    <span>Upload File RPD</span>
+                    <span>Upload Berkas RPD</span>
                 </a>
                 @endrole
             </div>
@@ -166,11 +166,13 @@
                                     <i data-lucide="file-text" class="w-4 h-4 flex-shrink-0"></i>
                                     <span>{{ $doc->title }}</span>
                                 </a>
-                                <div class="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
+                                <div class="text-[11px] text-slate-500 mt-1 flex flex-wrap items-center gap-2">
                                     <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800">
                                         {{ $doc->term_stage }}
                                     </span>
-                                    <span>File: <code class="font-mono">{{ $doc->file_name }}</code></span>
+                                    {!! $doc->file_type_badge !!}
+                                    <span class="text-slate-400">&bull;</span>
+                                    <span class="font-mono text-slate-600 truncate max-w-[200px]" title="{{ $doc->file_name }}">{{ $doc->file_name }}</span>
                                 </div>
                             </td>
                             <td class="py-3.5 px-4">

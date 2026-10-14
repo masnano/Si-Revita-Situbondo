@@ -86,7 +86,7 @@ class RpdItem extends Model
     public function getPaymentMethodBadgeAttribute(): string
     {
         return $this->payment_method === 'belanja_transfer'
-            ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300">Bank Jatim (BB)</span>'
+            ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300">Transfer Bank (BB)</span>'
             : '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300">Kas Tunai (BPK)</span>';
     }
 }

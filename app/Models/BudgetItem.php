@@ -9,8 +9,20 @@ class BudgetItem extends Model
 {
     use HasFactory;
 
+    public const STANDARD_MENUS = [
+        'Rehabilitasi Ruang Kelas',
+        'Rehabilitasi Ruang Perpustakaan',
+        'Pembangunan Ruang Kelas Baru',
+        'Pembangunan / Rehabilitasi Toilet',
+        'Rehabilitasi Ruang Guru / Pimpinan',
+        'Rehabilitasi Ruang Laboratorium',
+        'Pekerjaan Interior & Perabot',
+        'Perencanaan, Pengawasan & Pengelolaan',
+    ];
+
     protected $fillable = [
         'project_id',
+        'menu_pekerjaan',
         'code',
         'category',
         'name',

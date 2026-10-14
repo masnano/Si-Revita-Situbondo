@@ -125,7 +125,7 @@
                     <span class="font-bold text-slate-900">@rupiah($saldoKasTunai)</span>
                 </div>
                 <div class="flex items-center justify-between text-xs">
-                    <span class="text-slate-500 flex items-center gap-1"><i data-lucide="building-2" class="w-3 h-3 text-sky-500"></i> Bank Jatim (BB):</span>
+                    <span class="text-slate-500 flex items-center gap-1"><i data-lucide="building-2" class="w-3 h-3 text-sky-500"></i> Rekening Bank (BB):</span>
                     <span class="font-bold text-slate-900">@rupiah($saldoBank)</span>
                 </div>
             </div>

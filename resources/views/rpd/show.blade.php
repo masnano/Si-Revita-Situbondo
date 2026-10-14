@@ -17,10 +17,21 @@
                     <i data-lucide="layers" class="w-7 h-7 text-emerald-600"></i>
                     <span>{{ $rpd->title }}</span>
                 </h1>
-                {!! $rpd->status_badge !!}
+                <div class="flex items-center gap-2">
+                    {!! $rpd->file_type_badge !!}
+                    {!! $rpd->status_badge !!}
+                </div>
             </div>
-            <p class="text-xs md:text-sm text-slate-500 mt-1">
-                {{ $rpd->school->name }} &bull; {{ $rpd->project->title }} ({{ $rpd->term_stage }})
+            <p class="text-xs md:text-sm text-slate-500 mt-1 flex flex-wrap items-center gap-1.5">
+                <span class="font-semibold text-slate-700">{{ $rpd->school->name }}</span>
+                <span>&bull;</span>
+                <span>{{ $rpd->project->title }}</span>
+                <span>&bull;</span>
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800">{{ $rpd->term_stage }}</span>
+                @if($rpd->file_name)
+                    <span>&bull;</span>
+                    <span class="text-xs text-slate-400 font-mono">{{ $rpd->file_name }}</span>
+                @endif
             </p>
         </div>
 
@@ -41,23 +52,25 @@
                 </a>
             </div>
 
-            @if($rpd->status === 'posted_to_bku')
+            @if($postedCount > 0)
                 <!-- Link Langsung ke BKU Resmi -->
                 <a href="{{ route('reports.bku', ['project_id' => $rpd->project_id]) }}" 
-                   class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs md:text-sm font-bold shadow-md shadow-emerald-600/20 transition-all">
-                    <i data-lucide="book-open-check" class="w-4 h-4"></i>
+                   class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs md:text-sm font-bold shadow-md shadow-slate-900/10 transition-all">
+                    <i data-lucide="book-open-check" class="w-4 h-4 text-emerald-400"></i>
                     <span>Lihat di BKU Resmi</span>
                 </a>
-            @else
+            @endif
+
+            @if($unpostedCount > 0)
                 @role('root,admin')
-                <!-- Tombol Posting ke BKU Resmi -->
+                <!-- Tombol Posting ke BKU Resmi untuk item baru yang belum diposting -->
                 <form action="{{ route('rpd.post_bku', $rpd->id) }}" method="POST" 
-                      onsubmit="return confirm('Apakah Anda yakin ingin memposting seluruh {{ $items->count() }} item pecahan bahan ini ke Buku Kas Umum (BKU)? Transaksi resmi akan otomatis dibuat.')">
+                      onsubmit="return confirm('Apakah Anda yakin ingin memposting {{ $unpostedCount }} item baru / belum diposting ini ke Buku Kas Umum (BKU)?{{ $postedCount > 0 ? ' Item yang sudah diposting sebelumnya (' . $postedCount . ' item) tidak akan diduplikasi.' : ' Sistem akan otomatis mencatat Saldo Masuk Penerimaan Dana Termin dan Penarikan Tunai Kas.' }}')">
                     @csrf
                     <button type="submit" 
                             class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs md:text-sm font-bold shadow-lg shadow-emerald-600/30 transition-all hover:-translate-y-0.5">
                         <i data-lucide="check-check" class="w-4 h-4"></i>
-                        <span>Posting ke BKU Sekarang</span>
+                        <span>{{ $postedCount > 0 ? 'Posting ' . $unpostedCount . ' Item Baru ke BKU' : 'Posting ke BKU Sekarang' }}</span>
                     </button>
                 </form>
                 @endrole
@@ -65,25 +78,58 @@
         </div>
     </div>
 
-    @if($rpd->status === 'posted_to_bku')
-    <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 flex items-center justify-between gap-4 text-xs md:text-sm">
+    @if($unpostedCount === 0 && $postedCount > 0)
+    <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs md:text-sm">
         <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center font-bold">
+            <div class="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center font-bold shrink-0">
                 <i data-lucide="badge-check" class="w-5 h-5"></i>
             </div>
             <div>
-                <strong>Semua item telah dibukukan ke Buku Kas Umum (BKU)!</strong>
+                <strong>Semua {{ $postedCount }} item dan Saldo Masuk telah dibukukan ke Buku Kas Umum (BKU)!</strong>
                 <p class="text-xs text-emerald-700 mt-0.5">
-                    Diposting pada {{ $rpd->posted_at?->format('d F Y - H:i') }}. Anda dapat melihat kuitansi, buku pembantu kas (BPK), bank (BB), dan pajak (BP).
+                    Diposting pada {{ $rpd->posted_at?->format('d F Y - H:i') }}. Transaksi Saldo Masuk (SP2D Termin) dicatat otomatis di awal pencairan sehingga saldo BKU, Bank (BB), dan Kas Tunai (BPK) balance.
                 </p>
             </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 shrink-0">
+            @role('root,admin')
+            <form action="{{ route('rpd.sync_disbursement', $rpd->id) }}" method="POST" class="inline">
+                @csrf
+                <button type="submit" class="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs whitespace-nowrap flex items-center gap-1.5 shadow-sm" title="Pastikan transaksi Saldo Masuk (SP2D) dan Tarik Tunai Kas tercatat di BKU">
+                    <i data-lucide="wallet" class="w-3.5 h-3.5"></i>
+                    <span>Sinkron Saldo Masuk</span>
+                </button>
+            </form>
+            @endrole
             <a href="{{ route('reports.bku', ['project_id' => $rpd->project_id]) }}" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs whitespace-nowrap">
                 Buka BKU &rarr;
             </a>
             <a href="{{ route('reports.kuitansi') }}" class="px-3 py-1.5 rounded-lg bg-white text-emerald-800 border border-emerald-300 font-semibold text-xs whitespace-nowrap">
                 Cetak Kuitansi &rarr;
+            </a>
+        </div>
+    </div>
+    @elseif($unpostedCount > 0 && $postedCount > 0)
+    <div class="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs md:text-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold shrink-0">
+                <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <strong>Ditemukan {{ $unpostedCount }} Item Baru yang Belum Diposting ke BKU!</strong>
+                <p class="text-xs text-amber-800 mt-0.5">
+                    Sebanyak {{ $postedCount }} item yang telah diposting sebelumnya diabaikan (disembunyikan) agar Anda fokus memeriksa item baru. Klik tombol <strong>&ldquo;Posting {{ $unpostedCount }} Item Baru ke BKU&rdquo;</strong> di atas untuk mempostingnya.
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <button type="button" @click="statusFilter = (statusFilter === 'unposted' ? 'all' : 'unposted')" 
+                    class="px-3 py-1.5 rounded-lg border border-amber-400 bg-white hover:bg-amber-100 text-amber-900 font-bold text-xs shadow-sm transition-colors flex items-center gap-1.5">
+                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                <span x-text="statusFilter === 'unposted' ? 'Tampilkan Semua Item ({{ $items->count() }})' : 'Sembunyikan yang Sudah Ada ({{ $unpostedCount }} Baru)'"></span>
+            </button>
+            <a href="{{ route('reports.bku', ['project_id' => $rpd->project_id]) }}" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs whitespace-nowrap">
+                Buka BKU &rarr;
             </a>
         </div>
     </div>
@@ -172,7 +218,7 @@
                     <i data-lucide="building-2" class="w-5 h-5"></i>
                 </div>
                 <div>
-                    <h5 class="text-xs font-bold uppercase text-indigo-900">Buku Pembantu Bank Jatim (BB)</h5>
+                    <h5 class="text-xs font-bold uppercase text-indigo-900">Buku Pembantu Bank (BB) - {{ $rpd->project->school->bank_name ?? 'Bank' }}</h5>
                     <p class="text-xs text-indigo-700">{{ $summary['bank_count'] }} transaksi transfer bank</p>
                 </div>
             </div>
@@ -199,13 +245,37 @@
                 </p>
             </div>
 
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Filter Status (Belum Diposting vs Semua vs Sudah Diposting) -->
+                <div class="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs">
+                    @if($unpostedCount > 0 && $postedCount > 0)
+                    <button type="button" @click="statusFilter = 'unposted'" 
+                            :class="statusFilter === 'unposted' ? 'bg-amber-600 text-white font-semibold shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                            class="px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
+                        <span>Item Baru ({{ $unpostedCount }})</span>
+                    </button>
+                    @endif
+                    <button type="button" @click="statusFilter = 'all'" 
+                            :class="statusFilter === 'all' ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                            class="px-2.5 py-1 rounded-md transition-all">
+                        Semua ({{ $items->count() }})
+                    </button>
+                    @if($postedCount > 0)
+                    <button type="button" @click="statusFilter = 'posted'" 
+                            :class="statusFilter === 'posted' ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                            class="px-2.5 py-1 rounded-md transition-all">
+                        Sudah Diposting ({{ $postedCount }})
+                    </button>
+                    @endif
+                </div>
+
                 <!-- Filter Kategori Tabs -->
                 <div class="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs">
                     <button type="button" @click="categoryFilter = 'all'" 
                             :class="categoryFilter === 'all' ? 'bg-emerald-600 text-white font-semibold' : 'text-slate-600 hover:text-slate-900'"
                             class="px-2.5 py-1 rounded-md transition-all">
-                        Semua ({{ $items->count() }})
+                        Semua Kategori
                     </button>
                     <button type="button" @click="categoryFilter = 'bahan'" 
                             :class="categoryFilter === 'bahan' ? 'bg-emerald-600 text-white font-semibold' : 'text-slate-600 hover:text-slate-900'"
@@ -244,15 +314,13 @@
                         <th class="py-3 px-3 text-right whitespace-nowrap font-bold text-teal-600">Dibayar Bersih</th>
                         <th class="py-3 px-3 whitespace-nowrap">Penerima / Toko</th>
                         <th class="py-3 px-3 text-center whitespace-nowrap">Status</th>
-                        @if($rpd->status !== 'posted_to_bku')
                         <th class="py-3 px-3 text-center w-16">Aksi</th>
-                        @endif
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($items as $idx => $it)
-                        <tr x-show="categoryFilter === 'all' || (categoryFilter === 'bahan' && '{{ $it->category }}' === 'bahan') || (categoryFilter === 'upah' && '{{ $it->category }}' === 'upah') || (categoryFilter === 'lainnya' && ('{{ $it->category }}' === 'alat' || '{{ $it->category }}' === 'operasional'))"
-                            class="hover:bg-slate-50 transition-colors">
+                        <tr x-show="(statusFilter === 'all' || (statusFilter === 'unposted' && {{ $it->is_posted ? 'false' : 'true' }}) || (statusFilter === 'posted' && {{ $it->is_posted ? 'true' : 'false' }})) && (categoryFilter === 'all' || (categoryFilter === 'bahan' && '{{ $it->category }}' === 'bahan') || (categoryFilter === 'upah' && '{{ $it->category }}' === 'upah') || (categoryFilter === 'lainnya' && ('{{ $it->category }}' === 'alat' || '{{ $it->category }}' === 'operasional')))"
+                            class="hover:bg-slate-50 transition-colors {{ !$it->is_posted ? 'bg-amber-50/15' : '' }}">
                             <td class="py-3 px-3 text-center text-slate-500 font-mono">
                                 {{ $idx + 1 }}
                             </td>
@@ -307,17 +375,19 @@
                                     </span>
                                 @endif
                             </td>
-                            @if($rpd->status !== 'posted_to_bku')
                             <td class="py-3 px-3 text-center whitespace-nowrap">
-                                @role('root,admin')
-                                <button type="button" @click="openEditModal({{ json_encode($it) }})" 
-                                        title="Edit Baris Pecah Bahan"
-                                        class="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors">
-                                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                                </button>
-                                @endrole
+                                @if(!$it->is_posted)
+                                    @role('root,admin')
+                                    <button type="button" @click="openEditModal({{ json_encode($it) }})" 
+                                            title="Edit Baris Pecah Bahan"
+                                            class="p-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-800 transition-colors">
+                                        <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                    @endrole
+                                @else
+                                    <span class="text-[11px] text-slate-400 font-mono" title="Terkunci di BKU">-</span>
+                                @endif
                             </td>
-                            @endif
                         </tr>
                     @empty
                         <tr>
@@ -344,7 +414,7 @@
                         <td class="py-3.5 px-3 text-right font-mono text-teal-600">
                             Rp {{ number_format($summary['total_net'], 0, ',', '.') }}
                         </td>
-                        <td colspan="{{ $rpd->status !== 'posted_to_bku' ? 3 : 2 }}"></td>
+                        <td colspan="3"></td>
                     </tr>
                 </tfoot>
             </table>
@@ -393,7 +463,7 @@
                         <select name="payment_method" x-model="editingItem.payment_method" required
                                 class="w-full text-xs rounded-lg border border-slate-300 bg-white text-slate-800 font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none">
                             <option value="belanja_tunai" class="bg-white text-slate-800 py-1">Kas Tunai (BPK)</option>
-                            <option value="belanja_transfer" class="bg-white text-slate-800 py-1">Bank Jatim (BB)</option>
+                            <option value="belanja_transfer" class="bg-white text-slate-800 py-1">Transfer Bank (BB) - {{ $rpd->project->school->bank_name ?? 'Bank' }}</option>
                         </select>
                     </div>
                 </div>
@@ -425,7 +495,8 @@
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Penerima / Toko Rekanan</label>
                         <input type="text" name="supplier_name" x-model="editingItem.supplier_name"
-                               class="w-full text-xs rounded-lg border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none">
+                               placeholder="Nama Toko atau kosongkan untuk titik-titik"
+                               class="w-full text-xs rounded-lg border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none placeholder:text-slate-400">
                     </div>
                 </div>
 
@@ -433,7 +504,7 @@
                     <input type="checkbox" name="has_tax" id="modal_has_tax" value="1" x-model="editingItem.has_tax"
                            class="rounded text-emerald-600 focus:ring-emerald-500">
                     <label for="modal_has_tax" class="text-xs font-semibold text-slate-700">
-                        Kena Potongan Pajak PPN & PPh (Otomatis jika &ge; Rp 2 Juta)
+                        Kena Potongan Pajak (PPN & PPh 22 Bahan &ge; Rp 2 Juta. Upah bebas PPh 21 jika &le; Rp 450.000/hari - PMK 168/2023)
                     </label>
                 </div>
 
@@ -455,6 +526,7 @@
 function rpdViewer() {
     return {
         categoryFilter: 'all',
+        statusFilter: '{{ $unpostedCount > 0 && $postedCount > 0 ? "unposted" : "all" }}',
         showEdit: false,
         editingItem: {},
         openEditModal(item) {

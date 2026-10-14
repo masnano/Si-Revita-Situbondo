@@ -71,5 +71,15 @@ class RpdDocument extends Model
             default => '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Draft Pecah Bahan</span>',
         };
     }
+
+    public function getFileTypeBadgeAttribute(): string
+    {
+        return match (strtolower($this->file_type ?? '')) {
+            'pdf' => '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200"><i data-lucide="file-text" class="w-3 h-3"></i>PDF</span>',
+            'xlsx', 'xls' => '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200"><i data-lucide="file-spreadsheet" class="w-3 h-3"></i>Excel</span>',
+            'csv' => '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-cyan-100 text-cyan-700 border border-cyan-200"><i data-lucide="file-text" class="w-3 h-3"></i>CSV</span>',
+            default => '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">' . strtoupper($this->file_type ?? 'DOC') . '</span>',
+        };
+    }
 }
 

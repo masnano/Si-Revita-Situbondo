@@ -14,7 +14,10 @@
             <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">
                 Kuitansi Pengeluaran Revitalisasi
             </h1>
-            <p class="text-xs text-slate-500">Cetak lembar kuitansi resmi bertanda tangan bendahara, kepala sekolah, dan penerima dana.</p>
+            <p class="text-xs text-slate-500">
+                Cetak lembar kuitansi resmi bertanda tangan bendahara, kepala sekolah, dan penerima dana.
+                <span class="block sm:inline sm:ml-1 text-slate-600 font-medium">Rekening: <strong>{{ $selectedSchool->bank_name ?? '-' }}</strong> (No. Rek: <span class="font-mono">{{ $selectedSchool->bank_account_number ?? '-' }}</span> a.n <strong>{{ $selectedSchool->bank_account_holder ?? '-' }}</strong>).</span>
+            </p>
         </div>
 
         <form action="{{ route('reports.kuitansi') }}" method="GET" class="flex flex-wrap items-center gap-2">
@@ -70,7 +73,12 @@
                             @endif
                         </td>
                         <td class="py-3 px-4 font-semibold text-slate-800 whitespace-nowrap">
-                            {{ $t->recipient_name ?? '-' }}
+                            <div>{{ $t->recipient_name ?? '-' }}</div>
+                            @if($t->type === 'belanja_transfer')
+                                <span class="inline-block mt-0.5 px-1.5 py-0.5 text-[9px] font-semibold bg-indigo-50 text-indigo-700 rounded border border-indigo-200">Transfer {{ $t->school->bank_name ?? 'Bank' }}</span>
+                            @else
+                                <span class="inline-block mt-0.5 px-1.5 py-0.5 text-[9px] font-semibold bg-amber-50 text-amber-700 rounded border border-amber-200">Kas Tunai</span>
+                            @endif
                         </td>
                         <td class="py-3 px-4 text-right font-mono font-bold text-slate-900 whitespace-nowrap">
                             @rupiah($t->amount)

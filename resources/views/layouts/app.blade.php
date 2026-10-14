@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Dashboard') - Si Revita Situbondo</title>
+    <title>@yield('title', 'Dashboard')@if(!str_contains(View::yieldContent('title'), 'Si Revita') && !str_contains(View::yieldContent('title'), 'BKU') && !str_contains(View::yieldContent('title'), 'BPK') && !str_contains(View::yieldContent('title'), 'BB') && !str_contains(View::yieldContent('title'), 'BP') && !str_contains(View::yieldContent('title'), 'Realisasi') && !str_contains(View::yieldContent('title'), 'Kuitansi')) - Si Revita Situbondo @endif</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
@@ -29,6 +29,106 @@
     <style>
         [x-cloak] { display: none !important; }
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+        /* Multi-Page & Landscape Print Styles */
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 8mm 8mm 10mm 8mm;
+            }
+            @page portrait-page {
+                size: A4 portrait;
+                margin: 12mm 10mm 15mm 10mm;
+            }
+            .print-portrait {
+                page: portrait-page;
+            }
+            html, body {
+                height: auto !important;
+                min-height: 100% !important;
+                overflow: visible !important;
+                position: static !important;
+                background: #ffffff !important;
+                color: #000000 !important;
+                font-size: 8.5pt !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .h-full, .min-h-screen, .overflow-hidden, .overflow-y-auto, .overflow-x-auto, div.flex-1, main {
+                height: auto !important;
+                min-height: auto !important;
+                max-height: none !important;
+                overflow: visible !important;
+                display: block !important;
+                position: static !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            .no-print, aside, header, nav, button, .btn, form.no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            .print-card {
+                border: none !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                background: transparent !important;
+            }
+            table.report-table {
+                width: 100% !important;
+                max-width: 100% !important;
+                table-layout: auto !important;
+                border-collapse: collapse !important;
+                font-size: 8pt !important;
+                margin-top: 6px !important;
+                margin-bottom: 6px !important;
+            }
+            table.report-table thead {
+                display: table-header-group !important;
+            }
+            table.report-table tfoot {
+                display: table-footer-group !important;
+            }
+            table.report-table tbody tr {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            table.report-table th, table.report-table td {
+                border: 1px solid #000000 !important;
+                padding: 3px 5px !important;
+                line-height: 1.25 !important;
+                color: #000000 !important;
+                word-break: normal !important;
+                overflow-wrap: break-word !important;
+            }
+            table.report-table th {
+                background-color: #f1f5f9 !important;
+                font-weight: 700 !important;
+                text-transform: uppercase !important;
+                text-align: center !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .avoid-break, .signature-block, .closing-box {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            .page-break {
+                page-break-after: always !important;
+                break-after: page !important;
+            }
+        }
     </style>
     @stack('styles')
 </head>
@@ -127,7 +227,7 @@
                         <i data-lucide="building-2" class="w-4 h-4 text-sky-400"></i>
                         <div class="flex-1">
                             <div class="leading-tight">Buku Pembantu Bank</div>
-                            <span class="text-[11px] text-slate-400 font-mono">BB (Bank Jatim)</span>
+                            <span class="text-[11px] text-slate-400 font-mono">BB (Buku Bank)</span>
                         </div>
                     </a>
 
@@ -375,11 +475,19 @@
         </main>
     </div>
 
-    <!-- Initialize Lucide Icons -->
+    <!-- Initialize Lucide Icons & Print Filename Helper -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             if (window.lucide) {
                 window.lucide.createIcons();
+            }
+        });
+
+        // Ensure browser print / Save as PDF uses document title starting with Month name
+        window.addEventListener('beforeprint', () => {
+            const pageTitle = document.querySelector('title');
+            if (pageTitle && pageTitle.innerText) {
+                document.title = pageTitle.innerText;
             }
         });
     </script>
