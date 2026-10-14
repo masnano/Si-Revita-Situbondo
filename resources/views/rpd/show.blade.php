@@ -25,6 +25,11 @@
             <p class="text-xs md:text-sm text-slate-500 mt-1 flex flex-wrap items-center gap-1.5">
                 <span class="font-semibold text-slate-700">{{ $rpd->school->name }}</span>
                 <span>&bull;</span>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                    <i data-lucide="map-pin" class="w-3 h-3 text-blue-500"></i>
+                    Kec. {{ $rpd->school->kecamatan ?? 'Situbondo' }}
+                </span>
+                <span>&bull;</span>
                 <span>{{ $rpd->project->title }}</span>
                 <span>&bull;</span>
                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800">{{ $rpd->term_stage }}</span>
@@ -403,6 +408,16 @@
                                             <i data-lucide="truck" class="w-3 h-3 text-amber-600"></i>
                                             <span>Ongkos Kirim Bahan</span>
                                         </span>
+                                    @elseif(str_contains(strtolower($it->item_name), 'perencanaan'))
+                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200" title="Dibukukan di awal setelah pencairan 70%">
+                                            <i data-lucide="compass" class="w-3 h-3 text-indigo-600"></i>
+                                            <span>Biaya Perencanaan (Awal - Pencairan 70%)</span>
+                                        </span>
+                                    @elseif(str_contains(strtolower($it->item_name), 'pengawasan'))
+                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200" title="Dibukukan di akhir setelah pencairan 30% dan pekerjaan selesai">
+                                            <i data-lucide="clipboard-check" class="w-3 h-3 text-purple-600"></i>
+                                            <span>Biaya Pengawasan (Akhir - Pencairan 30% / Selesai)</span>
+                                        </span>
                                     @elseif($it->category === 'operasional' && !str_contains(strtolower($it->item_name), 'perencanaan') && !str_contains(strtolower($it->item_name), 'pengawasan'))
                                         <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-100 text-cyan-800 border border-cyan-200">
                                             <i data-lucide="shield-check" class="w-3 h-3 text-cyan-600"></i>
@@ -521,6 +536,54 @@
                            class="w-full text-xs rounded-lg border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none">
                 </div>
 
+                <!-- AI / Situbondo Smart Price & Store Recommender Bar -->
+                <div class="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold text-emerald-900 flex items-center gap-1.5">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-emerald-600"></i>
+                            <span>Rujukan Standar Situbondo & Toko Terdekat</span>
+                        </span>
+                        <button type="button" @click="fetchSitubondoPriceSuggestion()" 
+                                :disabled="isCheckingPrice"
+                                class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-semibold transition-all shadow-xs disabled:opacity-50">
+                            <span x-show="!isCheckingPrice">Cek Standar Harga & Toko</span>
+                            <span x-show="isCheckingPrice" class="inline-flex items-center gap-1">
+                                <svg class="animate-spin h-3 w-3 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                                Mencari...
+                            </span>
+                        </button>
+                    </div>
+
+                    <div x-show="priceSuggestion" x-cloak class="pt-2 border-t border-emerald-200/60 text-xs space-y-2">
+                        <div class="flex flex-wrap items-center justify-between gap-1 text-[11px]">
+                            <span class="text-slate-600">Standar SHS/HSPK: <strong class="text-emerald-800" x-text="formatRupiah(priceSuggestion?.price_data?.unit_price ?? 0) + ' / ' + (priceSuggestion?.price_data?.unit ?? '')"></strong></span>
+                            <span class="text-slate-500">Estimasi Vol: <strong class="text-slate-800" x-text="(priceSuggestion?.price_data?.volume ?? 0) + ' ' + (priceSuggestion?.price_data?.unit ?? '')"></strong></span>
+                        </div>
+
+                        <div x-show="priceSuggestion?.nearest_stores && priceSuggestion.nearest_stores.length > 0" class="space-y-1">
+                            <label class="block text-[10px] font-semibold text-slate-600">Rekomendasi Toko Terdekat (<span x-text="priceSuggestion?.kecamatan"></span>):</label>
+                            <div class="flex flex-wrap gap-1.5">
+                                <template x-for="(st, idx) in priceSuggestion.nearest_stores" :key="idx">
+                                    <button type="button" @click="editingItem.supplier_name = st.name"
+                                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-white border border-emerald-300 hover:bg-emerald-100 text-slate-800 transition-colors">
+                                        <i data-lucide="store" class="w-2.5 h-2.5 text-emerald-600"></i>
+                                        <span x-text="st.name"></span>
+                                        <span class="text-[9px] text-slate-400" x-text="'(' + st.distance + ')'"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end pt-1">
+                            <button type="button" @click="applyPriceSuggestion()"
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded text-[11px] font-bold transition-all shadow-xs">
+                                <i data-lucide="check" class="w-3 h-3"></i>
+                                <span>Terapkan Harga & Toko Situbondo</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Kategori</label>
@@ -604,13 +667,72 @@ function rpdViewer() {
         statusFilter: '{{ $unpostedCount > 0 && $postedCount > 0 ? "unposted" : "all" }}',
         showEdit: false,
         editingItem: {},
+        isCheckingPrice: false,
+        priceSuggestion: null,
         openEditModal(item) {
             this.editingItem = { ...item };
+            this.priceSuggestion = null;
+            this.isCheckingPrice = false;
             // Format tgl yyyy-mm-dd untuk input type=date
             if (this.editingItem.planned_date && this.editingItem.planned_date.length > 10) {
                 this.editingItem.planned_date = this.editingItem.planned_date.substring(0, 10);
             }
             this.showEdit = true;
+            this.$nextTick(() => {
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            });
+        },
+        async fetchSitubondoPriceSuggestion() {
+            if (!this.editingItem.item_name) return;
+            this.isCheckingPrice = true;
+            try {
+                const vol = parseFloat(this.editingItem.volume) || 1;
+                const price = parseFloat(this.editingItem.unit_price) || 0;
+                const total = vol * price;
+
+                const response = await fetch('{{ route("rpd.ai_suggest_price") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        item_name: this.editingItem.item_name,
+                        category: this.editingItem.category || 'bahan',
+                        total_price: total > 0 ? total : (this.editingItem.total_price || 0),
+                        unit: this.editingItem.unit || '',
+                        school_id: {{ $rpd->school_id ?? 'null' }},
+                        project_id: {{ $rpd->project_id ?? 'null' }},
+                        kecamatan: '{{ $rpd->school->kecamatan ?? "Situbondo" }}'
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    this.priceSuggestion = data;
+                    this.$nextTick(() => {
+                        if (typeof lucide !== 'undefined') lucide.createIcons();
+                    });
+                }
+            } catch (err) {
+                console.error('Error fetching Situbondo price:', err);
+            } finally {
+                this.isCheckingPrice = false;
+            }
+        },
+        applyPriceSuggestion() {
+            if (!this.priceSuggestion) return;
+            const pd = this.priceSuggestion.price_data;
+            if (pd && pd.unit_price) {
+                this.editingItem.unit_price = pd.unit_price;
+                this.editingItem.volume = pd.volume;
+                this.editingItem.unit = pd.unit;
+            }
+            if (this.priceSuggestion.recommended_store) {
+                this.editingItem.supplier_name = this.priceSuggestion.recommended_store;
+            }
+        },
+        formatRupiah(num) {
+            return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
         }
     };
 }

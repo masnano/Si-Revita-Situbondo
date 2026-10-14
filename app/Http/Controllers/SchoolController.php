@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\School;
+use App\Models\SystemNotification;
 use Illuminate\Http\Request;
 
 class SchoolController extends Controller
@@ -52,7 +53,18 @@ class SchoolController extends Controller
             'email' => 'nullable|email|max:100',
         ]);
 
-        School::create($validated);
+        $school = School::create($validated);
+
+        SystemNotification::send(
+            type: 'school',
+            title: 'Penambahan Data Sekolah Baru',
+            message: "Sekolah '{$school->name}' (NPSN: {$school->npsn}) di Kec. {$school->kecamatan} telah berhasil didaftarkan.",
+            url: route('schools.index', ['search' => $school->npsn]),
+            icon: 'school',
+            color: 'emerald',
+            data: ['school_id' => $school->id, 'npsn' => $school->npsn, 'name' => $school->name]
+        );
+
         return redirect()->route('schools.index')->with('success', 'Data Sekolah berhasil ditambahkan!');
     }
 

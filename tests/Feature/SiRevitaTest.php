@@ -1377,5 +1377,209 @@ class SiRevitaTest extends TestCase
         $rabResp->assertStatus(200);
         $rabResp->assertSee('futuristic-preloader');
     }
+
+    /**
+     * Memastikan jika ditemukan "Biaya Perencanaan" atau "Biaya Pengawasan":
+     * 1. Tidak dibreakdown dan judul tetap utuh tanpa dirubah.
+     * 2. Biaya Perencanaan diletakkan diawal (row 1, tanggal awal pencairan 70%).
+     * 3. Biaya Pengawasan diletakkan diakhir (row terakhir, tanggal penyelesaian pekerjaan setelah pencairan 30%).
+     */
+    public function test_rpd_perencanaan_at_beginning_and_pengawasan_at_end_without_breakdown_or_title_change()
+    {
+        $admin = User::where('username', 'admin')->first();
+        $this->actingAs($admin);
+
+        $project = \App\Models\RevitalizationProject::first();
+
+        // Siapkan CSV dengan posisi Biaya Pengawasan sengaja di baris awal,
+        // dan Biaya Perencanaan di baris akhir untuk menguji mekanisme re-ordering otomatis.
+        $csvContent = "No,Kode,Kategori,Uraian,Spesifikasi,Volume,Satuan,Harga Satuan,Total,Tanggal,Toko,Metode\n" .
+                      "1,5.1.02.04,Operasional,Biaya Pengawasan,Pengawasan Teknis Swakelola,1,Paket,7500000,7500000,,,\n" .
+                      "2,5.1.02.01,Bahan,Semen Portland 50 Kg,SNI Gresik,50,Zak,70000,3500000,,,\n" .
+                      "3,5.1.02.02,Upah,Upah Tukang Bangunan,HOK,20,OH,125000,2500000,,,\n" .
+                      "4,5.1.02.04,Operasional,Biaya Perencanaan,Perencanaan Gambar & RAB,1,Paket,12000000,12000000,,,\n";
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'rpd_plan_sup_') . '.csv';
+        file_put_contents($tempFile, $csvContent);
+
+        $uploadedFile = new \Illuminate\Http\UploadedFile(
+            $tempFile,
+            'RPD_Perencanaan_Pengawasan_Test.csv',
+            'text/csv',
+            null,
+            true
+        );
+
+        \App\Models\RpdDocument::where('title', 'RPD Perencanaan dan Pengawasan Ordering Test')->delete();
+
+        $defaultDate = '2026-08-03'; // Senin
+
+        $response = $this->post(route('rpd.store'), [
+            'school_id' => $project->school_id,
+            'project_id' => $project->id,
+            'term_stage' => 'Semua Tahap (Total 100%)',
+            'target_column' => 'total',
+            'title' => 'RPD Perencanaan dan Pengawasan Ordering Test',
+            'default_date' => $defaultDate,
+            'breakdown_mode' => 'detailed',
+            'rpd_file' => $uploadedFile,
+            'use_ai' => 0, // Gunakan engine cerdas lokal
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $doc = \App\Models\RpdDocument::where('title', 'RPD Perencanaan dan Pengawasan Ordering Test')->first();
+        $this->assertNotNull($doc);
+
+        $items = $doc->items()->orderBy('row_number', 'asc')->get();
+        $this->assertCount(4, $items, 'Total item harus tetap 4 karena Biaya Perencanaan dan Biaya Pengawasan tidak boleh dibreakdown');
+
+        // 1. Verifikasi Biaya Perencanaan berada di urutan PERTAMA (row_number = 1)
+        $firstItem = $items->first();
+        $this->assertEquals('Biaya Perencanaan', $firstItem->item_name, 'Item pertama harus tetap berjudul "Biaya Perencanaan" tanpa dirubah');
+        $this->assertEquals(12000000, (int)$firstItem->total_price, 'Nominal Biaya Perencanaan harus utuh Rp 12.000.000');
+        $this->assertEquals($defaultDate, $firstItem->planned_date->format('Y-m-d'), 'Biaya Perencanaan harus bertanggal awal pencairan 70%');
+        $this->assertStringContainsString('Tim Teknis Perencana', $firstItem->supplier_name);
+        $this->assertStringContainsString('Biaya Perencanaan', $firstItem->bku_description);
+
+        // 2. Verifikasi Biaya Pengawasan berada di urutan TERAKHIR (row_number = 4)
+        $lastItem = $items->last();
+        $this->assertEquals('Biaya Pengawasan', $lastItem->item_name, 'Item terakhir harus tetap berjudul "Biaya Pengawasan" tanpa dirubah');
+        $this->assertEquals(7500000, (int)$lastItem->total_price, 'Nominal Biaya Pengawasan harus utuh Rp 7.500.000');
+        $this->assertStringContainsString('Tim Teknis Pengawas', $lastItem->supplier_name);
+        $this->assertStringContainsString('Biaya Pengawasan', $lastItem->bku_description);
+        $this->assertStringContainsString('seluruh pekerjaan selesai', $lastItem->bku_description);
+
+        // Tanggal pengawasan harus setelah semua pekerjaan dan pencairan 30% (di akhir proyek)
+        $this->assertGreaterThan($firstItem->planned_date->format('Y-m-d'), $lastItem->planned_date->format('Y-m-d'));
+        $this->assertFalse($lastItem->planned_date->isSunday(), 'Tanggal pengawasan tidak boleh jatuh di hari Minggu');
+
+        // 3. Bersihkan data uji
+        $doc->items()->delete();
+        $doc->delete();
+        if (file_exists($tempFile)) {
+            @unlink($tempFile);
+        }
+    }
+
+    /**
+     * Memvalidasi penentuan harga tukang, pembantu tukang, bahan SNI, dan rekomendasi toko bangunan terdekat di Situbondo.
+     */
+    public function test_situbondo_price_benchmarks_and_nearest_store_recommendations()
+    {
+        $gemini = app(\App\Services\GeminiRpdService::class);
+
+        // 1. Uji Penentuan Harga Tukang sesuai Standar HSPK Situbondo (Rp 120.000 - Rp 125.000 / OH)
+        $tukangCalib = $gemini->determineSitubondoPrice('Upah Tukang Pasang Bata & Plesteran', 'upah', 1000000, 'Paket');
+        $this->assertEquals(125000, $tukangCalib['unit_price'], 'Upah tukang harus ditetapkan Rp 125.000 / OH sesuai standar Situbondo');
+        $this->assertEquals(8, $tukangCalib['volume']);
+        $this->assertEquals('OH', $tukangCalib['unit']);
+        $this->assertEquals(1000000, round($tukangCalib['volume'] * $tukangCalib['unit_price']), 'Total upah tukang harus tetap balance Rp 1.000.000 (zero variance)');
+
+        // 2. Uji Penentuan Harga Pembantu Tukang / Kenek / Laden sesuai Standar Situbondo (Rp 90.000 / OH)
+        $ladenCalib = $gemini->determineSitubondoPrice('Upah Pembantu Tukang / Laden Adukan', 'upah', 900000, 'Paket');
+        $this->assertEquals(90000, $ladenCalib['unit_price'], 'Upah pembantu tukang harus ditetapkan Rp 90.000 / OH sesuai standar Situbondo');
+        $this->assertEquals(10, $ladenCalib['volume']);
+        $this->assertEquals('OH', $ladenCalib['unit']);
+        $this->assertEquals(900000, round($ladenCalib['volume'] * $ladenCalib['unit_price']), 'Total upah pembantu tukang harus tetap balance Rp 900.000');
+
+        // 3. Uji Penentuan Harga Bahan Material SNI Situbondo
+        // Semen Gresik / Dynamix 50kg (Rp 68.000 / Zak)
+        $semenCalib = $gemini->determineSitubondoPrice('Pengadaan Semen Portland PC 50kg', 'bahan', 1360000, 'Paket');
+        $this->assertEquals(68000, $semenCalib['unit_price'], 'Harga semen harus merujuk Rp 68.000 / Zak');
+        $this->assertEquals(20, $semenCalib['volume']);
+        $this->assertEquals('Zak', $semenCalib['unit']);
+
+        // Pasir Pasang Kali Sampean (Rp 185.000 / M3)
+        $pasirCalib = $gemini->determineSitubondoPrice('Pasir Pasang Pasir Cor Kali Sampean', 'bahan', 740000, 'Paket');
+        $this->assertEquals(185000, $pasirCalib['unit_price'], 'Harga pasir pasang Kali Sampean harus merujuk Rp 185.000 / M3');
+        $this->assertEquals(4, $pasirCalib['volume']);
+        $this->assertEquals('M³', $pasirCalib['unit']);
+
+        // 4. Uji Rekomendasi Toko Bangunan Riil Terdekat per Kecamatan
+        // Kecamatan Besuki
+        $storesBesuki = $gemini->getNearestStoresForSchool('Besuki', 'Jl. Madura No. 12, Besuki, Situbondo', 'bahan');
+        $this->assertNotEmpty($storesBesuki);
+        $this->assertTrue(
+            in_array('Toko Bangunan Utama Besuki', $storesBesuki) ||
+            in_array('Toko Bangunan Setia Bakti Besuki', $storesBesuki) ||
+            in_array('Toko Material Sumber Rejeki Besuki', $storesBesuki),
+            'Harus merekomendasikan toko bangunan riil di Kecamatan Besuki'
+        );
+
+        // Kecamatan Panji
+        $storesPanji = $gemini->getNearestStoresForSchool('Panji', 'Jl. Basuki Rahmat, Panji, Situbondo', 'bahan');
+        $this->assertNotEmpty($storesPanji);
+        $this->assertTrue(
+            in_array('UD Karunia Mega Bangunan Jl. Argopuro Mimbaan Panji', $storesPanji) ||
+            in_array('UD Panji Putra Jl. Argopuro Mimbaan Panji', $storesPanji) ||
+            in_array('UD Sinar Terang Bangunan Panji', $storesPanji),
+            'Harus merekomendasikan toko bangunan riil di Kecamatan Panji'
+        );
+
+        // Pemasok Spesialis: Pasir Kali Sampean
+        $pasirStores = $gemini->getNearestStoresForSchool('Situbondo', null, 'bahan', 'Pasir Pasang Kali Sampean');
+        $this->assertNotEmpty($pasirStores);
+        $this->assertTrue(
+            in_array('Pemasok Pasir Pasang Kali Sampean Situbondo', $pasirStores) ||
+            in_array('Pemasok Pasir Pasang Kali Sampean', $pasirStores) ||
+            in_array('Penyedia Pasir & Agregat Kali Sampean Situbondo', $pasirStores),
+            'Pemasok pasir harus mengikutsertakan sentra Kali Sampean'
+        );
+    }
+
+    /**
+     * Memvalidasi endpoint AJAX live check rujukan harga Situbondo dan rekomendasi toko.
+     */
+    public function test_ajax_suggest_situbondo_price_endpoint()
+    {
+        $admin = User::where('username', 'admin')->first();
+        $this->actingAs($admin);
+
+        // 1. Cek rujukan upah tukang di Kecamatan Besuki
+        $responseTukang = $this->postJson(route('rpd.ai_suggest_price'), [
+            'item_name' => 'Upah Tukang Kayu dan Plafon',
+            'category' => 'upah',
+            'total_price' => 2500000,
+            'unit' => 'Paket',
+            'kecamatan' => 'Besuki',
+        ]);
+
+        $responseTukang->assertStatus(200);
+        $responseTukang->assertJson([
+            'success' => true,
+            'kecamatan' => 'Besuki',
+            'price_data' => [
+                'unit_price' => 125000,
+                'volume' => 20,
+                'unit' => 'OH',
+            ],
+        ]);
+
+        // 2. Cek rujukan upah pembantu tukang di Kecamatan Asembagus
+        $responseLaden = $this->postJson(route('rpd.ai_suggest_price'), [
+            'item_name' => 'Upah Pembantu Tukang (Kenek/Laden)',
+            'category' => 'upah',
+            'total_price' => 1800000,
+            'unit' => 'Paket',
+            'kecamatan' => 'Asembagus',
+        ]);
+
+        $responseLaden->assertStatus(200);
+        $responseLaden->assertJson([
+            'success' => true,
+            'kecamatan' => 'Asembagus',
+            'price_data' => [
+                'unit_price' => 90000,
+                'volume' => 20,
+                'unit' => 'OH',
+            ],
+        ]);
+        $dataLaden = $responseLaden->json();
+        $this->assertNotEmpty($dataLaden['nearest_stores']);
+        $this->assertStringContainsString('Asembagus', $dataLaden['recommended_store']);
+    }
 }
+
 

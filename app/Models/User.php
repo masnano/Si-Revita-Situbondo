@@ -79,5 +79,10 @@ class User extends Authenticatable
 
         return $this->role ? $this->role->hasPermission($permissionName) : false;
     }
+
+    public function notificationReads()
+    {
+        return $this->hasMany(SystemNotificationRead::class);
+    }
 }
 

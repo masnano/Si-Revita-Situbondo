@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\RevitalizationProject;
 use App\Models\School;
+use App\Models\SystemNotification;
 use Illuminate\Http\Request;
 
 class ProjectController extends Controller
@@ -53,7 +54,21 @@ class ProjectController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        RevitalizationProject::create($validated);
+        $project = RevitalizationProject::create($validated);
+        $project->load('school');
+        $formattedAmount = number_format($project->contract_amount, 0, ',', '.');
+        $schoolName = $project->school->name ?? 'Sekolah';
+
+        SystemNotification::send(
+            type: 'project',
+            title: 'Penambahan Paket Revitalisasi Baru',
+            message: "Paket '{$project->title}' untuk {$schoolName} (TA {$project->fiscal_year}, Pagu Rp {$formattedAmount}) berhasil didaftarkan.",
+            url: route('projects.show', $project->id),
+            icon: 'building-2',
+            color: 'indigo',
+            data: ['project_id' => $project->id, 'title' => $project->title, 'amount' => $project->contract_amount]
+        );
+
         return redirect()->route('projects.index')->with('success', 'Paket Revitalisasi berhasil ditambahkan!');
     }
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\BudgetItem;
 use App\Models\RevitalizationProject;
+use App\Models\SystemNotification;
 use App\Services\RabImportService;
 use Illuminate\Http\Request;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -90,15 +91,27 @@ class BudgetItemController extends Controller
         BudgetItem::create([
             'project_id' => $validated['project_id'],
             'menu_pekerjaan' => $validated['menu_pekerjaan'],
-            'code' => $validated['code'],
+            'code' => $validated['code'] ?? null,
             'category' => $validated['category'],
             'name' => $validated['name'],
             'volume' => $validated['volume'],
             'unit' => $validated['unit'],
             'unit_price' => $validated['unit_price'],
             'total_price' => $totalPrice,
-            'notes' => $validated['notes'],
+            'notes' => $validated['notes'] ?? null,
         ]);
+
+        $project = RevitalizationProject::find($validated['project_id']);
+        $formattedTotal = number_format($totalPrice, 0, ',', '.');
+        SystemNotification::send(
+            type: 'rab',
+            title: 'Penambahan Pos Belanja RAB',
+            message: "Item '{$validated['name']}' ({$validated['volume']} {$validated['unit']} - Rp {$formattedTotal}) ditambahkan ke Menu '{$validated['menu_pekerjaan']}' pada " . ($project?->title ?? 'proyek') . ".",
+            url: route('rab.index', ['project_id' => $validated['project_id'], 'menu_pekerjaan' => $validated['menu_pekerjaan']]),
+            icon: 'calculator',
+            color: 'amber',
+            data: ['project_id' => $validated['project_id'], 'item_name' => $validated['name'], 'total_price' => $totalPrice]
+        );
 
         return back()->with('success', "Item RAB berhasil ditambahkan ke Menu '{$validated['menu_pekerjaan']}'!");
     }
@@ -142,6 +155,16 @@ class BudgetItemController extends Controller
             if ($result['deleted_previous'] > 0) {
                 $msg .= " ({$result['deleted_previous']} item lama pada menu ini berhasil digantikan).";
             }
+
+            SystemNotification::send(
+                type: 'rab',
+                title: 'Impor Pos Belanja RAB Berhasil',
+                message: "Sebanyak {$result['count']} item pos belanja RAB berhasil diimpor ke Menu '{$targetMenu}' pada proyek '{$project->title}' (Total Pagu Rp {$totalFormatted}).",
+                url: route('rab.index', ['project_id' => $project->id, 'menu_pekerjaan' => $targetMenu]),
+                icon: 'calculator',
+                color: 'amber',
+                data: ['project_id' => $project->id, 'count' => $result['count'], 'total_budget' => $result['total_budget']]
+            );
 
             return redirect()->route('rab.index', [
                 'project_id' => $project->id,

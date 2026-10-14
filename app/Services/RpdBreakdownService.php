@@ -39,6 +39,8 @@ class RpdBreakdownService
         $extractOptions = array_merge($options, [
             'project' => $project,
             'existing_rab' => $existingRabItems,
+            'school_kecamatan' => $project->school?->kecamatan ?? ($options['school_kecamatan'] ?? null),
+            'school_address' => $project->school?->address ?? ($options['school_address'] ?? null),
         ]);
 
         // Parse baris-baris data dari file (mendukung Excel, PDF, dan CSV)
@@ -48,13 +50,17 @@ class RpdBreakdownService
             throw new \Exception('File RPD tidak memiliki data baris yang valid atau format tabel tidak dikenali. Pastikan file berisi tabel RPD dengan uraian pekerjaan, volume, dan nominal anggaran.');
         }
 
-        // Auto-breakdown jika ada baris pagu gelondongan Mobilisasi atau Biaya Pengelolaan yang belum dipecah
+        // Auto-breakdown jika ada baris pagu gelondongan Mobilisasi atau Biaya Pengelolaan yang belum dipecah.
+        // PENTING: Biaya Perencanaan dan Biaya Pengawasan DILARANG di-breakdown (tetap utuh satu pos dan gunakan judul yang sama).
         $expandedRows = [];
         foreach ($rawRows as $r) {
             $uLower = strtolower(trim($r['uraian'] ?? ''));
             $tot = (float)($r['total'] ?? 0);
 
-            $isLumpMobilisasi = (str_contains($uLower, 'mobilisasi') || str_contains($uLower, 'demobilisasi'))
+            $isPerencanaanOrPengawasan = str_contains($uLower, 'perencanaan') || str_contains($uLower, 'pengawasan');
+
+            $isLumpMobilisasi = !$isPerencanaanOrPengawasan
+                && (str_contains($uLower, 'mobilisasi') || str_contains($uLower, 'demobilisasi'))
                 && !str_contains($uLower, 'ongkos angkut')
                 && !str_contains($uLower, 'ongkos kirim')
                 && !str_contains($uLower, 'pengiriman bahan')
@@ -62,7 +68,8 @@ class RpdBreakdownService
                 && !str_contains($uLower, 'scaffolding')
                 && $tot > 0;
 
-            $isLumpPengelolaan = str_contains($uLower, 'pengelolaan')
+            $isLumpPengelolaan = !$isPerencanaanOrPengawasan
+                && str_contains($uLower, 'pengelolaan')
                 && !str_contains($uLower, 'atk')
                 && !str_contains($uLower, 'konsumsi')
                 && !str_contains($uLower, 'transport')
@@ -85,7 +92,27 @@ class RpdBreakdownService
                 $expandedRows[] = $r;
             }
         }
-        $rawRows = $expandedRows;
+
+        // Susun urutan baris sesuai SOP Revitalisasi & Ketentuan Pos Belanja:
+        // 1. Biaya Perencanaan diletakkan DIAWAL (setelah pencairan 70%)
+        // 2. Belanja bahan fisik, upah tukang, sewa alat/ongkos kirim, dan operasional P2SP di tengah
+        // 3. Biaya Pengawasan diletakkan DIAKHIR (setelah pencairan 30% dan seluruh pekerjaan selesai)
+        $perencanaanRows = [];
+        $pengawasanRows = [];
+        $regularRows = [];
+
+        foreach ($expandedRows as $row) {
+            $uLower = strtolower(trim($row['uraian'] ?? ''));
+            if (str_contains($uLower, 'perencanaan')) {
+                $perencanaanRows[] = $row;
+            } elseif (str_contains($uLower, 'pengawasan')) {
+                $pengawasanRows[] = $row;
+            } else {
+                $regularRows[] = $row;
+            }
+        }
+
+        $rawRows = array_merge($perencanaanRows, $regularRows, $pengawasanRows);
 
         return DB::transaction(function () use ($project, $title, $termStage, $storedPath, $originalName, $extension, $rawRows, $options, $existingRabItems) {
             // Cek apakah dokumen RPD untuk proyek ini sudah ada (berdasarkan ID atau Judul Dokumen)
@@ -143,6 +170,9 @@ class RpdBreakdownService
                     'existing_rab' => $existingRabItems,
                     'term_stage' => $termStage,
                     'breakdown_mode' => $options['breakdown_mode'] ?? 'detailed',
+                    'total_rows_count' => count($rawRows),
+                    'school_kecamatan' => $project->school?->kecamatan ?? ($options['school_kecamatan'] ?? null),
+                    'school_address' => $project->school?->address ?? ($options['school_address'] ?? null),
                 ]);
 
                 if (!$parsed) {
@@ -288,11 +318,16 @@ class RpdBreakdownService
             ];
         }
 
+        $schoolKecamatan = $document->school?->kecamatan ?? $document->project?->school?->kecamatan ?? ($options['school_kecamatan'] ?? null);
+        $schoolAddress = $document->school?->address ?? $document->project?->school?->address ?? ($options['school_address'] ?? null);
+
         $geminiService = app(GeminiRpdService::class);
         $result = $geminiService->enhanceItems($itemsArray, array_merge($options, [
             'base_date' => $options['default_date'] ?? ($unpostedItems->min('planned_date') ? Carbon::parse($unpostedItems->min('planned_date'))->format('Y-m-d') : now()->format('Y-m-d')),
             'project_title' => $document->project?->title ?? 'Revitalisasi Sekolah',
             'school_name' => $document->school?->name ?? 'Sekolah Dasar Situbondo',
+            'school_kecamatan' => $schoolKecamatan,
+            'school_address' => $schoolAddress,
             'term_stage' => $document->term_stage ?? 'Tahap 1',
         ]));
 
@@ -311,6 +346,16 @@ class RpdBreakdownService
                 }
                 if (!empty($resItem['supplier_name']) && ($modelItem->supplier_name === '....................' || empty($modelItem->supplier_name) || !empty($options['overwrite_supplier']))) {
                     $payload['supplier_name'] = $resItem['supplier_name'];
+                }
+                // Penyesuaian harga satuan dan volume hasil kalibrasi AI standar Situbondo
+                if (!empty($resItem['unit_price']) && (float)$resItem['unit_price'] > 0) {
+                    $payload['unit_price'] = (float)$resItem['unit_price'];
+                }
+                if (!empty($resItem['volume']) && (float)$resItem['volume'] > 0) {
+                    $payload['volume'] = (float)$resItem['volume'];
+                }
+                if (!empty($resItem['unit'])) {
+                    $payload['unit'] = $resItem['unit'];
                 }
                 if (!empty($payload)) {
                     $modelItem->update($payload);
@@ -521,16 +566,26 @@ class RpdBreakdownService
             }
 
             // Deteksi Biaya Perencanaan, Pengawasan, dan Pengelolaan
-            if (str_contains($tLower, 'biaya perencanaan') || str_contains($tLower, 'biaya pengawasan') || str_contains($tLower, 'biaya pengelolaan')) {
-                $name = trim(preg_replace('/^[-–—\s\dA-Z\.]+/i', '', $t));
-                $parts = preg_split('/[\t\s]{2,}/', $name);
-                $cleanName = trim($parts[0]);
+            if (str_contains($tLower, 'biaya perencanaan') || str_contains($tLower, 'biaya pengawasan') || str_contains($tLower, 'biaya pengelolaan') || (str_contains($tLower, 'perencanaan') && !str_contains($tLower, 'pengawasan')) || (str_contains($tLower, 'pengawasan') && !str_contains($tLower, 'perencanaan'))) {
+                $lineNoNumbers = preg_replace('/(?:\b|\s)[\d\.,]{4,}(?:\b|\s)/', '', $t);
+                $parts = preg_split('/[\t]{1,}|\s{2,}/', trim($lineNoNumbers));
+                $rawTitle = trim($parts[0] ?? $t);
+                $cleanName = trim(preg_replace('/^[\s\-\–\—\d\.]*(?:[a-zA-Z0-9]\s*[\.\)\-\–\—\s]\s*)?/u', '', $rawTitle));
+                if (preg_match('/\bbiaya\s+perencanaan\b/i', $cleanName) || (str_contains($tLower, 'perencanaan') && !str_contains($tLower, 'pengawasan'))) {
+                    $cleanName = 'Biaya Perencanaan';
+                } elseif (preg_match('/\bbiaya\s+pengawasan\b/i', $cleanName) || (str_contains($tLower, 'pengawasan') && !str_contains($tLower, 'perencanaan'))) {
+                    $cleanName = 'Biaya Pengawasan';
+                } elseif (empty($cleanName) || strtolower($cleanName) === 'biaya' || str_contains($tLower, 'pengelolaan')) {
+                    $cleanName = 'Biaya Pengelolaan';
+                }
 
                 $numbers = $this->extractCurrencyNumbersFromText($t);
                 $amount = $this->selectAmountByTargetTermin($numbers, $targetTermin);
 
                 if ($amount > 0) {
-                    $isPengelolaan = str_contains($tLower, 'pengelolaan');
+                    $isPerencanaan = str_contains($tLower, 'perencanaan');
+                    $isPengawasan = str_contains($tLower, 'pengawasan');
+                    $isPengelolaan = str_contains($tLower, 'pengelolaan') && !$isPerencanaan && !$isPengawasan;
                     $breakdownMode = $options['breakdown_mode'] ?? 'detailed';
 
                     if ($isPengelolaan && $breakdownMode === 'detailed') {
@@ -542,6 +597,13 @@ class RpdBreakdownService
                         $existingRab = $options['existing_rab'] ?? null;
                         $rabMatch = !empty($existingRab) ? $this->findBestRabMatch($cleanName, 'operasional', $existingRab, null) : null;
 
+                        $itemSupplier = 'Toko ATK & Administrasi Situbondo';
+                        if ($isPerencanaan) {
+                            $itemSupplier = 'Tim Teknis Perencana Swakelola';
+                        } elseif ($isPengawasan) {
+                            $itemSupplier = 'Tim Teknis Pengawas Swakelola';
+                        }
+
                         $results[] = [
                             'budget_item_id' => $rabMatch?->id,
                             'uraian' => $cleanName,
@@ -552,14 +614,15 @@ class RpdBreakdownService
                             'satuan' => 'Ls',
                             'harga_satuan' => $amount,
                             'total' => $amount,
-                            'tanggal' => $options['default_date'] ?? now()->format('Y-m-d'),
-                            'toko' => 'Toko ATK & Administrasi Situbondo',
+                            'tanggal' => $isPengawasan ? null : ($options['default_date'] ?? now()->format('Y-m-d')),
+                            'toko' => $itemSupplier,
                             'npwp' => null,
                             'metode' => $amount > 5000000 ? 'Transfer Bank' : 'Kas Tunai',
                             'room_name' => null,
                         ];
                     }
                 }
+                continue;
             }
         }
 
@@ -831,12 +894,14 @@ class RpdBreakdownService
             }
 
             // Biaya Perencanaan, Pengawasan, Pengelolaan (Non-Fisik)
-            if (str_contains($cLower, 'biaya perencanaan') || str_contains($cLower, 'biaya pengawasan') || str_contains($cLower, 'biaya pengelolaan')) {
-                $cleanName = trim(preg_replace('/^[a-z\d\.\s–—-]+/i', '', $cleanText));
-                if (empty($cleanName)) {
-                    if (str_contains($cLower, 'perencanaan')) $cleanName = 'Biaya Perencanaan';
-                    elseif (str_contains($cLower, 'pengawasan')) $cleanName = 'Biaya Pengawasan';
-                    else $cleanName = 'Biaya Pengelolaan';
+            if (str_contains($cLower, 'biaya perencanaan') || str_contains($cLower, 'biaya pengawasan') || str_contains($cLower, 'biaya pengelolaan') || (str_contains($cLower, 'perencanaan') && !str_contains($cLower, 'pengawasan')) || (str_contains($cLower, 'pengawasan') && !str_contains($cLower, 'perencanaan'))) {
+                $cleanName = trim(preg_replace('/^[\s\-\–\—\d\.]*(?:[a-zA-Z0-9]\s*[\.\)\-\–\—\s]\s*)?/u', '', $cleanText));
+                if (preg_match('/\bbiaya\s+perencanaan\b/i', $cleanName) || (str_contains($cLower, 'perencanaan') && !str_contains($cLower, 'pengawasan'))) {
+                    $cleanName = 'Biaya Perencanaan';
+                } elseif (preg_match('/\bbiaya\s+pengawasan\b/i', $cleanName) || (str_contains($cLower, 'pengawasan') && !str_contains($cLower, 'perencanaan'))) {
+                    $cleanName = 'Biaya Pengawasan';
+                } elseif (empty($cleanName) || strtolower($cleanName) === 'biaya' || str_contains($cLower, 'pengelolaan')) {
+                    $cleanName = 'Biaya Pengelolaan';
                 }
 
                 $valT1 = $termin1Col !== null ? $this->parseNumeric($row[$termin1Col] ?? 0) : 0;
@@ -850,7 +915,9 @@ class RpdBreakdownService
                 };
 
                 if ($amount > 0) {
-                    $isPengelolaan = str_contains($cLower, 'pengelolaan');
+                    $isPerencanaan = str_contains($cLower, 'perencanaan');
+                    $isPengawasan = str_contains($cLower, 'pengawasan');
+                    $isPengelolaan = str_contains($cLower, 'pengelolaan') && !$isPerencanaan && !$isPengawasan;
                     $breakdownMode = $options['breakdown_mode'] ?? 'detailed';
 
                     if ($isPengelolaan && $breakdownMode === 'detailed') {
@@ -862,6 +929,13 @@ class RpdBreakdownService
                         $existingRab = $options['existing_rab'] ?? null;
                         $rabMatch = !empty($existingRab) ? $this->findBestRabMatch($cleanName, 'operasional', $existingRab, null) : null;
 
+                        $itemSupplier = 'Toko ATK & Administrasi Situbondo';
+                        if ($isPerencanaan) {
+                            $itemSupplier = 'Tim Teknis Perencana Swakelola';
+                        } elseif ($isPengawasan) {
+                            $itemSupplier = 'Tim Teknis Pengawas Swakelola';
+                        }
+
                         $results[] = [
                             'budget_item_id' => $rabMatch?->id,
                             'uraian' => $cleanName,
@@ -872,14 +946,15 @@ class RpdBreakdownService
                             'satuan' => 'Ls',
                             'harga_satuan' => $amount,
                             'total' => $amount,
-                            'tanggal' => $options['default_date'] ?? now()->format('Y-m-d'),
-                            'toko' => 'Toko ATK & Administrasi Situbondo',
+                            'tanggal' => $isPengawasan ? null : ($options['default_date'] ?? now()->format('Y-m-d')),
+                            'toko' => $itemSupplier,
                             'npwp' => null,
                             'metode' => $amount > 5000000 ? 'Transfer Bank' : 'Kas Tunai',
                             'room_name' => null,
                         ];
                     }
                 }
+                continue;
             }
         }
 
@@ -1035,6 +1110,8 @@ class RpdBreakdownService
                 && !str_contains($uLower, 'ongkos kirim')
                 && !str_contains($uLower, 'pengiriman bahan');
             $isLumpPeng = str_contains($uLower, 'pengelolaan')
+                && !str_contains($uLower, 'perencanaan')
+                && !str_contains($uLower, 'pengawasan')
                 && !str_contains($uLower, 'atk')
                 && !str_contains($uLower, 'konsumsi')
                 && !str_contains($uLower, 'sppd');
@@ -1053,6 +1130,13 @@ class RpdBreakdownService
                     $results[] = $d;
                 }
                 continue;
+            }
+
+            $uClean = trim(preg_replace('/^[\s\-\–\—\d\.]*(?:[a-zA-Z0-9]\s*[\.\)\-\–\—\s]\s*)?/u', '', $uraian));
+            if (preg_match('/\bbiaya\s+perencanaan\b/i', $uClean) || (str_contains($uLower, 'perencanaan') && !str_contains($uLower, 'pengawasan'))) {
+                $uraian = 'Biaya Perencanaan';
+            } elseif (preg_match('/\bbiaya\s+pengawasan\b/i', $uClean) || (str_contains($uLower, 'pengawasan') && !str_contains($uLower, 'perencanaan'))) {
+                $uraian = 'Biaya Pengawasan';
             }
 
             $results[] = [
@@ -1191,6 +1275,17 @@ class RpdBreakdownService
         // 1. Identifikasi Kategori
         $category = $this->determineCategory($uraian, $row['kategori']);
 
+        // Kalibrasi harga satuan dan volume berbasis standar resmi Situbondo jika volume masih gelondongan/paket
+        if (($satuan === 'Paket' || $satuan === 'Ls' || $vol <= 1) && $totalPrice > 0 && ($category === 'upah' || $category === 'bahan')) {
+            $geminiService = app(GeminiRpdService::class);
+            $calibrated = $geminiService->determineSitubondoPrice($uraian, $category, $totalPrice, $satuan);
+            if ($calibrated && !empty($calibrated['unit_price']) && $calibrated['unit_price'] > 0) {
+                $hargaSatuan = $calibrated['unit_price'];
+                $vol = $calibrated['volume'];
+                $satuan = $calibrated['unit'];
+            }
+        }
+
         // 2. Hubungkan ke RAB dengan Smart Semantic Matching
         $budgetItemId = $row['budget_item_id'] ?? null;
         if (!$budgetItemId && !empty($context['existing_rab'])) {
@@ -1207,15 +1302,46 @@ class RpdBreakdownService
 
         // 3. Tanggal Rencana Penarikan / Belanja BKU
         $defaultDate = $context['default_date'] ?? now()->format('Y-m-d');
-        $plannedDate = !empty($row['tanggal'])
-            ? $this->parseDateOrDefault($row['tanggal'], $defaultDate)
-            : $this->calculateProgressiveDate($defaultDate, $rowNumber, $category);
+        $uLower = strtolower($uraian);
+        $isPerencanaan = str_contains($uLower, 'perencanaan');
+        $isPengawasan = str_contains($uLower, 'pengawasan');
+
+        if ($isPerencanaan) {
+            // Biaya Perencanaan: DIAWAL, setelah pencairan 70% (pada tanggal awal pencairan)
+            $plannedDate = $this->parseDateOrDefault($row['tanggal'] ?? null, $defaultDate);
+        } elseif ($isPengawasan) {
+            // Biaya Pengawasan: DIAKHIR, setelah selesai pencairan 30% dan semua pekerjaan selesai
+            if (!empty($row['tanggal']) && $row['tanggal'] !== $defaultDate) {
+                $plannedDate = $this->parseDateOrDefault($row['tanggal'], $defaultDate);
+            } else {
+                $totalSteps = $context['total_rows_count'] ?? $rowNumber;
+                $plannedDate = $this->calculateCompletionDate($defaultDate, $totalSteps);
+            }
+        } else {
+            $plannedDate = !empty($row['tanggal'])
+                ? $this->parseDateOrDefault($row['tanggal'], $defaultDate)
+                : $this->calculateProgressiveDate($defaultDate, $rowNumber, $category);
+        }
 
         // 4. Toko / Pihak Ketiga / Penerima
         $rawContextStore = trim((string)($context['default_store'] ?? ''));
         $defaultStore = $rawContextStore !== '' ? $rawContextStore : '....................';
         $rawRowStore = trim((string)($row['toko'] ?? ''));
-        $supplierName = $rawRowStore !== '' ? $rawRowStore : $this->suggestSupplier($category, $uraian, $defaultStore);
+        if ($rawRowStore !== '') {
+            $supplierName = $rawRowStore;
+        } elseif ($isPerencanaan) {
+            $supplierName = 'Tim Teknis Perencana Swakelola';
+        } elseif ($isPengawasan) {
+            $supplierName = 'Tim Teknis Pengawas Swakelola';
+        } else {
+            $supplierName = $this->suggestSupplier(
+                $category,
+                $uraian,
+                $defaultStore,
+                $context['school_kecamatan'] ?? $project->school?->kecamatan,
+                $context['school_address'] ?? $project->school?->address
+            );
+        }
 
         // 5. Metode Pembayaran BKU (Kas Tunai vs Transfer Bank)
         $paymentMethod = $row['metode'] ? (
@@ -1327,18 +1453,31 @@ class RpdBreakdownService
     }
 
     /**
-     * Rekomendasi nama pihak ketiga / toko berdasarkan kategori.
+     * Rekomendasi nama pihak ketiga / toko berdasarkan kategori dan lokasi sekolah di Situbondo.
      */
-    protected function suggestSupplier(string $category, string $uraian, string $defaultStore): string
+    protected function suggestSupplier(string $category, string $uraian, string $defaultStore, ?string $kecamatan = null, ?string $address = null): string
     {
+        $uLower = strtolower($uraian);
+        if (str_contains($uLower, 'perencanaan')) {
+            return 'Tim Teknis Perencana Swakelola';
+        }
+        if (str_contains($uLower, 'pengawasan')) {
+            return 'Tim Teknis Pengawas Swakelola';
+        }
+
         $store = trim($defaultStore) !== '' ? trim($defaultStore) : '....................';
 
-        return match ($category) {
-            'upah' => 'Kelompok Tukang & Pekerja Swakelola',
-            'alat' => 'Penyedia Sewa Peralatan Situbondo',
-            'operasional' => 'Toko ATK & Penggandaan Situbondo',
-            default => $store,
-        };
+        if ($category === 'upah') {
+            return 'Kelompok Tukang & Pekerja Swakelola';
+        }
+        if ($category === 'alat') {
+            return 'Penyedia Sewa Peralatan Situbondo';
+        }
+        if ($category === 'operasional') {
+            return 'Toko ATK & Penggandaan Situbondo';
+        }
+
+        return $store;
     }
 
     /**
@@ -1350,6 +1489,14 @@ class RpdBreakdownService
         $cleanUraian = trim(preg_replace('/^(belanja bahan|belanja upah|belanja|upah)\s*[-–—:]*\s*/i', '', $uraian));
         if (empty($cleanUraian)) {
             $cleanUraian = $uraian;
+        }
+
+        $uLower = strtolower($uraian);
+        if (str_contains($uLower, 'perencanaan')) {
+            return "Pembayaran {$uraian} untuk pekerjaan {$projectTitle} kepada {$supplier}";
+        }
+        if (str_contains($uLower, 'pengawasan')) {
+            return "Pembayaran {$uraian} untuk pekerjaan {$projectTitle} setelah seluruh pekerjaan selesai kepada {$supplier}";
         }
 
         return match ($category) {
@@ -1388,7 +1535,9 @@ class RpdBreakdownService
         $rawDefaultStore = trim((string)($options['default_store'] ?? ''));
         $defaultStore = $rawDefaultStore !== '' ? $rawDefaultStore : '....................';
         $defaultDate = $options['default_date'] ?? null;
-        $catalog = $this->getDetailedCatalog($roomType, $category, $defaultStore);
+        $schoolKecamatan = $options['school_kecamatan'] ?? null;
+        $schoolAddress = $options['school_address'] ?? null;
+        $catalog = $this->getDetailedCatalog($roomType, $category, $defaultStore, $schoolKecamatan, $schoolAddress);
 
         if (empty($catalog)) {
             $singleRab = !empty($existingRab) ? $this->findBestRabMatch($category === 'bahan' ? 'Belanja Bahan' : 'Belanja Upah', $category, $existingRab, $roomName) : null;
@@ -1799,8 +1948,19 @@ class RpdBreakdownService
      * Katalog komponen material dan HOK upah untuk dekomposisi pecah bahan per jenis ruangan.
      * Dilengkapi penanda minggu (week 1-4) dan hari kerja (day_in_week) agar penanggalan BKU realistis.
      */
-    public function getDetailedCatalog(string $roomType, string $category, string $defaultStore): array
+    public function getDetailedCatalog(string $roomType, string $category, string $defaultStore, ?string $kecamatan = null, ?string $address = null): array
     {
+        if (trim($defaultStore) === '') {
+            $gemini = app(GeminiRpdService::class);
+            $nearest = $gemini->getNearestStoresForSchool($kecamatan, $address, $category);
+            if (!empty($nearest)) {
+                $first = $nearest[0];
+                $defaultStore = is_array($first) ? ($first['name'] ?? '....................') : $first;
+            } else {
+                $defaultStore = '....................';
+            }
+        }
+
         if ($category === 'upah') {
             return match ($roomType) {
                 'toilet' => [
@@ -2472,6 +2632,33 @@ class RpdBreakdownService
             } else {
                 $target->addDay(); // Geser ke Senin
             }
+        }
+
+        return $target->format('Y-m-d');
+    }
+
+    /**
+     * Menghitung tanggal akhir penyelesaian seluruh pekerjaan fisik dan evaluasi pengawasan
+     * (diletakkan di akhir pelaksanaan, setelah pencairan 30% dan seluruh pekerjaan selesai).
+     */
+    public function calculateCompletionDate(string $baseDate, int $totalSteps = 1): string
+    {
+        try {
+            $base = Carbon::parse($baseDate);
+        } catch (\Throwable $e) {
+            $base = now();
+        }
+
+        if ($base->isSunday()) {
+            $base->addDay();
+        }
+
+        // Selesai pekerjaan: biasanya minggu ke-4 atau ke-5 (sekitar 28-35 hari dari awal pelaksanaan)
+        $daysToAdd = max(28, min(35, 14 + (int)ceil($totalSteps * 0.4)));
+        $target = $base->copy()->addDays($daysToAdd);
+
+        if ($target->isSunday()) {
+            $target->addDay(); // Geser ke hari Senin
         }
 
         return $target->format('Y-m-d');

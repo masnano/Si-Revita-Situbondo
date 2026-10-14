@@ -376,10 +376,10 @@
     </aside>
 
     <!-- Main Content Container -->
-    <div class="flex-1 flex flex-col h-full overflow-hidden min-w-0">
+    <div class="flex-1 flex flex-col h-full min-w-0">
         
         <!-- Top App Bar -->
-        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-20 shrink-0 no-print">
+        <header class="relative h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-40 shrink-0 no-print" style="position: relative; z-index: 40;">
             <div class="flex items-center gap-3">
                 <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100">
                     <i data-lucide="menu" class="w-5 h-5"></i>
@@ -448,6 +448,9 @@
                     <i data-lucide="printer" class="w-3.5 h-3.5"></i>
                     <span>Cetak Layar</span>
                 </button>
+
+                <!-- Push Notifications Bell & Dropdown -->
+                @include('layouts.notifications')
 
                 <!-- Logout Form -->
                 <form action="{{ route('logout') }}" method="POST" class="inline">
@@ -549,6 +552,11 @@
             </div>
         </div>
     </div>
+
+    <!-- Dedicated Toast & Notification Stacking Root -->
+    <div id="toast-portal-root" 
+         class="fixed inset-0 pointer-events-none z-[99999999] overflow-visible no-print"
+         style="position: fixed; inset: 0; pointer-events: none; z-index: 99999999; overflow: visible;"></div>
 
     <!-- Futuristic Quantum Preloader & Anti-Double Submit Overlay -->
     @include('layouts.preloader')

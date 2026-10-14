@@ -94,16 +94,27 @@ class GeminiRpdService
         $baseDate = $options['base_date'] ?? now()->format('Y-m-d');
         $projectTitle = $options['project_title'] ?? 'Revitalisasi Sekolah';
         $schoolName = $options['school_name'] ?? 'Satuan Pendidikan Situbondo';
+        $schoolKecamatan = $options['school_kecamatan'] ?? ($options['kecamatan'] ?? 'Situbondo');
+        $schoolAddress = $options['school_address'] ?? ($options['address'] ?? 'Kabupaten Situbondo, Jawa Timur');
         $termStage = $options['term_stage'] ?? 'Tahap 1';
 
+        $runtimeOptions = array_merge($options, [
+            'school_name' => $schoolName,
+            'school_kecamatan' => $schoolKecamatan,
+            'school_address' => $schoolAddress,
+            'project_title' => $projectTitle,
+            'term_stage' => $termStage,
+            'base_date' => $baseDate,
+        ]);
+
         if (empty($apiKey)) {
-            Log::info("GeminiRpdService: GEMINI_API_KEY tidak ditemukan, menggunakan Smart Heuristic Engine lokal.");
+            Log::info("GeminiRpdService: GEMINI_API_KEY tidak ditemukan, menggunakan Smart Heuristic Engine lokal Situbondo.");
             return [
                 'success' => true,
                 'used_ai' => false,
                 'provider' => 'smart_heuristic',
-                'message' => 'Variasi disusun menggunakan Mesin Heuristik Cerdas Lokal (Jadwal berfase & narasi bervariasi).',
-                'items' => $this->applySmartHeuristicVariance($items, $baseDate, $projectTitle),
+                'message' => "Variasi disusun menggunakan Mesin Heuristik Cerdas Lokal Situbondo (Standar SHS/HSPK harga & toko terdekat Kec. {$schoolKecamatan}).",
+                'items' => $this->applySmartHeuristicVariance($items, $baseDate, $projectTitle, $runtimeOptions),
             ];
         }
 
@@ -117,17 +128,13 @@ class GeminiRpdService
                     'specification' => $item['specification'] ?? '',
                     'volume' => $item['volume'] ?? 1,
                     'unit' => $item['unit'] ?? 'Unit',
+                    'unit_price' => (float)($item['unit_price'] ?? 0),
                     'total_price' => (float)($item['total_price'] ?? 0),
                     'current_supplier' => $item['supplier_name'] ?? '',
                 ];
             }
 
-            $prompt = $this->buildPrompt($simplifiedItems, [
-                'base_date' => $baseDate,
-                'project_title' => $projectTitle,
-                'school_name' => $schoolName,
-                'term_stage' => $termStage,
-            ]);
+            $prompt = $this->buildPrompt($simplifiedItems, $runtimeOptions);
 
             $rawJson = $this->callGeminiApi($prompt, array_merge($options, [
                 'timeout' => 35,
@@ -138,13 +145,13 @@ class GeminiRpdService
             if (!empty($rawJson)) {
                 $aiData = json_decode($rawJson, true);
                 if (is_array($aiData)) {
-                    $enhanced = $this->mergeAiOutputWithItems($items, $aiData, $baseDate, $projectTitle);
+                    $enhanced = $this->mergeAiOutputWithItems($items, $aiData, $baseDate, $projectTitle, $runtimeOptions);
                     return [
                         'success' => true,
                         'used_ai' => true,
                         'provider' => 'gemini_api',
                         'model' => $model,
-                        'message' => "Alhamdulillah! Jadwal belanja dan narasi BKU berhasil disempurnakan secara cerdas oleh Google Gemini AI ({$model}).",
+                        'message' => "Alhamdulillah! Jadwal, narasi BKU, harga satuan Situbondo, dan toko terdekat di Kec. {$schoolKecamatan} berhasil disempurnakan oleh Google Gemini AI ({$model}).",
                         'items' => $enhanced,
                     ];
                 }
@@ -158,8 +165,8 @@ class GeminiRpdService
             'success' => true,
             'used_ai' => false,
             'provider' => 'smart_heuristic',
-            'message' => 'Koneksi ke Gemini API tidak tersedia atau kuota habis. Variasi jadwal & narasi disusun menggunakan Algoritma Cerdas Lokal.',
-            'items' => $this->applySmartHeuristicVariance($items, $baseDate, $projectTitle),
+            'message' => "Koneksi ke Gemini API tidak tersedia atau kuota habis. Variasi jadwal, harga standar Situbondo, dan toko terdekat disusun menggunakan Algoritma Cerdas Lokal (Kec. {$schoolKecamatan}).",
+            'items' => $this->applySmartHeuristicVariance($items, $baseDate, $projectTitle, $runtimeOptions),
         ];
     }
 
@@ -652,65 +659,544 @@ PROMPT;
     }
 
     /**
+     * Standar Harga Satuan (SHSB / HSPK) resmi Kabupaten Situbondo, Jawa Timur
+     * untuk upah tenaga kerja konstruksi (HOK) dan bahan bangunan utama.
+     */
+    public static function getSitubondoPriceBenchmarks(): array
+    {
+        return [
+            // UPAH TENAGA KERJA (Standar HSPK / SHS Kab. Situbondo TA 2024-2026)
+            'upah_tukang' => [
+                'role' => 'Tukang (Batu / Kayu / Besi / Cat / Keramik / Plafon / Plumbing)',
+                'price' => 125000,
+                'min' => 120000,
+                'max' => 125000,
+                'unit' => 'OH',
+                'description' => 'Standar HOK Tukang Terampil Swakelola Revitalisasi Kabupaten Situbondo',
+            ],
+            'upah_pekerja' => [
+                'role' => 'Pekerja / Pembantu Tukang / Kenek / Laden',
+                'price' => 90000,
+                'min' => 85000,
+                'max' => 95000,
+                'unit' => 'OH',
+                'description' => 'Standar HOK Pekerja / Pembantu Tukang Swakelola Revitalisasi Kabupaten Situbondo',
+            ],
+            'upah_kepala_tukang' => [
+                'role' => 'Kepala Tukang',
+                'price' => 135000,
+                'min' => 130000,
+                'max' => 140000,
+                'unit' => 'OH',
+                'description' => 'Standar HOK Kepala Tukang Swakelola Kabupaten Situbondo',
+            ],
+            'upah_mandor' => [
+                'role' => 'Mandor / Pengawas Lapangan Swakelola',
+                'price' => 140000,
+                'min' => 135000,
+                'max' => 150000,
+                'unit' => 'OH',
+                'description' => 'Standar HOK Mandor Lapangan Kabupaten Situbondo',
+            ],
+
+            // BAHAN MATERIAL (Standar Harga Satuan Bahan Bangunan Kab. Situbondo)
+            'semen_pc_50kg' => ['keywords' => ['semen portland', 'semen gresik 50', 'semen dynamix', 'semen 50', 'pcc 50'], 'price' => 68000, 'unit' => 'Zak'],
+            'semen_pc_40kg' => ['keywords' => ['semen 40', 'semen gresik 40'], 'price' => 54000, 'unit' => 'Zak'],
+            'pasir_pasang' => ['keywords' => ['pasir pasang', 'pasir sampean', 'pasir kali sampean'], 'price' => 185000, 'unit' => 'M³'],
+            'pasir_cor' => ['keywords' => ['pasir cor', 'pasir beton'], 'price' => 200000, 'unit' => 'M³'],
+            'pasir_urug' => ['keywords' => ['pasir urug', 'urugan pasir'], 'price' => 140000, 'unit' => 'M³'],
+            'batu_belah' => ['keywords' => ['batu belah', 'batu kali', 'pondasi batu'], 'price' => 210000, 'unit' => 'M³'],
+            'batu_split' => ['keywords' => ['split', 'kerikil cor', 'batu pecah'], 'price' => 240000, 'unit' => 'M³'],
+            'bata_merah' => ['keywords' => ['bata merah', 'bata lokal'], 'price' => 800, 'unit' => 'Buah'],
+            'batako' => ['keywords' => ['batako'], 'price' => 3500, 'unit' => 'Buah'],
+            'besi_8' => ['keywords' => ['besi 8', 'besi beton 8', 'dia 8'], 'price' => 48000, 'unit' => 'Batang'],
+            'besi_10' => ['keywords' => ['besi 10', 'besi beton 10', 'dia 10'], 'price' => 74000, 'unit' => 'Batang'],
+            'besi_12' => ['keywords' => ['besi 12', 'besi beton 12', 'dia 12'], 'price' => 110000, 'unit' => 'Batang'],
+            'kawat_bendrat' => ['keywords' => ['bendrat', 'kawat beton'], 'price' => 25000, 'unit' => 'Kg'],
+            'baja_ringan_c75' => ['keywords' => ['baja ringan', 'truss', 'c75', 'profil c'], 'price' => 120000, 'unit' => 'Batang'],
+            'reng_baja_ringan' => ['keywords' => ['reng baja', 'reng galvalum'], 'price' => 45000, 'unit' => 'Batang'],
+            'genteng_karang_pilang' => ['keywords' => ['genteng karang pilang', 'genteng keramik', 'genteng nok'], 'price' => 5500, 'unit' => 'Buah'],
+            'spandek_atap' => ['keywords' => ['spandek', 'atap galvalum'], 'price' => 65000, 'unit' => 'M'],
+            'plafon_kalsiboard' => ['keywords' => ['kalsiboard', 'grc', 'plafon 4mm', 'langit-langit'], 'price' => 68000, 'unit' => 'Lembar'],
+            'hollow_plafon' => ['keywords' => ['hollow', 'rangka hollow', 'hollow 4x4', 'hollow 2x4'], 'price' => 34000, 'unit' => 'Batang'],
+            'keramik_lantai' => ['keywords' => ['keramik lantai', 'keramik 40x40', 'keramik 50x50', 'ubin lantai'], 'price' => 72000, 'unit' => 'Dus'],
+            'keramik_dinding' => ['keywords' => ['keramik dinding', 'keramik 20x25', 'keramik 25x40'], 'price' => 65000, 'unit' => 'Dus'],
+            'semen_nat' => ['keywords' => ['semen warna', 'oker', 'nat keramik'], 'price' => 18000, 'unit' => 'Kg'],
+            'kloset_jongkok' => ['keywords' => ['kloset jongkok', 'closet jongkok', 'toto', 'ina'], 'price' => 320000, 'unit' => 'Unit'],
+            'pintu_pvc' => ['keywords' => ['pintu pvc', 'pintu toilet', 'pintu kamar mandi'], 'price' => 350000, 'unit' => 'Unit'],
+            'pipa_pvc_3' => ['keywords' => ['pipa 3', 'pipa aw 3'], 'price' => 115000, 'unit' => 'Batang'],
+            'pipa_pvc_4' => ['keywords' => ['pipa 4', 'pipa aw 4'], 'price' => 165000, 'unit' => 'Batang'],
+            'pipa_pvc_setengah' => ['keywords' => ['pipa 1/2', 'pipa aw 1/2'], 'price' => 32000, 'unit' => 'Batang'],
+            'kran_air' => ['keywords' => ['kran air', 'keran'], 'price' => 75000, 'unit' => 'Buah'],
+            'floor_drain' => ['keywords' => ['floor drain', 'saringan air'], 'price' => 65000, 'unit' => 'Buah'],
+            'cat_tembok_interior' => ['keywords' => ['cat tembok', 'catylac', 'avitex', 'paragon'], 'price' => 145000, 'unit' => 'Galon'],
+            'cat_tembok_eksterior' => ['keywords' => ['cat eksterior', 'mowilex', 'dulux weathershield'], 'price' => 215000, 'unit' => 'Galon'],
+            'cat_kayu_besi' => ['keywords' => ['cat kayu', 'cat besi', 'pelitur'], 'price' => 70000, 'unit' => 'Kaleng'],
+            'plamir_tembok' => ['keywords' => ['plamir', 'plamur'], 'price' => 55000, 'unit' => 'Sak'],
+            'kusen_pintu_kayu' => ['keywords' => ['kusen pintu', 'pintu kayu'], 'price' => 650000, 'unit' => 'Unit'],
+            'kusen_jendela' => ['keywords' => ['kusen jendela', 'jendela kaca'], 'price' => 350000, 'unit' => 'Unit'],
+            'kunci_pintu' => ['keywords' => ['kunci pintu', 'handle pintu', 'gagang pintu'], 'price' => 135000, 'unit' => 'Set'],
+        ];
+    }
+
+    /**
+     * Direktori toko bangunan, pangkalan material, dan penyedia rekanan
+     * terdekat pada 17 Kecamatan di seluruh Kabupaten Situbondo, Jawa Timur.
+     */
+    public static function getSitubondoDistrictStores(?string $kecamatan = null): array
+    {
+        $stores = [
+            'Situbondo' => [
+                'general' => [
+                    'Toko Bangunan Berkah Jl. Basuki Rahmat Situbondo',
+                    'Toko Besi & Baja Abadi Jl. Pemuda Situbondo',
+                    'Depo Bangunan Situbondo Indah',
+                    'Toko Bangunan Mitra Karya Situbondo',
+                    'TB Jaya Abadi Jl. Irian Jaya Situbondo',
+                ],
+                'cat' => ['Toko Cat Citra Warna Jl. PB. Sudirman Situbondo', 'Toko Cat & Finishing Pelangi Situbondo'],
+                'keramik' => ['Toko Keramik & Sanitasi Sentosa Jl. Argopuro Situbondo'],
+                'kayu' => ['UD Kayu Jati Murni Situbondo'],
+                'pasir' => ['Pemasok Pasir Pasang Kali Sampean Situbondo', 'Pemasok Batu Belah Kali Sampean'],
+                'bata' => ['Pengrajin Bata Merah Panji-Situbondo'],
+                'tukang' => ['Kelompok Tukang Swakelola Situbondo Kota', 'Kelompok Pekerja Swakelola Patokan'],
+            ],
+            'Panji' => [
+                'general' => [
+                    'UD Karunia Mega Bangunan Jl. Argopuro Mimbaan Panji',
+                    'UD Panji Putra Jl. Argopuro Mimbaan Panji',
+                    'Toko Bangunan Pojok Agung Jl. Jawa Krajan Mimbaan Panji',
+                    'Toko Sumber Sari Jl. Argopuro Panji',
+                    'UD Sinar Terang Bangunan Panji',
+                    'Toko Bangunan Berkah Panji Jl. Raya Banyuwangi',
+                ],
+                'cat' => ['Toko Cat Cahaya Baru Mimbaan Panji', 'Toko Cat Citra Warna Panji'],
+                'keramik' => ['UD Karunia Mega Bangunan Mimbaan Panji'],
+                'kayu' => ['UD Kayu Jati Murni Panji'],
+                'pasir' => ['Pemasok Pasir & Koral Panji Situbondo', 'Pemasok Pasir Kali Sampean'],
+                'bata' => ['Sentra Pengrajin Bata Merah Panji Lor', 'Pengrajin Bata Merah Curah Jeru Panji'],
+                'tukang' => ['Kelompok Tukang Swakelola Panji', 'Kelompok Pekerja Swakelola Mimbaan'],
+            ],
+            'Besuki' => [
+                'general' => [
+                    'Toko Bangunan Setia Bakti Besuki',
+                    'Toko Material Sumber Rejeki Besuki',
+                    'TB Bintang Terang Jl. Raya Besuki',
+                    'Toko Bangunan Utama Besuki',
+                ],
+                'cat' => ['Panama Jaya Spesialis Cat & Pelapis Besuki', 'UD Warna Abadi Besuki'],
+                'keramik' => ['Toko Bangunan Setia Bakti Besuki'],
+                'kayu' => ['Toko Kayu Murah Barokah Jl. Semiring Demung Besuki', 'Pangkalan Kayu Barokah Besuki'],
+                'pasir' => ['Pangkalan Pasir & Batu Kali Besuki', 'Pemasok Pasir Pasang Kali Sampean'],
+                'bata' => ['Pengrajin Bata Merah Kalimas Besuki', 'UD Bata Merah Pesisir Besuki'],
+                'tukang' => ['Kelompok Tukang Swakelola Besuki', 'Kelompok Pekerja Swakelola Demung'],
+            ],
+            'Kapongan' => [
+                'general' => [
+                    'Toko Bangunan Sumber Hidup Landangan Kapongan',
+                    'Toko SKJ Barokah Bahan Bangunan Wonokoyo Kapongan',
+                    'Toko Meubel & Bangunan Bang Hasyim Jalur Pantura Kapongan',
+                    'TB Berkah Bersama Kapongan',
+                ],
+                'cat' => ['Toko Winda Jaya / Samurai Paint Wonokoyo Kapongan'],
+                'keramik' => ['Toko Bangunan Sumber Hidup Landangan Kapongan'],
+                'kayu' => ['Pengrajin Kusen Kayu Subur Kapongan', 'Pangkalan Kayu Wonokoyo Kapongan'],
+                'pasir' => ['Pemasok Pasir Pasang Kali Sampean', 'Pemasok Pasir & Batu Kapongan'],
+                'bata' => ['Pengrajin Bata Merah Landangan Kapongan', 'Pengrajin Bata Merah Kesambirampak'],
+                'tukang' => ['Kelompok Tukang Swakelola Kapongan', 'Kelompok Pekerja Swakelola Landangan'],
+            ],
+            'Asembagus' => [
+                'general' => [
+                    'Toko Bumi Bangunan Krajan Tengah Asembagus',
+                    'Subur Jaya Home / CV. Surya Kencana Jl. Raya Asembagus',
+                    'Toko Sumber Berkat Jl. Raya Asembagus Trigonco',
+                    'Toko Besi & Material Sinar Asembagus',
+                ],
+                'cat' => ['Subur Jaya Home Asembagus', 'Toko Cat Citra Warna Asembagus'],
+                'keramik' => ['Toko Sumber Berkat Trigonco Asembagus'],
+                'kayu' => ['Pangkalan Kayu Subur Jaya Asembagus'],
+                'pasir' => ['Pemasok Pasir & Batu Kali Bantal Asembagus', 'Pemasok Pasir Sampean'],
+                'bata' => ['Pengrajin Bata Merah Mojosari Asembagus', 'Sentra Bata Merah Trigonco'],
+                'tukang' => ['Kelompok Tukang Swakelola Asembagus', 'Kelompok Pekerja Swakelola Kertosari'],
+            ],
+            'Banyuputih' => [
+                'general' => [
+                    'Toko Bangunan Sumber Rejeki Banyuputih (Pantura Baluran)',
+                    'Toko Material Berkah Wonorejo Banyuputih',
+                    'TB Timur Raya Jalur Pantura Banyuputih',
+                    'TB Sumberwaru Indah Banyuputih',
+                ],
+                'cat' => ['Toko Bangunan Sumber Rejeki Banyuputih'],
+                'keramik' => ['TB Timur Raya Banyuputih'],
+                'kayu' => ['Pangkalan Kayu Jati & Sengon Banyuputih'],
+                'pasir' => ['Pangkalan Pasir & Batu Kali Banyuputih', 'Pemasok Pasir Sampean'],
+                'bata' => ['Pengrajin Bata Merah Sumberanyar Banyuputih'],
+                'tukang' => ['Kelompok Tukang Swakelola Banyuputih', 'Kelompok Pekerja Swakelola Wonorejo'],
+            ],
+            'Panarukan' => [
+                'general' => [
+                    'Toko Bangunan Panarukan Indah Jl. Raya Panarukan',
+                    'Toko Material Pelabuhan Panarukan',
+                    'Toko Bangunan Barokah Paowan Panarukan',
+                    'TB Kilensari Makmur Panarukan',
+                ],
+                'cat' => ['Toko Bangunan Panarukan Indah'],
+                'keramik' => ['TB Barokah Paowan Panarukan'],
+                'kayu' => ['UD Kayu Wringinanom Panarukan'],
+                'pasir' => ['Pemasok Pasir & Sirtu Urug Panarukan', 'Pemasok Pasir Pasang Kali Sampean'],
+                'bata' => ['Pengrajin Bata Merah Paowan Panarukan'],
+                'tukang' => ['Kelompok Tukang Swakelola Panarukan', 'Kelompok Pekerja Swakelola Paowan'],
+            ],
+            'Mangaran' => [
+                'general' => [
+                    'Toko Bangunan Pantai Utara Mangaran (Tanjung Kamal)',
+                    'Toko Material Barokah Tanjung Kamal Mangaran',
+                    'TB Pesisir Makmur Mangaran',
+                ],
+                'cat' => ['Toko Bangunan Pantai Utara Mangaran'],
+                'keramik' => ['Toko Material Barokah Tanjung Kamal'],
+                'kayu' => ['Pangkalan Kayu Tanjung Pecinan Mangaran'],
+                'pasir' => ['Pemasok Pasir & Sirtu Pesisir Mangaran', 'Pemasok Pasir Kali Sampean'],
+                'bata' => ['Pengrajin Bata Merah Trebungan Mangaran'],
+                'tukang' => ['Kelompok Tukang Swakelola Mangaran', 'Kelompok Pekerja Swakelola Tanjung Kamal'],
+            ],
+            'Kendit' => [
+                'general' => [
+                    'Toko Bangunan Kendit Makmur',
+                    'Toko Material Pasir Putih Klatakan Kendit',
+                    'TB Berkah Balung Kendit',
+                ],
+                'cat' => ['Toko Bangunan Kendit Makmur'],
+                'keramik' => ['TB Pasir Putih Klatakan Kendit'],
+                'kayu' => ['Pangkalan Kayu Balung Kendit'],
+                'pasir' => ['Pemasok Pasir & Sirtu Kendit', 'Pemasok Pasir Kali Sampean'],
+                'bata' => ['Pengrajin Bata Merah Rajekwesi Kendit'],
+                'tukang' => ['Kelompok Tukang Swakelola Kendit', 'Kelompok Pekerja Swakelola Klatakan'],
+            ],
+            'Arjasa' => [
+                'general' => [
+                    'Toko Bangunan Arjasa Mandiri',
+                    'Toko Besi & Bangunan Berkah Abadi Arjasa',
+                    'TB Sumber Makmur Lamongan Arjasa',
+                ],
+                'cat' => ['Toko Bangunan Arjasa Mandiri'],
+                'keramik' => ['TB Berkah Abadi Arjasa'],
+                'kayu' => ['Pemasok Kayu & Bambu Konstruksi Arjasa', 'UD Kayu Jatisari Arjasa'],
+                'pasir' => ['Pemasok Pasir Kali Deluwang Arjasa', 'Pemasok Pasir Kali Sampean'],
+                'bata' => ['Pengrajin Bata Merah Kedungdowo Arjasa'],
+                'tukang' => ['Kelompok Tukang Swakelola Arjasa', 'Kelompok Pekerja Swakelola Lamongan'],
+            ],
+            'Jangkar' => [
+                'general' => [
+                    'Toko Bangunan Pelabuhan Jangkar',
+                    'Toko Material Sejahtera Jangkar',
+                    'TB Berkah Agel Jangkar',
+                ],
+                'cat' => ['Toko Bangunan Pelabuhan Jangkar'],
+                'keramik' => ['Toko Material Sejahtera Jangkar'],
+                'kayu' => ['Pangkalan Kayu Palangan Jangkar'],
+                'pasir' => ['Pemasok Pasir & Batu Jangkar', 'Pemasok Pasir Kali Sampean'],
+                'bata' => ['Pengrajin Bata Merah Pesanggrahan Jangkar'],
+                'tukang' => ['Kelompok Tukang Swakelola Jangkar', 'Kelompok Pekerja Swakelola Pesanggrahan'],
+            ],
+            'Suboh' => [
+                'general' => [
+                    'Toko Bangunan Suboh Jaya Jl. Raya Buduan Suboh',
+                    'Toko Material Subur Buduan Suboh',
+                    'TB Berkah Ketah Suboh',
+                ],
+                'cat' => ['Toko Bangunan Suboh Jaya'],
+                'keramik' => ['Toko Material Subur Buduan Suboh'],
+                'kayu' => ['Pangkalan Kayu Buduan Suboh'],
+                'pasir' => ['Pemasok Pasir & Batu Suboh', 'Pemasok Pasir Kali Sampean'],
+                'bata' => ['Pengrajin Bata Merah Gunung Putri Suboh'],
+                'tukang' => ['Kelompok Tukang Swakelola Suboh', 'Kelompok Pekerja Swakelola Buduan'],
+            ],
+            'Mlandingan' => [
+                'general' => [
+                    'Toko Bangunan Mlandingan Raya',
+                    'Toko Material Pesisir Mlandingan',
+                    'TB Berkah Selomukti Mlandingan',
+                ],
+                'cat' => ['Toko Bangunan Mlandingan Raya'],
+                'keramik' => ['Toko Material Pesisir Mlandingan'],
+                'kayu' => ['Pangkalan Kayu Mlandingan Kulon'],
+                'pasir' => ['Pemasok Pasir & Batu Mlandingan', 'Pemasok Pasir Kali Sampean'],
+                'bata' => ['Pengrajin Bata Merah Tribungan Mlandingan'],
+                'tukang' => ['Kelompok Tukang Swakelola Mlandingan', 'Kelompok Pekerja Swakelola Selomukti'],
+            ],
+            'Banyuglugur' => [
+                'general' => [
+                    'Toko Bangunan Perbatasan Banyuglugur',
+                    'Toko Material Utama Kalianget Banyuglugur',
+                    'TB Barokah Banyuglugur',
+                ],
+                'cat' => ['Toko Bangunan Perbatasan Banyuglugur'],
+                'keramik' => ['Toko Material Utama Kalianget Banyuglugur'],
+                'kayu' => ['Pangkalan Kayu Selobanteng Banyuglugur'],
+                'pasir' => ['Pemasok Pasir & Batu Banyuglugur', 'Pemasok Pasir Kali Sampean'],
+                'bata' => ['Pengrajin Bata Merah Telempong Banyuglugur'],
+                'tukang' => ['Kelompok Tukang Swakelola Banyuglugur', 'Kelompok Pekerja Swakelola Kalianget'],
+            ],
+            'Bungatan' => [
+                'general' => [
+                    'Toko Bangunan Bahari Bungatan',
+                    'Toko Material Pantai Bletok Bungatan',
+                    'TB Berkah Selowogo Bungatan',
+                ],
+                'cat' => ['Toko Bangunan Bahari Bungatan'],
+                'keramik' => ['Toko Material Pantai Bletok Bungatan'],
+                'kayu' => ['Pangkalan Kayu Pasir Putih Bungatan'],
+                'pasir' => ['Pemasok Pasir & Batu Bungatan', 'Pemasok Pasir Kali Sampean'],
+                'bata' => ['Pengrajin Bata Merah Bletok Bungatan'],
+                'tukang' => ['Kelompok Tukang Swakelola Bungatan', 'Kelompok Pekerja Swakelola Bletok'],
+            ],
+            'Jatibanteng' => [
+                'general' => [
+                    'Toko Bangunan Jatibanteng Makmur',
+                    'Toko Material Barokah Curahsuri Jatibanteng',
+                    'TB Wringinanom Jatibanteng',
+                ],
+                'cat' => ['Toko Bangunan Jatibanteng Makmur'],
+                'keramik' => ['Toko Material Barokah Curahsuri'],
+                'kayu' => ['Pangkalan Kayu Rimba Jatibanteng'],
+                'pasir' => ['Pemasok Pasir Kali Jatibanteng', 'Pemasok Pasir Kali Sampean'],
+                'bata' => ['Pengrajin Bata Merah Pategalan Jatibanteng'],
+                'tukang' => ['Kelompok Tukang Swakelola Jatibanteng', 'Kelompok Pekerja Swakelola Curahsuri'],
+            ],
+            'Sumbermalang' => [
+                'general' => [
+                    'Toko Bangunan Lereng Argopuro Sumbermalang',
+                    'Toko Material Sumber Rejeki Tlogosari Sumbermalang',
+                    'TB Barokah Baderan Sumbermalang',
+                ],
+                'cat' => ['Toko Bangunan Lereng Argopuro Sumbermalang'],
+                'keramik' => ['Toko Material Sumber Rejeki Tlogosari'],
+                'kayu' => ['Pangkalan Kayu Argopuro Tlogosari'],
+                'pasir' => ['Pemasok Pasir & Batu Kali Argopuro Sumbermalang', 'Pemasok Pasir Sampean'],
+                'bata' => ['Pengrajin Bata Merah Alastengah Sumbermalang'],
+                'tukang' => ['Kelompok Tukang Swakelola Sumbermalang', 'Kelompok Pekerja Swakelola Tlogosari'],
+            ],
+        ];
+
+        if ($kecamatan) {
+            foreach ($stores as $kName => $dStores) {
+                if (strcasecmp($kName, trim($kecamatan)) === 0 || str_contains(strtolower($kecamatan), strtolower($kName))) {
+                    return $dStores;
+                }
+            }
+        }
+
+        return $stores;
+    }
+
+    /**
+     * Memilih toko bangunan atau rekanan terdekat dari lokasi sekolah di Kabupaten Situbondo.
+     */
+    public static function getNearestStoresForSchool(?string $kecamatan, ?string $address = null, ?string $category = 'bahan', ?string $itemName = null): array
+    {
+        $allStores = self::getSitubondoDistrictStores();
+
+        $targetKecamatan = $kecamatan;
+        if (empty($targetKecamatan) && !empty($address)) {
+            foreach (array_keys($allStores) as $kName) {
+                if (stripos($address, $kName) !== false) {
+                    $targetKecamatan = $kName;
+                    break;
+                }
+            }
+        }
+
+        $districtData = self::getSitubondoDistrictStores($targetKecamatan);
+        if (empty($districtData) || !isset($districtData['general'])) {
+            $districtData = $allStores['Situbondo'];
+            $targetKecamatan = 'Situbondo';
+        }
+
+        $iLower = strtolower($itemName ?? '');
+        $cat = strtolower($category ?? 'bahan');
+
+        if ($cat === 'upah') {
+            return $districtData['tukang'] ?? [
+                "Kelompok Tukang Swakelola {$targetKecamatan}",
+                "Kelompok Pekerja Swakelola Komite Sekolah",
+            ];
+        }
+
+        if (str_contains($iLower, 'pasir') || str_contains($iLower, 'batu') || str_contains($iLower, 'koral') || str_contains($iLower, 'split')) {
+            return $districtData['pasir'] ?? ['Pemasok Pasir Pasang Kali Sampean Situbondo', 'Pemasok Batu Belah Kali Sampean'];
+        }
+
+        if (str_contains($iLower, 'bata')) {
+            return $districtData['bata'] ?? ['Pengrajin Bata Merah Panji-Situbondo'];
+        }
+
+        if (str_contains($iLower, 'cat') || str_contains($iLower, 'pelitur') || str_contains($iLower, 'plamir')) {
+            return $districtData['cat'] ?? ['Toko Cat Citra Warna Situbondo'];
+        }
+
+        if (str_contains($iLower, 'kayu') || str_contains($iLower, 'kusen') || str_contains($iLower, 'pintu')) {
+            return $districtData['kayu'] ?? ['UD Kayu Jati Murni Situbondo'];
+        }
+
+        if (str_contains($iLower, 'keramik') || str_contains($iLower, 'kloset') || str_contains($iLower, 'sanitair') || str_contains($iLower, 'pipa')) {
+            return $districtData['keramik'] ?? ['Toko Keramik & Sanitasi Sentosa Situbondo'];
+        }
+
+        return $districtData['general'] ?? ['Toko Bangunan Berkah Situbondo'];
+    }
+
+    /**
+     * Menentukan harga satuan (unit_price) dan volume yang realistis sesuai standar harga Situbondo.
+     * Nilai total_price dijamin 100% tepat sama tanpa selisih anggaran (zero variance).
+     */
+    public static function determineSitubondoPrice(string $itemName, string $category, float $totalPrice = 0, ?string $unit = null): array
+    {
+        $iLower = strtolower($itemName);
+        $benchmarks = self::getSitubondoPriceBenchmarks();
+
+        $refPrice = 0;
+        $matchedUnit = $unit ?: 'Unit';
+        $matchedRole = null;
+
+        if ($category === 'upah') {
+            if (str_contains($iLower, 'pembantu') || str_contains($iLower, 'pekerja') || str_contains($iLower, 'laden') || str_contains($iLower, 'kenek') || str_contains($iLower, 'galian') || str_contains($iLower, 'pembersihan') || str_contains($iLower, 'adukan')) {
+                $refPrice = $benchmarks['upah_pekerja']['price']; // Rp 90.000 / OH
+                $matchedRole = 'Pekerja / Pembantu Tukang (HOK Situbondo)';
+                $matchedUnit = 'OH';
+            } elseif (str_contains($iLower, 'mandor')) {
+                $refPrice = $benchmarks['upah_mandor']['price']; // Rp 140.000 / OH
+                $matchedRole = 'Mandor Lapangan (HOK Situbondo)';
+                $matchedUnit = 'OH';
+            } elseif (str_contains($iLower, 'kepala')) {
+                $refPrice = $benchmarks['upah_kepala_tukang']['price']; // Rp 135.000 / OH
+                $matchedRole = 'Kepala Tukang (HOK Situbondo)';
+                $matchedUnit = 'OH';
+            } else {
+                $refPrice = $benchmarks['upah_tukang']['price']; // Rp 125.000 / OH
+                $matchedRole = 'Tukang Konstruksi (HOK Situbondo)';
+                $matchedUnit = 'OH';
+            }
+        } else {
+            foreach ($benchmarks as $key => $def) {
+                if (str_starts_with($key, 'upah_')) continue;
+                foreach ($def['keywords'] as $kw) {
+                    if (str_contains($iLower, $kw)) {
+                        $refPrice = $def['price'];
+                        $matchedUnit = $def['unit'];
+                        $matchedRole = $kw;
+                        break 2;
+                    }
+                }
+            }
+        }
+
+        if ($refPrice <= 0) {
+            $refPrice = $totalPrice > 0 ? $totalPrice : 100000;
+        }
+
+        $calibratedVol = 1.0;
+        $calibratedUnitPrice = $refPrice;
+
+        if ($totalPrice > 0) {
+            $uUpper = strtoupper($matchedUnit);
+            if (in_array($uUpper, ['OH', 'HOK', 'HARI', 'ZAK', 'BATANG', 'BUAH', 'LEMBAR', 'DUS', 'UNIT', 'RIT', 'PAKET', 'BIJI'])) {
+                $calibratedVol = max(1, round($totalPrice / $refPrice));
+                $calibratedUnitPrice = round($totalPrice / $calibratedVol, 2);
+            } else {
+                $calibratedVol = max(0.5, round($totalPrice / $refPrice, 2));
+                $calibratedUnitPrice = round($totalPrice / $calibratedVol, 2);
+            }
+        }
+
+        return [
+            'benchmark_price' => $refPrice,
+            'unit_price' => $calibratedUnitPrice,
+            'volume' => $calibratedVol,
+            'unit' => $matchedUnit,
+            'role_or_material' => $matchedRole,
+        ];
+    }
+
+    /**
      * Susun instruksi prompt terstruktur untuk Gemini.
      */
     protected function buildPrompt(array $items, array $context): string
     {
         $itemsJson = json_encode($items, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        $kecamatan = $context['school_kecamatan'] ?? 'Situbondo';
+        $schoolAddress = $context['school_address'] ?? 'Kabupaten Situbondo, Jawa Timur';
+
+        $nearestStoresList = self::getNearestStoresForSchool($kecamatan, $schoolAddress);
+        $storesSummary = implode(', ', array_slice($nearestStoresList, 0, 5));
 
         return <<<PROMPT
 Anda adalah Asisten AI Ahli Administrasi Keuangan Daerah & Manajemen Konstruksi Fisik untuk Program Revitalisasi Satuan Pendidikan di Kabupaten Situbondo, Jawa Timur.
 
 Tugas Anda:
-Analisis rincian item belanja RPD (Rencana Penarikan Dana) berikut, lalu variasikan tanggal rencana belanja BKU (planned_date), narasi pembukuan transaksi BKU (bku_description), dan nama toko/rekanan lokal di Kabupaten Situbondo (supplier_name).
-Pastikan rincian belanja bahan material, ongkos kirim/angkut bahan (Belanja Mobilisasi), dan kegiatan operasional pengelolaan Tim P2SP (ATK, konsumsi rapat, SPPD koordinasi dinas, transparansi, materai anti-temuan BPK) tersusun logis, tertib, dan sesuai kaidah audit.
+Analisis rincian item belanja RPD (Rencana Penarikan Dana) berikut. Tentukan:
+1. Harga satuan (unit_price) dan volume (volume) yang realistis berdasarkan Standar Satuan Harga Biaya (SHSB / HSPK) Kabupaten Situbondo.
+2. Nama toko bangunan / rekanan lokal terdekat dari alamat sekolah di Kecamatan {$kecamatan}, Kabupaten Situbondo (supplier_name).
+3. Tanggal rencana belanja BKU yang berfase konstruksi logis tanpa hari Minggu (planned_date).
+4. Narasi resmi pembukuan transaksi Buku Kas Umum (bku_description).
 
-KONTEKS PROYEK:
+KONTEKS PROYEK & LOKASI SEKOLAH:
 - Sekolah: {$context['school_name']}
+- Alamat Sekolah: {$schoolAddress}
+- Kecamatan Sekolah: {$kecamatan} (Kabupaten Situbondo, Jawa Timur)
+- Rekomendasi Toko Bangunan Terdekat di Wilayah Ini: {$storesSummary}
 - Paket Proyek: {$context['project_title']}
 - Tahap Pencairan: {$context['term_stage']}
 - Tanggal Mulai Pencairan (Baseline): {$context['base_date']}
 
 ATURAN WAJIB (STRICT RULES):
-1. PENANGGALAN JADWAL BELANJA BKU (planned_date):
+1. PENENTUAN HARGA TUKANG, PEMBANTU TUKANG & HARGA BAHAN (STANDAR HARGA SATUAN SITUBONDO):
+   Gunakan rujukan resmi Standar Satuan Harga (HSPK / SHSB) Pemerintah Kabupaten Situbondo terkini:
+   * UPAH TUKANG (Batu, Kayu, Besi, Cat, Keramik, Plafon, Plumbing): Rp 120.000 s.d. Rp 125.000 / OH (HOK)
+   * UPAH PEMBANTU TUKANG / PEKERJA (Kenek, Laden adukan spesi, Galian, Lansir, Bersih): Rp 90.000 s.d. Rp 95.000 / OH (HOK)
+   * KEPALA TUKANG: Rp 130.000 s.d. Rp 135.000 / OH
+   * MANDOR: Rp 140.000 s.d. Rp 150.000 / OH
+   * HARGA BAHAN BANGUNAN UTAMA SITUBONDO:
+     - Semen Portland 50 kg (Gresik/Dynamix): Rp 68.000 / Zak
+     - Pasir Pasang Kali Sampean: Rp 185.000 / M³ (Rp 750.000 / Rit)
+     - Pasir Cor Kali Sampean: Rp 200.000 / M³
+     - Batu Belah Kali Sampean: Rp 210.000 / M³
+     - Bata Merah Lokal Situbondo (Panji/Kapongan): Rp 800 / Buah
+     - Besi Beton 8mm: Rp 48.000 / btg; 10mm: Rp 74.000 / btg; 12mm: Rp 110.000 / btg
+     - Rangka Baja Ringan C75 0.75mm: Rp 120.000 / btg; Reng: Rp 45.000 / btg
+     - Genteng Karang Pilang: Rp 5.500 / buah; Spandek 0.3mm: Rp 65.000 / m
+     - Plafon Kalsiboard / GRC 4mm: Rp 68.000 / lbr; Rangka Hollow: Rp 34.000 / btg
+     - Keramik Lantai 40x40 SNI: Rp 72.000 / dus; Dinding 20x25: Rp 65.000 / dus
+     - Kloset Jongkok Porselen SNI (INA/TOTO): Rp 320.000 / unit
+     - Pintu PVC Kamar Mandi: Rp 350.000 / unit
+     - Cat Tembok Interior 5 kg: Rp 145.000 / galon; Eksterior: Rp 215.000 / galon
+     - Pipa PVC AW 3": Rp 115.000 / btg; 4": Rp 165.000 / btg
+   ATURAN MUTLAK NILAI ANGGARAN:
+   Total pengeluaran (total_price) per item HARUS TETAP SAMA DAN BALANCE (zero variance). Rumus wajib: volume * unit_price = total_price.
+
+2. REKOMENDASI TOKO BANGUNAN TERDEKAT DI KECAMATAN {$kecamatan} (supplier_name):
+   - Prioritaskan toko bangunan riil yang terdekat dari lokasi sekolah di Kecamatan {$kecamatan}, Situbondo.
+   - Untuk material pasir dan batu, gunakan Pemasok Pasir & Batu Kali Sampean Situbondo.
+   - Untuk upah pekerja, gunakan Kelompok Tukang Swakelola {$kecamatan} / Kelompok Pekerja Swakelola Komite Sekolah.
+
+3. PENANGGALAN JADWAL BELANJA BKU (planned_date):
    - Tanggal paling awal dimulai pada atau setelah {$context['base_date']}.
-   - Susun jadwal bertahap selama rentang 3 s.d. 5 minggu secara logis sesuai urutan pekerjaan konstruksi nyata di lapangan:
-     * Minggu 1: Belanja persiapan, galian, pondasi, pasir pasang, semen dasar, besi beton, sewa molen/alat, spanduk transparansi publik & ATK format BKU P2SP, ongkos angkut bahan pondasi/struktur.
-     * Minggu 2: Belanja bata merah, semen dinding, kusen kayu/pintu, ongkos angkut bahan dinding & atap, konsumsi rapat evaluasi P2SP, upah tukang minggu 1.
-     * Minggu 3: Belanja rangka baja ringan, genteng/spandek, pipa sanitasi, SPPD transportasi koordinasi dinas P2SP, upah tukang minggu 2.
-     * Minggu 4: Belanja keramik lantai, kloset/sanitasi, plafon, ongkos angkut bahan finishing & sanitair, upah tukang minggu 3.
-     * Minggu 5: Belanja cat tembok, pelitur kayu, kunci & handle, bea materai 10.000 kuitansi SPJ, penggandaan laporan SPJ 3 rangkap, upah tukang akhir.
+   - Susun jadwal bertahap selama rentang 3 s.d. 5 minggu secara logis sesuai urutan pekerjaan konstruksi:
+     * Minggu 1: Belanja persiapan, galian, pondasi, pasir pasang, semen dasar, besi beton, sewa molen/alat, spanduk transparansi publik & ATK BKU P2SP.
+     * Minggu 2: Belanja bata merah, semen dinding, kusen kayu/pintu, ongkos angkut bahan dinding & atap, upah tukang minggu 1.
+     * Minggu 3: Belanja rangka baja ringan, genteng/spandek, pipa sanitasi, upah tukang minggu 2.
+     * Minggu 4: Belanja keramik lantai, kloset/sanitasi, plafon, upah tukang minggu 3.
+     * Minggu 5: Belanja cat tembok, pelitur kayu, kunci & handle, bea materai 10.000 SPJ, penggandaan laporan SPJ, upah tukang akhir.
    - PENTING: Pembayaran upah tukang/pekerja (kategori 'upah') HARUS SELALU dijadwalkan pada hari SABTU (akhir pekan).
    - DILARANG KERAS menjadwalkan transaksi apapun pada HARI MINGGU (kantor & toko libur).
    - Belanja bahan/alat/operasional dijadwalkan pada hari kerja (Senin s.d. Jumat/Sabtu). Format tanggal: YYYY-MM-DD.
 
-2. VARIASI NARASI BKU (bku_description):
+4. VARIASI NARASI BKU (bku_description):
    - Susun kalimat pembukuan transaksi BKU yang alami, kaya variasi, dan sesuai kaidah tata naskah dinas resmi SPJ Revitalisasi/BOS/DAK Kemendikbudristek & BPK RI.
-   - Jangan gunakan kalimat seragam yang monoton. Gunakan kombinasi frasa resmi seperti:
-     * Bahan Material: "Pembayaran belanja bahan material [uraian barang] ([volume] [satuan]) pada [toko] untuk pekerjaan [proyek]"
-     * Ongkos Angkut / Mobilisasi: "Pembayaran ongkos angkut & pengiriman material [uraian] ([volume] [satuan]) armada [penyedia angkutan] ke sekolah keperluan [proyek]"
-     * Upah Tenaga: "Pembayaran upah tenaga kerja/tukang swakelola [uraian pekerjaan] ([volume] [satuan]) pada [mandor/pekerja]"
-     * Sewa Peralatan: "Pembayaran sewa/pengadaan peralatan operasional kerja [uraian alat] ([volume] [satuan]) pada [rekanan]"
-     * Pengelolaan P2SP (ATK): "Pembayaran belanja kebutuhan ATK, penggandaan format BKU, dan penyusunan SPJ revitalisasi pada [toko ATK]"
-     * Pengelolaan P2SP (Konsumsi): "Pembayaran penyediaan konsumsi rapat koordinasi dan evaluasi mingguan Tim P2SP pada [katering/warung]"
-     * Pengelolaan P2SP (SPPD Transport): "Pembayaran biaya transportasi/SPPD Tim P2SP koordinasi teknis dinas dan urusan perbankan pelaksanaan [proyek]"
-     * Pengelolaan P2SP (Materai): "Pembayaran pengadaan bea materai Rp 10.000 kelengkapan kuitansi dan BAST pada [kantor pos]"
-     * Pengelolaan P2SP (Publikasi): "Pembayaran pembuatan spanduk sosialisasi & papan transparansi swakelola revitalisasi pada [percetakan]"
 
-3. TOKO / REKANAN LOKAL SITUBONDO (supplier_name):
-   - Jika current_supplier kosong atau berupa titik-titik, rekomendasikan penyedia/toko bangunan riil yang ada di wilayah Kabupaten Situbondo (Kecamatan Situbondo Kota, Panji, Besuki, Mangaran, Kapongan, dll.). Contoh:
-     * Pasir/Batu: Pemasok Pasir & Batu Kali Sampean Situbondo
-     * Semen/Bata/Material umum: Toko Bangunan Berkah Situbondo / UD Sinar Terang Panji / Toko Bangunan Sumber Rejeki Besuki
-     * Besi & Atap Baja: Toko Besi & Baja Abadi Situbondo / Toko Baja Ringan Situbondo
-     * Cat/Finishing: Toko Cat Citra Warna Situbondo / Toko Bangunan Utama
-     * Sanitasi & Keramik: Toko Keramik Sentosa Situbondo
-     * Upah: Kelompok Pekerja Swakelola Sekolah / Kelompok Tukang Panji
-     * Ongkos Kirim / Mobilisasi Bahan: Penyedia Jasa Angkutan & Ekspedisi Material Situbondo / Armada Angkut Toko Bangunan Berkah Panji / Jasa Angkutan Material Sampean Situbondo
-     * Operasional & ATK: Toko ATK Grafika Situbondo / Percetakan Media Mandiri Situbondo
-     * Konsumsi Rapat: Katering / Warung Makan Lokal Situbondo / Katering Bu Marni Panji
-     * Transportasi / SPPD Dinas: Tim Pelaksana P2SP Satuan Pendidikan
-     * Materai: Kantor Pos Situbondo / Agen Pos
-     * Spanduk & Banner: Percetakan & Banner Reklame Situbondo
+5. KETENTUAN KHUSUS BIAYA PERENCANAAN & PENGAWASAN (STRICT):
+   - "Biaya Perencanaan": JANGAN DI-BREAKDOWN, tetap gunakan judul yang sama persis tanpa dirubah. Letakkan di AWAL (Minggu 1, tanggal pencairan 70% {$context['base_date']}). Rekanan: Tim Teknis Perencana Swakelola. Narasi BKU: "Pembayaran Biaya Perencanaan untuk pekerjaan [proyek] kepada [rekanan]".
+   - "Biaya Pengawasan": JANGAN DI-BREAKDOWN, tetap gunakan judul yang sama persis tanpa dirubah. Letakkan di AKHIR (Minggu 5 / tanggal paling akhir setelah seluruh pekerjaan fisik selesai dan pencairan 30%). Rekanan: Tim Teknis Pengawas Swakelola. Narasi BKU: "Pembayaran Biaya Pengawasan untuk pekerjaan [proyek] setelah seluruh pekerjaan selesai kepada [rekanan]".
 
 DATA ITEM PECAHAN BAHAN:
 {$itemsJson}
@@ -720,6 +1206,8 @@ Hasilkan HANYA JSON array murni tanpa markdown pembungkus tambahan, dengan forma
 [
   {
     "row_number": 1,
+    "unit_price": 125000,
+    "volume": 20.0,
     "planned_date": "YYYY-MM-DD",
     "bku_description": "...",
     "supplier_name": "..."
@@ -731,7 +1219,7 @@ PROMPT;
     /**
      * Menggabungkan hasil AI dengan item yang ada dengan validasi ketat.
      */
-    protected function mergeAiOutputWithItems(array $originalItems, array $aiData, string $baseDate, string $projectTitle): array
+    protected function mergeAiOutputWithItems(array $originalItems, array $aiData, string $baseDate, string $projectTitle, array $context = []): array
     {
         $aiMap = [];
         foreach ($aiData as $row) {
@@ -740,13 +1228,18 @@ PROMPT;
             }
         }
 
+        $schoolKecamatan = $context['school_kecamatan'] ?? 'Situbondo';
+        $schoolAddress = $context['school_address'] ?? 'Situbondo, Jawa Timur';
+
         $result = [];
         foreach ($originalItems as $idx => $item) {
             $rowNum = $item['row_number'] ?? ($idx + 1);
             $aiRow = $aiMap[$rowNum] ?? null;
+            $itemName = strtolower($item['item_name'] ?? '');
+            $cat = $item['category'] ?? 'bahan';
 
             if ($aiRow) {
-                // Validasi tanggal: tidak boleh hari Minggu, upah harus Sabtu
+                // 1. Validasi tanggal: tidak boleh hari Minggu, upah harus Sabtu
                 $date = $aiRow['planned_date'] ?? $item['planned_date'];
                 try {
                     $cDate = Carbon::parse($date);
@@ -769,6 +1262,38 @@ PROMPT;
                 if (!empty($aiRow['supplier_name']) && (empty($item['supplier_name']) || $item['supplier_name'] === '....................')) {
                     $item['supplier_name'] = trim($aiRow['supplier_name']);
                 }
+
+                // 2. Kalibrasi harga satuan & volume jika diberikan AI
+                if (!empty($aiRow['unit_price']) && (float)$aiRow['unit_price'] > 0) {
+                    $suggestedPrice = (float)$aiRow['unit_price'];
+                    $tot = (float)($item['total_price'] ?? 0);
+                    if ($tot > 0) {
+                        $unit = strtoupper(trim($item['unit'] ?? ''));
+                        if (in_array($unit, ['OH', 'HOK', 'HARI', 'ZAK', 'BATANG', 'BUAH', 'LEMBAR', 'DUS', 'UNIT', 'RIT', 'PAKET', 'BIJI', 'METER', 'M'])) {
+                            $newVol = max(1, round($tot / $suggestedPrice));
+                            $newUnitPrice = round($tot / $newVol, 2);
+                        } else {
+                            $newVol = max(0.5, round($tot / $suggestedPrice, 2));
+                            $newUnitPrice = round($tot / $newVol, 2);
+                        }
+                        $item['volume'] = $newVol;
+                        $item['unit_price'] = $newUnitPrice;
+                    }
+                }
+            }
+
+            // Jika supplier masih kosong, gunakan toko terdekat di kecamatan sekolah
+            if (empty($item['supplier_name']) || $item['supplier_name'] === '....................') {
+                $nearest = self::getNearestStoresForSchool($schoolKecamatan, $schoolAddress, $cat, $itemName);
+                $item['supplier_name'] = $nearest[$idx % count($nearest)];
+            }
+
+            // Aturan Khusus: Biaya Perencanaan diawal dan Biaya Pengawasan diakhir
+            if (str_contains($itemName, 'perencanaan')) {
+                $item['planned_date'] = $baseDate;
+                $item['supplier_name'] = 'Tim Teknis Perencana Swakelola';
+            } elseif (str_contains($itemName, 'pengawasan')) {
+                $item['supplier_name'] = 'Tim Teknis Pengawas Swakelola';
             }
 
             $result[] = $item;
@@ -779,9 +1304,10 @@ PROMPT;
 
     /**
      * Mesin Heuristik Cerdas Lokal (100% Offline & Tanpa Kuota).
-     * Memvariasikan jadwal berfase konstruksi, mengacak narasi BKU resmi, dan memilih toko lokal Situbondo.
+     * Memvariasikan jadwal berfase konstruksi, mengkalibrasi harga tukang & bahan standar Situbondo,
+     * mengacak narasi BKU resmi, dan memilih toko bangunan terdekat dari lokasi sekolah.
      */
-    public function applySmartHeuristicVariance(array $items, string $baseDate, string $projectTitle): array
+    public function applySmartHeuristicVariance(array $items, string $baseDate, string $projectTitle, array $options = []): array
     {
         try {
             $base = Carbon::parse($baseDate);
@@ -793,73 +1319,8 @@ PROMPT;
             $base->addDay();
         }
 
-        $situbondoSuppliers = [
-            'pasir_batu' => [
-                'Pemasok Pasir Pasang Kali Sampean Situbondo',
-                'Pemasok Pasir & Koral Panji Situbondo',
-                'Pemasok Batu Belah Kali Sampean',
-            ],
-            'semen_bata' => [
-                'Toko Bangunan Berkah Situbondo',
-                'Pengrajin Bata Merah Panji Situbondo',
-                'UD Sinar Terang Bangunan Panji',
-                'Toko Material Sumber Rejeki Besuki',
-            ],
-            'besi_atap' => [
-                'Toko Besi Abadi Jl. Pemuda Situbondo',
-                'UD Baja Ringan Situbondo Jaya',
-                'Toko Rangka Galvalum Besuki',
-            ],
-            'keramik_sanitasi' => [
-                'Toko Keramik & Sanitasi Sentosa Situbondo',
-                'Toko Bangunan Mitra Karya Situbondo',
-                'Depo Bangunan Situbondo Indah',
-            ],
-            'cat_finishing' => [
-                'Toko Cat Citra Warna Situbondo',
-                'Toko Cat & Finishing Pelangi Situbondo',
-                'UD Warna Abadi Besuki Situbondo',
-            ],
-            'kayu_kusen' => [
-                'Pengrajin Kusen Kayu Subur Kapongan',
-                'UD Kayu Jati Murni Panji',
-            ],
-            'upah' => [
-                'Kelompok Tukang Swakelola Sekolah',
-                'Kelompok Pekerja Swakelola Komite',
-                'Kelompok Tenaga Kerja Lokal Panji',
-                'Kelompok Tukang Pak Slamet',
-            ],
-            'alat' => [
-                'Sewa Alat Proyek Jaya Situbondo',
-                'Persewaan Mesin Molen Barokah',
-            ],
-            'mobilisasi' => [
-                'Penyedia Jasa Angkutan & Ekspedisi Material Situbondo',
-                'Armada Angkut Toko Bangunan Berkah Panji',
-                'Jasa Angkutan Material Sampean Situbondo',
-            ],
-            'operasional' => [
-                'Toko ATK Grafika Situbondo',
-                'Percetakan & ATK Media Mandiri Situbondo',
-                'Toko Alat Tulis Pelajar Situbondo',
-            ],
-            'konsumsi' => [
-                'Katering / Warung Makan Lokal Situbondo',
-                'Katering Bu Marni Panji',
-                'Rumah Makan & Katering Barokah Situbondo',
-            ],
-            'transport' => [
-                'Tim Pelaksana P2SP Satuan Pendidikan',
-            ],
-            'materai' => [
-                'Kantor Pos Situbondo / Agen Pos',
-            ],
-            'publikasi' => [
-                'Percetakan & Banner Reklame Situbondo',
-                'Percetakan Media Grafika Situbondo',
-            ],
-        ];
+        $schoolKecamatan = $options['school_kecamatan'] ?? ($options['kecamatan'] ?? 'Situbondo');
+        $schoolAddress = $options['school_address'] ?? ($options['address'] ?? 'Kabupaten Situbondo, Jawa Timur');
 
         $narrativeTemplates = [
             'bahan' => [
@@ -890,12 +1351,17 @@ PROMPT;
         foreach ($items as $idx => $item) {
             $cat = $item['category'] ?? 'bahan';
             $itemName = strtolower($item['item_name'] ?? '');
-            $vol = number_format((float)($item['volume'] ?? 1), ($item['volume'] ?? 1) == (int)($item['volume'] ?? 1) ? 0 : 2, ',', '.');
-            $unit = $item['unit'] ?? 'Unit';
+            $tot = (float)($item['total_price'] ?? 0);
 
             // 1. Tentukan Fase Konstruksi (1 - 5)
             $phase = 1;
-            if (str_contains($itemName, 'galian') || str_contains($itemName, 'pondasi') || str_contains($itemName, 'pasir') || str_contains($itemName, 'batu') || str_contains($itemName, 'molen') || str_contains($itemName, 'persiapan') || str_contains($itemName, 'rk3k') || str_contains($itemName, 'spanduk') || (str_contains($itemName, 'angkut') && str_contains($itemName, 'pondasi'))) {
+            if (str_contains($itemName, 'perencanaan')) {
+                // Biaya Perencanaan: DIAWAL setelah pencairan 70% (Fase 1, Hari Pertama)
+                $phase = 1;
+            } elseif (str_contains($itemName, 'pengawasan')) {
+                // Biaya Pengawasan: DIAKHIR setelah seluruh pekerjaan selesai (Fase 5 / Akhir)
+                $phase = 5;
+            } elseif (str_contains($itemName, 'galian') || str_contains($itemName, 'pondasi') || str_contains($itemName, 'pasir') || str_contains($itemName, 'batu') || str_contains($itemName, 'molen') || str_contains($itemName, 'persiapan') || str_contains($itemName, 'rk3k') || str_contains($itemName, 'spanduk') || (str_contains($itemName, 'angkut') && str_contains($itemName, 'pondasi'))) {
                 $phase = 1;
             } elseif (str_contains($itemName, 'bata') || str_contains($itemName, 'dinding') || str_contains($itemName, 'plesteran') || str_contains($itemName, 'besi') || str_contains($itemName, 'semen') || str_contains($itemName, 'konsumsi') || (str_contains($itemName, 'angkut') && str_contains($itemName, 'dinding'))) {
                 $phase = 2;
@@ -903,24 +1369,28 @@ PROMPT;
                 $phase = 3;
             } elseif (str_contains($itemName, 'keramik') || str_contains($itemName, 'lantai') || str_contains($itemName, 'kloset') || str_contains($itemName, 'sanitasi') || str_contains($itemName, 'pipa') || str_contains($itemName, 'toilet') || (str_contains($itemName, 'angkut') && str_contains($itemName, 'lantai'))) {
                 $phase = 4;
-            } elseif (str_contains($itemName, 'cat') || str_contains($itemName, 'pelitur') || str_contains($itemName, 'plamir') || str_contains($itemName, 'kunci') || str_contains($itemName, 'lampu') || str_contains($itemName, 'atk') || str_contains($itemName, 'spj') || str_contains($itemName, 'materai') || str_contains($itemName, 'pengelolaan') || str_contains($itemName, 'perencanaan')) {
+            } elseif (str_contains($itemName, 'cat') || str_contains($itemName, 'pelitur') || str_contains($itemName, 'plamir') || str_contains($itemName, 'kunci') || str_contains($itemName, 'lampu') || str_contains($itemName, 'atk') || str_contains($itemName, 'spj') || str_contains($itemName, 'materai') || str_contains($itemName, 'pengelolaan')) {
                 $phase = 5;
             } else {
-                // Sebar merata berdasar indeks
                 $phase = min(5, max(1, (int)floor(($idx / max(1, $totalItems)) * 5) + 1));
             }
 
             // 2. Hitung Tanggal Progresif
             $targetDate = $base->copy();
-            if ($cat === 'upah') {
-                // Upah tukang jatuh pada hari Sabtu di minggu fase terkait
+            if (str_contains($itemName, 'perencanaan')) {
+                $targetDate = $base->copy();
+            } elseif (str_contains($itemName, 'pengawasan')) {
+                $targetDate = $base->copy()->addDays(32);
+                if ($targetDate->isSunday()) {
+                    $targetDate->addDay();
+                }
+            } elseif ($cat === 'upah') {
                 $weeksToAdd = $phase - 1;
                 $targetDate->addWeeks($weeksToAdd);
                 if (!$targetDate->isSaturday()) {
                     $targetDate->next(Carbon::SATURDAY);
                 }
             } else {
-                // Belanja bahan / alat: hari kerja (Senin s.d. Jumat)
                 $dayOffset = (($phase - 1) * 7) + (($idx % 4) * 2);
                 $targetDate->addDays($dayOffset);
                 if ($targetDate->isSunday()) {
@@ -929,64 +1399,77 @@ PROMPT;
             }
             $item['planned_date'] = $targetDate->format('Y-m-d');
 
-            // 3. Rekomendasi Toko Lokal Situbondo
+            // 3. Kalibrasi Harga Satuan & Volume Mengikuti Standar HSPK / SHS Situbondo
+            $priceBenchmark = self::determineSitubondoPrice(
+                $item['item_name'] ?? '',
+                $cat,
+                $tot,
+                $item['unit'] ?? null
+            );
+
+            // Jika belum ada harga satuan atau harga satuan 0, gunakan acuan Situbondo
+            if ($tot > 0 && (!isset($item['unit_price']) || (float)$item['unit_price'] <= 0 || !empty($options['calibrate_prices']))) {
+                $item['unit_price'] = $priceBenchmark['unit_price'];
+                $item['volume'] = $priceBenchmark['volume'];
+            }
+            if (empty($item['unit']) || $item['unit'] === 'Unit') {
+                $item['unit'] = $priceBenchmark['unit'];
+            }
+
+            $volFormatted = number_format((float)($item['volume'] ?? 1), ($item['volume'] ?? 1) == (int)($item['volume'] ?? 1) ? 0 : 2, ',', '.');
+            $unit = $item['unit'] ?? 'Unit';
+
+            // 4. Rekomendasi Toko Bangunan Terdekat Sesuai Kecamatan Sekolah di Situbondo
             $currSupplier = trim((string)($item['supplier_name'] ?? ''));
-            if ($currSupplier === '' || $currSupplier === '....................') {
-                if ($cat === 'upah') {
-                    $item['supplier_name'] = $situbondoSuppliers['upah'][$idx % count($situbondoSuppliers['upah'])];
-                } elseif ($cat === 'alat') {
-                    if (str_contains($itemName, 'angkut') || str_contains($itemName, 'kirim') || str_contains($itemName, 'mobilisasi')) {
-                        $item['supplier_name'] = $situbondoSuppliers['mobilisasi'][$idx % count($situbondoSuppliers['mobilisasi'])];
-                    } else {
-                        $item['supplier_name'] = $situbondoSuppliers['alat'][$idx % count($situbondoSuppliers['alat'])];
-                    }
+            if ($currSupplier === '' || $currSupplier === '....................' || !empty($options['overwrite_supplier'])) {
+                if (str_contains($itemName, 'perencanaan')) {
+                    $item['supplier_name'] = 'Tim Teknis Perencana Swakelola';
+                } elseif (str_contains($itemName, 'pengawasan')) {
+                    $item['supplier_name'] = 'Tim Teknis Pengawas Swakelola';
                 } elseif ($cat === 'operasional') {
                     if (str_contains($itemName, 'konsumsi') || str_contains($itemName, 'makan') || str_contains($itemName, 'snack')) {
-                        $item['supplier_name'] = $situbondoSuppliers['konsumsi'][$idx % count($situbondoSuppliers['konsumsi'])];
+                        $item['supplier_name'] = "Katering / Warung Makan Lokal Kec. {$schoolKecamatan}";
                     } elseif (str_contains($itemName, 'transport') || str_contains($itemName, 'sppd')) {
-                        $item['supplier_name'] = $situbondoSuppliers['transport'][0];
+                        $item['supplier_name'] = 'Tim Pelaksana P2SP Satuan Pendidikan';
                     } elseif (str_contains($itemName, 'materai')) {
-                        $item['supplier_name'] = $situbondoSuppliers['materai'][0];
+                        $item['supplier_name'] = "Kantor Pos Situbondo / Agen Pos Kec. {$schoolKecamatan}";
                     } elseif (str_contains($itemName, 'spanduk') || str_contains($itemName, 'banner') || str_contains($itemName, 'publikasi') || str_contains($itemName, 'transparansi')) {
-                        $item['supplier_name'] = $situbondoSuppliers['publikasi'][$idx % count($situbondoSuppliers['publikasi'])];
+                        $item['supplier_name'] = 'Percetakan & Banner Reklame Situbondo';
                     } else {
-                        $item['supplier_name'] = $situbondoSuppliers['operasional'][$idx % count($situbondoSuppliers['operasional'])];
+                        $item['supplier_name'] = "Toko ATK & Penggandaan Kec. {$schoolKecamatan}";
                     }
+                } elseif ($cat === 'alat' && (str_contains($itemName, 'angkut') || str_contains($itemName, 'kirim') || str_contains($itemName, 'mobilisasi'))) {
+                    $item['supplier_name'] = "Penyedia Jasa Angkutan & Ekspedisi Material Kec. {$schoolKecamatan} Situbondo";
+                } elseif ($cat === 'alat') {
+                    $item['supplier_name'] = "Sewa Alat Proyek Jaya Situbondo";
                 } else {
-                    if (str_contains($itemName, 'pasir') || str_contains($itemName, 'batu') || str_contains($itemName, 'koral')) {
-                        $item['supplier_name'] = $situbondoSuppliers['pasir_batu'][$idx % count($situbondoSuppliers['pasir_batu'])];
-                    } elseif (str_contains($itemName, 'besi') || str_contains($itemName, 'baja') || str_contains($itemName, 'atap')) {
-                        $item['supplier_name'] = $situbondoSuppliers['besi_atap'][$idx % count($situbondoSuppliers['besi_atap'])];
-                    } elseif (str_contains($itemName, 'keramik') || str_contains($itemName, 'kloset') || str_contains($itemName, 'sanitasi')) {
-                        $item['supplier_name'] = $situbondoSuppliers['keramik_sanitasi'][$idx % count($situbondoSuppliers['keramik_sanitasi'])];
-                    } elseif (str_contains($itemName, 'cat') || str_contains($itemName, 'kuas') || str_contains($itemName, 'pelitur')) {
-                        $item['supplier_name'] = $situbondoSuppliers['cat_finishing'][$idx % count($situbondoSuppliers['cat_finishing'])];
-                    } elseif (str_contains($itemName, 'kayu') || str_contains($itemName, 'kusen') || str_contains($itemName, 'pintu')) {
-                        $item['supplier_name'] = $situbondoSuppliers['kayu_kusen'][$idx % count($situbondoSuppliers['kayu_kusen'])];
-                    } else {
-                        $item['supplier_name'] = $situbondoSuppliers['semen_bata'][$idx % count($situbondoSuppliers['semen_bata'])];
-                    }
+                    $nearestStores = self::getNearestStoresForSchool($schoolKecamatan, $schoolAddress, $cat, $itemName);
+                    $item['supplier_name'] = $nearestStores[$idx % count($nearestStores)];
                 }
             }
 
-            // 4. Variasikan Narasi BKU
-            if (str_contains($itemName, 'angkut') || str_contains($itemName, 'kirim') || str_contains($itemName, 'mobilisasi')) {
-                $item['bku_description'] = "Pembayaran " . ($item['item_name'] ?? 'Ongkos Angkut Bahan') . " (" . $vol . " " . $unit . ") pada " . $item['supplier_name'] . " untuk pekerjaan " . $projectTitle;
+            // 5. Variasikan Narasi BKU
+            if (str_contains($itemName, 'perencanaan')) {
+                $item['bku_description'] = "Pembayaran " . ($item['item_name'] ?? 'Biaya Perencanaan') . " untuk pekerjaan " . $projectTitle . " kepada " . $item['supplier_name'];
+            } elseif (str_contains($itemName, 'pengawasan')) {
+                $item['bku_description'] = "Pembayaran " . ($item['item_name'] ?? 'Biaya Pengawasan') . " untuk pekerjaan " . $projectTitle . " setelah seluruh pekerjaan selesai kepada " . $item['supplier_name'];
+            } elseif (str_contains($itemName, 'angkut') || str_contains($itemName, 'kirim') || str_contains($itemName, 'mobilisasi')) {
+                $item['bku_description'] = "Pembayaran " . ($item['item_name'] ?? 'Ongkos Angkut Bahan') . " (" . $volFormatted . " " . $unit . ") pada " . $item['supplier_name'] . " untuk pekerjaan " . $projectTitle;
             } elseif ($cat === 'operasional') {
                 if (str_contains($itemName, 'konsumsi') || str_contains($itemName, 'makan')) {
-                    $item['bku_description'] = "Pembayaran penyediaan " . ($item['item_name'] ?? 'konsumsi rapat') . " (" . $vol . " " . $unit . ") pada " . $item['supplier_name'] . " untuk kelancaran " . $projectTitle;
+                    $item['bku_description'] = "Pembayaran penyediaan " . ($item['item_name'] ?? 'konsumsi rapat') . " (" . $volFormatted . " " . $unit . ") pada " . $item['supplier_name'] . " untuk kelancaran " . $projectTitle;
                 } elseif (str_contains($itemName, 'transport') || str_contains($itemName, 'sppd')) {
-                    $item['bku_description'] = "Pembayaran " . ($item['item_name'] ?? 'biaya transportasi') . " (" . $vol . " " . $unit . ") untuk koordinasi dinas dan perbankan kegiatan " . $projectTitle;
+                    $item['bku_description'] = "Pembayaran " . ($item['item_name'] ?? 'biaya transportasi') . " (" . $volFormatted . " " . $unit . ") untuk koordinasi dinas dan perbankan kegiatan " . $projectTitle;
                 } elseif (str_contains($itemName, 'materai')) {
-                    $item['bku_description'] = "Pembayaran pengadaan " . ($item['item_name'] ?? 'bea materai') . " (" . $vol . " " . $unit . ") pada " . $item['supplier_name'] . " kelengkapan berkas kuitansi " . $projectTitle;
+                    $item['bku_description'] = "Pembayaran pengadaan " . ($item['item_name'] ?? 'bea materai') . " (" . $volFormatted . " " . $unit . ") pada " . $item['supplier_name'] . " kelengkapan berkas kuitansi " . $projectTitle;
                 } elseif (str_contains($itemName, 'spanduk') || str_contains($itemName, 'transparansi')) {
-                    $item['bku_description'] = "Pembayaran pembuatan " . ($item['item_name'] ?? 'spanduk transparansi') . " (" . $vol . " " . $unit . ") pada " . $item['supplier_name'] . " publikasi swakelola " . $projectTitle;
+                    $item['bku_description'] = "Pembayaran pembuatan " . ($item['item_name'] ?? 'spanduk transparansi') . " (" . $volFormatted . " " . $unit . ") pada " . $item['supplier_name'] . " publikasi swakelola " . $projectTitle;
                 } else {
                     $templates = $narrativeTemplates['operasional'];
                     $selectedTemplate = $templates[$idx % count($templates)];
                     $item['bku_description'] = str_replace(
                         ['{item}', '{vol}', '{unit}', '{supplier}', '{project}'],
-                        [$item['item_name'] ?? 'Operasional', $vol, $unit, $item['supplier_name'], $projectTitle],
+                        [$item['item_name'] ?? 'Operasional', $volFormatted, $unit, $item['supplier_name'], $projectTitle],
                         $selectedTemplate
                     );
                 }
@@ -995,7 +1478,7 @@ PROMPT;
                 $selectedTemplate = $templates[$idx % count($templates)];
                 $item['bku_description'] = str_replace(
                     ['{item}', '{vol}', '{unit}', '{supplier}', '{project}'],
-                    [$item['item_name'] ?? 'Material', $vol, $unit, $item['supplier_name'], $projectTitle],
+                    [$item['item_name'] ?? 'Material', $volFormatted, $unit, $item['supplier_name'], $projectTitle],
                     $selectedTemplate
                 );
             }

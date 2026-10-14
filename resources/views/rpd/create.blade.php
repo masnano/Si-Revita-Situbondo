@@ -369,7 +369,10 @@
                     <li><strong class="text-slate-800">Format Resmi RPD:</strong> Memuat kelompok pekerjaan (misal <em>Ruang Kelas</em>, <em>Perpustakaan</em>, <em>Toilet</em>) yang dipecah menjadi <strong class="text-emerald-700">Belanja Bahan</strong> dan <strong class="text-blue-700">Belanja Upah</strong>.</li>
                     <li><strong class="text-slate-800">Fleksibilitas Berkas:</strong> Sistem mendukung upload dokumen dalam format <strong>Excel (.xlsx, .xls)</strong> maupun <strong>PDF (.pdf)</strong> digital.</li>
                     <li><strong class="text-slate-800">Pemilihan Termin:</strong> Sistem cerdas mengambil nominal dari kolom <em>Termin 1 (70%)</em>, <em>Termin 2 (30%)</em>, atau <em>Jumlah Total (100%)</em> sesuai pilihan tahap.</li>
-                    <li><strong class="text-slate-800">Kalkulasi Pajak Otomatis:</strong> Belanja bahan &ge; Rp 2.000.000 dihitung PPN 11% & PPh 22 1.5%. Upah tukang &ge; Rp 2.500.000 dikenakan PPh 21 5%.</li>
+                    <li><strong class="text-slate-800">Biaya Perencanaan & Pengawasan:</strong> Item <em>Biaya Perencanaan</em> tidak dipecah dan dijadwalkan di awal setelah pencairan 70%, sedangkan <em>Biaya Pengawasan</em> tetap utuh tanpa dirubah judulnya dan dijadwalkan di akhir setelah pencairan 30% serta seluruh pekerjaan fisik selesai.</li>
+                    <li><strong class="text-slate-800">Standar Harga Situbondo (HSPK/SHS):</strong> AI & Mesin Cerdas memecah anggaran berbasis harga resmi Pemkab Situbondo terkini (Tukang: Rp 120.000–125.000/OH, Pembantu Tukang: Rp 90.000/OH, Bahan SNI) dengan total belanja tetap 100% presisi dan balance.</li>
+                    <li><strong class="text-slate-800">Toko Bangunan Terdekat Situbondo:</strong> Sistem otomatis merekomendasikan nama toko bangunan riil terdekat dari alamat dan kecamatan lokasi sekolah di 17 kecamatan se-Kabupaten Situbondo.</li>
+                    <li><strong class="text-slate-800">Kalkulasi Pajak Otomatis:</strong> Belanja bahan &ge; Rp 2.000.000 dihitung PPN 11% & PPh 22 1.5%. Upah tukang swakelola bebas PPh 21 jika harian &le; Rp 450.000 (PMK 168/2023).</li>
                     <li><strong class="text-slate-800">Siap Jadi BKU:</strong> Hasil pecah bahan langsung dapat diposting ke BKU, BPK, BB, dan BP hanya dengan satu klik.</li>
                 </ul>
             </div>

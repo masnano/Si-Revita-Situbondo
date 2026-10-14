@@ -6,6 +6,8 @@ use App\Models\RevitalizationProject;
 use App\Models\RpdDocument;
 use App\Models\RpdItem;
 use App\Models\School;
+use App\Models\SystemNotification;
+use App\Services\GeminiRpdService;
 use App\Services\RpdBreakdownService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -215,6 +217,18 @@ class RpdBreakdownController extends Controller
             ]);
 
             $aiNotice = $useAi ? ' (✨ Variasi Jadwal & Narasi Cerdas Aktif)' : '';
+            $formattedBudget = number_format($document->total_budget, 0, ',', '.');
+
+            SystemNotification::send(
+                type: 'rpd',
+                title: 'Pecah Bahan RPD Berhasil Diproses',
+                message: "Dokumen RPD '{$document->title}' ({$document->term_stage}) berhasil dipecah menjadi {$document->total_items_count} item draf isian BKU (Total Rp {$formattedBudget}).",
+                url: route('rpd.show', $document->id),
+                icon: 'file-spreadsheet',
+                color: 'purple',
+                data: ['rpd_id' => $document->id, 'title' => $document->title, 'total_items' => $document->total_items_count, 'total_budget' => $document->total_budget]
+            );
+
             return redirect()->route('rpd.show', $document->id)
                 ->with('success', "Alhamdulillah! Berkas RPD (" . strtoupper($ext) . ") berhasil diproses{$aiNotice}. Sebanyak {$document->total_items_count} item berhasil dipecah menjadi draf isian BKU.");
         } catch (\Exception $e) {
@@ -360,6 +374,16 @@ class RpdBreakdownController extends Controller
                 return back()->with('warning', 'Semua item dalam dokumen RPD ini dan transaksi saldo masuk pencairan sudah pernah diposting ke BKU.');
             }
 
+            SystemNotification::send(
+                type: 'bku',
+                title: 'Posting RPD ke BKU Berhasil',
+                message: "Sebanyak {$count} transaksi resmi dari dokumen RPD '{$rpd->title}' telah berhasil diposting ke Buku Kas Umum (BKU), BPK, BB, dan Buku Pembantu Pajak.",
+                url: route('reports.bku', ['project_id' => $rpd->project_id]),
+                icon: 'book-open',
+                color: 'sky',
+                data: ['rpd_id' => $rpd->id, 'project_id' => $rpd->project_id, 'posted_count' => $count]
+            );
+
             return redirect()->route('rpd.show', $rpd->id)
                 ->with('success', "Alhamdulillah! Sebanyak {$count} transaksi resmi (termasuk Saldo Masuk Pencairan & Penarikan Tunai Kas) berhasil dibukukan ke Buku Kas Umum (BKU), BPK, BB, dan Buku Pembantu Pajak!");
         } catch (\Exception $e) {
@@ -378,6 +402,15 @@ class RpdBreakdownController extends Controller
             if (empty($created)) {
                 return back()->with('info', 'Transaksi Saldo Masuk (Pencairan Termin) dan Penarikan Tunai Kas untuk dokumen ini sudah tercatat lengkap di BKU.');
             }
+
+            SystemNotification::send(
+                type: 'bku',
+                title: 'Sinkronisasi Saldo Masuk & Tarik Tunai BKU',
+                message: "Sebanyak " . count($created) . " transaksi Saldo Masuk & Tarik Tunai dari dokumen RPD '{$rpd->title}' berhasil dicatatkan ke BKU.",
+                url: route('reports.bku', ['project_id' => $rpd->project_id]),
+                icon: 'book-open',
+                color: 'sky'
+            );
 
             return back()->with('success', 'Alhamdulillah! Berhasil mencatat otomatis ' . count($created) . ' transaksi Saldo Masuk Pencairan Termin & Penarikan Tunai Kas ke BKU.');
         } catch (\Exception $e) {
@@ -596,6 +629,63 @@ class RpdBreakdownController extends Controller
         } catch (\Throwable $e) {
             return back()->with('error', 'Gagal memproses variasi AI: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * AJAX endpoint: Merekomendasikan rujukan harga satuan, volume, dan toko bangunan Situbondo terdekat.
+     */
+    public function suggestSitubondoPrice(Request $request)
+    {
+        $request->validate([
+            'item_name' => 'required|string',
+            'category' => 'nullable|string',
+            'total_price' => 'nullable|numeric',
+            'unit' => 'nullable|string',
+            'school_id' => 'nullable|integer',
+            'project_id' => 'nullable|integer',
+            'kecamatan' => 'nullable|string',
+        ]);
+
+        $itemName = $request->input('item_name');
+        $category = $request->input('category', 'bahan');
+        $totalPrice = (float)($request->input('total_price') ?? 0);
+        $unit = $request->input('unit');
+        $kecamatan = $request->input('kecamatan');
+        $address = null;
+
+        if (!$kecamatan) {
+            $school = null;
+            if ($request->filled('school_id')) {
+                $school = School::find($request->school_id);
+            } elseif ($request->filled('project_id')) {
+                $project = RevitalizationProject::with('school')->find($request->project_id);
+                $school = $project?->school;
+            } elseif (auth()->user()?->school_id) {
+                $school = School::find(auth()->user()->school_id);
+            }
+            if ($school) {
+                $kecamatan = $school->kecamatan;
+                $address = $school->address;
+            }
+        }
+
+        $gemini = app(GeminiRpdService::class);
+        $priceData = $gemini->determineSitubondoPrice($itemName, $category, $totalPrice, $unit);
+        $nearestStores = $gemini->getNearestStoresForSchool($kecamatan, $address, $category, $itemName);
+
+        $recommendedStore = 'Toko Bangunan Terdekat Situbondo';
+        if (!empty($nearestStores)) {
+            $firstStore = $nearestStores[0];
+            $recommendedStore = is_array($firstStore) ? ($firstStore['name'] ?? $recommendedStore) : $firstStore;
+        }
+
+        return response()->json([
+            'success' => true,
+            'kecamatan' => $kecamatan ?: 'Kabupaten Situbondo',
+            'price_data' => $priceData,
+            'nearest_stores' => $nearestStores,
+            'recommended_store' => $recommendedStore,
+        ]);
     }
 }
 

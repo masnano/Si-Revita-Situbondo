@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BudgetItemController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GuideController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RolePermissionController;
@@ -79,6 +80,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/{rpd}/ai-enhance', [RpdBreakdownController::class, 'enhanceWithAi'])->name('ai_enhance')->middleware('role:root,admin');
         Route::post('/{rpd}/sync-disbursement', [RpdBreakdownController::class, 'syncDisbursement'])->name('sync_disbursement')->middleware('role:root,admin');
         Route::get('/{rpd}/export-bku', [RpdBreakdownController::class, 'exportBku'])->name('export_bku');
+        Route::post('/suggest-price', [RpdBreakdownController::class, 'suggestSitubondoPrice'])->name('ai_suggest_price');
         Route::delete('/{rpd}', [RpdBreakdownController::class, 'destroy'])->name('destroy')->middleware('role:root,admin');
     });
 
@@ -98,5 +100,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/panduan', [GuideController::class, 'index'])->name('panduan.index');
     Route::get('/panduan/download', [GuideController::class, 'download'])->name('panduan.download');
     Route::get('/panduan/preview', [GuideController::class, 'preview'])->name('panduan.preview');
+
+    // 7. Modul Notifikasi Sistem
+    Route::prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/', [NotificationController::class, 'index'])->name('index');
+        Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('unread_count');
+        Route::post('/read-all', [NotificationController::class, 'markAllAsRead'])->name('read_all');
+        Route::post('/{notification}/read', [NotificationController::class, 'markAsRead'])->name('read');
+        Route::get('/{notification}/visit', [NotificationController::class, 'visit'])->name('visit');
+    });
 });
 
