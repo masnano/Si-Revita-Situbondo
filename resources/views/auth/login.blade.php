@@ -160,11 +160,22 @@
 
     </div>
 
+    <!-- Futuristic Quantum Preloader & Anti-Double Submit Overlay -->
+    @include('layouts.preloader')
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             if (window.lucide) {
                 window.lucide.createIcons();
             }
+
+            document.querySelectorAll('a[href*="quick-login"]').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.showPreloader) {
+                        window.showPreloader('OTENTIKASI CEPAT...', 'Menghubungkan sesi pengguna ke sistem Si-Revita...');
+                    }
+                });
+            });
         });
     </script>
 </body>

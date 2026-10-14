@@ -1341,5 +1341,41 @@ class SiRevitaTest extends TestCase
             @unlink($tempFile);
         }
     }
+
+    /**
+     * Memastikan preloader futuristis dan pengaman anti-double submit terpasang
+     * di seluruh modul aplikasi (Login, Dashboard, RPD, RAB, Transaksi, Laporan).
+     */
+    public function test_futuristic_preloader_rendered_on_all_modules_to_prevent_double_submit()
+    {
+        // 1. Modul Tamu (Login)
+        $loginResp = $this->get('/login');
+        $loginResp->assertStatus(200);
+        $loginResp->assertSee('futuristic-preloader');
+        $loginResp->assertSee('SI-REVITA QUANTUM ENGINE');
+        $loginResp->assertSee('anti-double submit');
+
+        // 2. Modul Terautentikasi (Dashboard, RPD, RAB, Transaksi)
+        $admin = User::where('username', 'admin')->first();
+        $this->actingAs($admin);
+
+        $dashboardResp = $this->get('/dashboard');
+        $dashboardResp->assertStatus(200);
+        $dashboardResp->assertSee('futuristic-preloader');
+        $dashboardResp->assertSee('laser-scanner-line');
+
+        $rpdCreateResp = $this->get('/rpd/create');
+        $rpdCreateResp->assertStatus(200);
+        $rpdCreateResp->assertSee('futuristic-preloader');
+        $rpdCreateResp->assertSee('triggerFormPreloader');
+
+        $txCreateResp = $this->get('/transactions/create');
+        $txCreateResp->assertStatus(200);
+        $txCreateResp->assertSee('futuristic-preloader');
+
+        $rabResp = $this->get('/rab');
+        $rabResp->assertStatus(200);
+        $rabResp->assertSee('futuristic-preloader');
+    }
 }
 

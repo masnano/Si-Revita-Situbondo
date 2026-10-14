@@ -550,6 +550,9 @@
         </div>
     </div>
 
+    <!-- Futuristic Quantum Preloader & Anti-Double Submit Overlay -->
+    @include('layouts.preloader')
+
     <!-- Initialize Lucide Icons & Print Filename Helper & Global Confirm -->
     <script>
         function globalConfirmHandler() {
@@ -596,6 +599,9 @@
                         cb();
                     } else if (form) {
                         form.dataset.confirmed = 'true';
+                        if (window.triggerFormPreloader) {
+                            window.triggerFormPreloader(form);
+                        }
                         form.submit();
                     }
                 }
