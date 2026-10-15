@@ -51,16 +51,40 @@ class RpdBreakdownService
         }
 
         // Auto-breakdown jika ada baris pagu gelondongan Mobilisasi atau Biaya Pengelolaan yang belum dipecah.
-        // PENTING: Biaya Perencanaan dan Biaya Pengawasan DILARANG di-breakdown (tetap utuh satu pos dan gunakan judul yang sama).
+        // Auto-breakdown untuk Mobilisasi, Biaya Pengelolaan, Paket Pekerjaan Fisik, atau Belanja Bahan & Upah Gelondongan.
+        // PENTING MUTLAK: Biaya Perencanaan dan Biaya Pengawasan DILARANG di-breakdown (tetap utuh satu pos dan gunakan judul yang sama).
         $expandedRows = [];
         foreach ($rawRows as $r) {
+            if (!empty($r['is_decomposed'])) {
+                $expandedRows[] = $r;
+                continue;
+            }
+
             $uLower = strtolower(trim($r['uraian'] ?? ''));
             $tot = (float)($r['total'] ?? 0);
 
-            $isPerencanaanOrPengawasan = str_contains($uLower, 'perencanaan') || str_contains($uLower, 'pengawasan');
+            $isPerencanaan = str_contains($uLower, 'perencanaan') && !str_contains($uLower, 'pengawasan');
+            $isPengawasan = str_contains($uLower, 'pengawasan') && !str_contains($uLower, 'perencanaan');
+            $isPerencanaanOrPengawasan = $isPerencanaan || $isPengawasan;
 
-            $isLumpMobilisasi = !$isPerencanaanOrPengawasan
-                && (str_contains($uLower, 'mobilisasi') || str_contains($uLower, 'demobilisasi'))
+            if ($isPerencanaanOrPengawasan) {
+                // Biaya Perencanaan dan Biaya Pengawasan DILARANG di-breakdown!
+                // Tetap utuh satu pos, judul tidak diubah
+                $cleanTitle = $isPerencanaan ? 'Biaya Perencanaan' : 'Biaya Pengawasan';
+                $r['uraian'] = $cleanTitle;
+                $r['kategori'] = 'operasional';
+                $r['volume'] = 1.0;
+                $r['satuan'] = in_array(strtolower($r['satuan'] ?? ''), ['paket', 'ls']) ? $r['satuan'] : 'Paket';
+                $r['harga_satuan'] = $tot;
+                $r['total'] = $tot;
+                $r['toko'] = $isPerencanaan ? 'Tim Teknis Perencana Swakelola' : 'Tim Teknis Pengawas Swakelola';
+                $r['metode'] = $tot > 5000000 ? 'belanja_transfer' : 'belanja_tunai';
+                $expandedRows[] = $r;
+                continue;
+            }
+
+            // 1. Belanja Mobilisasi -> Pecah otomatis dengan AI (4 komponen logistik & armada Situbondo)
+            $isLumpMobilisasi = (str_contains($uLower, 'mobilisasi') || str_contains($uLower, 'demobilisasi'))
                 && !str_contains($uLower, 'ongkos angkut')
                 && !str_contains($uLower, 'ongkos kirim')
                 && !str_contains($uLower, 'pengiriman bahan')
@@ -68,8 +92,8 @@ class RpdBreakdownService
                 && !str_contains($uLower, 'scaffolding')
                 && $tot > 0;
 
-            $isLumpPengelolaan = !$isPerencanaanOrPengawasan
-                && str_contains($uLower, 'pengelolaan')
+            // 2. Biaya Pengelolaan -> Pecah otomatis dengan AI (5 komponen operasional P2SP anti-temuan BPK)
+            $isLumpPengelolaan = str_contains($uLower, 'pengelolaan')
                 && !str_contains($uLower, 'atk')
                 && !str_contains($uLower, 'konsumsi')
                 && !str_contains($uLower, 'transport')
@@ -78,6 +102,21 @@ class RpdBreakdownService
                 && !str_contains($uLower, 'materai')
                 && $tot > 0;
 
+            // 3. Belanja Bahan gelondongan -> Pecah dengan AI menjadi rincian material riil
+            $isLumpBahan = (str_contains($uLower, 'belanja bahan') || (($r['kategori'] ?? '') === 'bahan' && in_array(strtolower($r['satuan'] ?? ''), ['paket', 'ls'])))
+                && !in_array(strtolower($r['satuan'] ?? ''), ['zak', 'kg', 'm3', 'm²', 'm2', 'batang', 'lembar', 'pail', 'buah', 'bh', 'rol', 'dus', 'kotak'])
+                && $tot > 0;
+
+            // 4. Belanja Upah gelondongan -> Pecah dengan AI menjadi tukang dan pekerja
+            $isLumpUpah = (str_contains($uLower, 'belanja upah') || (($r['kategori'] ?? '') === 'upah' && in_array(strtolower($r['satuan'] ?? ''), ['paket', 'ls'])))
+                && !in_array(strtoupper(trim($r['satuan'] ?? '')), ['OH', 'HOK', 'HARI'])
+                && $tot > 0;
+
+            // 5. Paket Pekerjaan Fisik (misal: "Rehabilitasi Ruang Kelas", "Perpustakaan", "Pekerjaan Toilet")
+            $isPhysicalPackage = !in_array(strtolower($r['satuan'] ?? ''), ['zak', 'kg', 'm3', 'm²', 'm2', 'batang', 'lembar', 'pail', 'buah', 'bh', 'rol', 'dus', 'kotak', 'oh', 'hok', 'hari'])
+                && (str_contains($uLower, 'rehabilitasi') || str_contains($uLower, 'pekerjaan') || str_contains($uLower, 'pembangunan') || str_contains($uLower, 'ruang kelas') || str_contains($uLower, 'perpustakaan') || str_contains($uLower, 'toilet') || str_contains($uLower, 'sanitasi') || str_contains($uLower, 'atap') || str_contains($uLower, 'lantai') || str_contains($uLower, 'dinding') || str_contains($uLower, 'pengecatan') || str_contains($uLower, 'gedung') || str_contains($uLower, 'ruang lab') || str_contains($uLower, 'lab'))
+                && $tot >= 1000000;
+
             if ($isLumpMobilisasi) {
                 $decomposed = $this->decomposeBelanjaMobilisasi($tot, $r['room_name'] ?? null, $extractOptions);
                 foreach ($decomposed as $d) {
@@ -85,6 +124,21 @@ class RpdBreakdownService
                 }
             } elseif ($isLumpPengelolaan) {
                 $decomposed = $this->decomposeBiayaPengelolaan($tot, $extractOptions);
+                foreach ($decomposed as $d) {
+                    $expandedRows[] = $d;
+                }
+            } elseif ($isLumpBahan && ($options['breakdown_mode'] ?? 'detailed') === 'detailed') {
+                $decomposed = $this->decomposeLumpSumToDetailedItems($tot, 'bahan', $r['room_name'] ?? null, $extractOptions);
+                foreach ($decomposed as $d) {
+                    $expandedRows[] = $d;
+                }
+            } elseif ($isLumpUpah && ($options['breakdown_mode'] ?? 'detailed') === 'detailed') {
+                $decomposed = $this->decomposeLumpSumToDetailedItems($tot, 'upah', $r['room_name'] ?? null, $extractOptions);
+                foreach ($decomposed as $d) {
+                    $expandedRows[] = $d;
+                }
+            } elseif ($isPhysicalPackage && ($options['breakdown_mode'] ?? 'detailed') === 'detailed') {
+                $decomposed = $this->decomposePhysicalPackageWithAi($r['uraian'], $tot, $r['room_name'] ?? null, $extractOptions);
                 foreach ($decomposed as $d) {
                     $expandedRows[] = $d;
                 }
@@ -103,9 +157,9 @@ class RpdBreakdownService
 
         foreach ($expandedRows as $row) {
             $uLower = strtolower(trim($row['uraian'] ?? ''));
-            if (str_contains($uLower, 'perencanaan')) {
+            if (str_contains($uLower, 'perencanaan') && !str_contains($uLower, 'pengawasan')) {
                 $perencanaanRows[] = $row;
-            } elseif (str_contains($uLower, 'pengawasan')) {
+            } elseif (str_contains($uLower, 'pengawasan') && !str_contains($uLower, 'perencanaan')) {
                 $pengawasanRows[] = $row;
             } else {
                 $regularRows[] = $row;
@@ -675,6 +729,196 @@ class RpdBreakdownService
     }
 
     /**
+     * Mengekstrak data tabel RPD secara cerdas dan fleksibel menggunakan pemetaan AI / Heuristik.
+     * Mendukung berbagai variasi format dan tata letak kolom asalkan memuat atribut esensial:
+     * - Nama / Uraian
+     * - VOL / Volume
+     * - Sat / Satuan
+     * - Harga Satuan
+     * - Termin 1 (70%)
+     * - Termin 2 (30%)
+     * - Jumlah (100%)
+     * - Keterangan
+     */
+    public function extractFlexibleRpdFromMatrix(array $matrix, array $options = []): array
+    {
+        if (empty($matrix)) {
+            return [];
+        }
+
+        $gemini = app(GeminiRpdService::class);
+        $mappingResult = $gemini->mapRpdColumnsWithAi($matrix, $options);
+        $headerRowIndex = $mappingResult['header_row_index'] ?? 0;
+        $cols = $mappingResult['columns'] ?? [];
+
+        // Pastikan kolom esensial minimal (uraian) terpetakan
+        if (!isset($cols['uraian'])) {
+            return [];
+        }
+
+        $targetTermin = $this->determineTargetTermin($options);
+        $currentParent = null;
+        $results = [];
+
+        $rowCount = count($matrix);
+        for ($i = $headerRowIndex + 1; $i < $rowCount; $i++) {
+            $row = $matrix[$i] ?? [];
+            if (!is_array($row) || empty(array_filter($row, fn($x) => !is_null($x) && trim((string)$x) !== ''))) {
+                continue;
+            }
+
+            // 1. Ekstraksi Nama / Uraian
+            $uraianCol = $cols['uraian'];
+            $uraian = isset($row[$uraianCol]) ? trim((string)$row[$uraianCol]) : '';
+
+            // Fallback jika kolom uraian kosong, cari sel pertama yang berisi teks non-angka
+            if ($uraian === '') {
+                foreach ($row as $cIdx => $cVal) {
+                    $t = trim((string)$cVal);
+                    if ($t !== '' && !is_numeric(str_replace(['.', ',', ' ', 'Rp', 'rp', '%'], '', $t)) && strlen($t) > 2) {
+                        $uraian = $t;
+                        break;
+                    }
+                }
+            }
+
+            if ($uraian === '') {
+                continue;
+            }
+
+            $uLower = strtolower($uraian);
+
+            // Lewati baris judul dokumen, kop, atau baris subtotal/total
+            if (preg_match('/^(total|sub\s*total|jumlah\s*total|grand\s*total|rekapitulasi|no\b|uraian\b)/i', $uraian)) {
+                continue;
+            }
+            if (str_contains($uLower, 'rencana penggunaan dana') || str_contains($uLower, 'program revitalisasi') || str_contains($uLower, 'sekolah dasar :')) {
+                continue;
+            }
+            if (preg_match('/^0\.[0-9]+$/', $uLower)) { // baris koefisien 0.7, 0.3
+                continue;
+            }
+
+            // 2. Ekstraksi Nilai Numerik & Data Kolom
+            $volRaw = isset($cols['volume']) && isset($row[$cols['volume']]) ? $row[$cols['volume']] : null;
+            $satRaw = isset($cols['satuan']) && isset($row[$cols['satuan']]) ? trim((string)$row[$cols['satuan']]) : '';
+            $hrgRaw = isset($cols['harga_satuan']) && isset($row[$cols['harga_satuan']]) ? $row[$cols['harga_satuan']] : null;
+            $t1Raw = isset($cols['termin_1']) && isset($row[$cols['termin_1']]) ? $row[$cols['termin_1']] : null;
+            $t2Raw = isset($cols['termin_2']) && isset($row[$cols['termin_2']]) ? $row[$cols['termin_2']] : null;
+            $totRaw = isset($cols['jumlah']) && isset($row[$cols['jumlah']]) ? $row[$cols['jumlah']] : null;
+            $ketRaw = isset($cols['keterangan']) && isset($row[$cols['keterangan']]) ? trim((string)$row[$cols['keterangan']]) : '';
+
+            $vol = $this->parseNumeric($volRaw, 1.0);
+            $hargaSatuan = $this->parseNumeric($hrgRaw, 0);
+            $valT1 = $this->parseNumeric($t1Raw, 0);
+            $valT2 = $this->parseNumeric($t2Raw, 0);
+            $valTot = $this->parseNumeric($totRaw, 0);
+
+            // Deteksi baris induk ruangan/pekerjaan tanpa nilai nominal (misal: "A. REHABILITASI", "- Ruang Kelas 1")
+            $isRoomHeader = ($valT1 == 0 && $valT2 == 0 && $valTot == 0 && $hargaSatuan == 0) &&
+                preg_match('/(ruang\s+kelas|perpustakaan|toilet|rumah\s+dinas|gedung|ruang\s+lab|lab\s+komputer|sanitasi|pekerjaan\s+persiapan|rehabilitasi|pembangunan)/i', $uraian);
+
+            if ($isRoomHeader) {
+                $cleanParent = trim(preg_replace('/^[-–—\s\dA-Z\.]+/i', '', $uraian));
+                $currentParent = !empty($cleanParent) ? $cleanParent : $uraian;
+                continue;
+            }
+
+            // Hitung akumulasi pagu total jika belum terisi
+            if ($valTot <= 0) {
+                if ($valT1 > 0 || $valT2 > 0) {
+                    $valTot = $valT1 + $valT2;
+                } elseif ($hargaSatuan > 0 && $vol > 0) {
+                    $valTot = round($vol * $hargaSatuan, 2);
+                }
+            }
+
+            // 3. Menghitung nominal yang diambil sesuai tahap / termin yang dipilih
+            $isPerencanaan = str_contains($uLower, 'perencanaan') && !str_contains($uLower, 'pengawasan');
+            $isPengawasan = str_contains($uLower, 'pengawasan') && !str_contains($uLower, 'perencanaan');
+
+            if ($targetTermin === 1 && $isPengawasan && isset($cols['termin_1']) && $valT1 == 0) {
+                continue;
+            }
+            if ($targetTermin === 2 && $isPerencanaan && isset($cols['termin_2']) && $valT2 == 0) {
+                continue;
+            }
+
+            $hasTerminCols = isset($cols['termin_1']) || isset($cols['termin_2']);
+
+            if (!$hasTerminCols) {
+                $amount = $valTot > 0 ? $valTot : round($vol * $hargaSatuan, 2);
+            } else {
+                $amount = match ($targetTermin) {
+                    1 => isset($cols['termin_1']) ? ($valT1 > 0 ? $valT1 : ($valT2 > 0 ? 0 : round($valTot * 0.70, 2))) : ($valTot > 0 ? round($valTot * 0.70, 2) : ($hargaSatuan > 0 ? round($vol * $hargaSatuan * 0.70, 2) : $valT2)),
+                    2 => isset($cols['termin_2']) ? ($valT2 > 0 ? $valT2 : ($valT1 > 0 ? 0 : round($valTot * 0.30, 2))) : ($valTot > 0 ? round($valTot * 0.30, 2) : ($hargaSatuan > 0 ? round($vol * $hargaSatuan * 0.30, 2) : $valT1)),
+                    3 => $valTot > 0 ? $valTot : ($valT1 + $valT2),
+                    default => $valTot > 0 ? $valTot : ($valT1 + $valT2 > 0 ? $valT1 + $valT2 : round($vol * $hargaSatuan, 2)),
+                };
+            }
+
+            if ($amount <= 0) {
+                continue;
+            }
+
+            // Kalibrasi Volume & Harga Satuan jika salah satunya belum terisi
+            if ($hargaSatuan <= 0 && $vol > 0) {
+                $hargaSatuan = round($amount / $vol, 2);
+            } elseif ($vol <= 0) {
+                $vol = 1.0;
+            }
+
+            // Jika itemized row dengan harga satuan tetap dan termin 1/2 dipilih, sesuaikan volume proporsional
+            if ($hargaSatuan > 0 && in_array($targetTermin, [1, 2]) && $valTot > 0 && $amount < $valTot && $vol > 1) {
+                $adjustedVol = round($amount / $hargaSatuan, 2);
+                if ($adjustedVol > 0) {
+                    $vol = $adjustedVol;
+                }
+            }
+
+            $satuan = !empty($satRaw) ? $satRaw : 'Paket';
+
+            // Keterangan / Spesifikasi
+            $spec = !empty($ketRaw) ? $ketRaw : null;
+            if ($currentParent && !empty($spec) && !str_contains(strtolower($spec), strtolower($currentParent))) {
+                $spec .= " ({$currentParent})";
+            }
+
+            $results[] = [
+                'uraian' => $uraian,
+                'kode' => isset($cols['kode']) && isset($row[$cols['kode']]) ? trim((string)$row[$cols['kode']]) : null,
+                'kategori' => isset($cols['kategori']) && isset($row[$cols['kategori']]) ? trim((string)$row[$cols['kategori']]) : null,
+                'spesifikasi' => $spec,
+                'volume' => $vol,
+                'satuan' => $satuan,
+                'harga_satuan' => $hargaSatuan,
+                'total' => $amount,
+                'termin_1' => $valT1,
+                'termin_2' => $valT2,
+                'jumlah' => $valTot,
+                'keterangan' => $ketRaw,
+                'tanggal' => isset($cols['tanggal']) && isset($row[$cols['tanggal']]) ? trim((string)$row[$cols['tanggal']]) : null,
+                'toko' => isset($cols['toko']) && isset($row[$cols['toko']]) ? trim((string)$row[$cols['toko']]) : null,
+                'npwp' => isset($cols['npwp']) && isset($row[$cols['npwp']]) ? trim((string)$row[$cols['npwp']]) : null,
+                'metode' => isset($cols['metode']) && isset($row[$cols['metode']]) ? trim((string)$row[$cols['metode']]) : null,
+                'room_name' => $currentParent,
+            ];
+        }
+
+        return $results;
+    }
+
+    /**
+     * Memecah paket pekerjaan fisik revitalisasi (misal: "Rehabilitasi Ruang Kelas", "Perpustakaan", "Pekerjaan Toilet")
+     * menjadi rincian Belanja Bahan (~68%) dan Belanja Upah (~32%) yang variatif, masuk akal, dan aman dari temuan BPK.
+     * PENTING MUTLAK: BIAYA PERENCANAAN DAN BIAYA PENGAWASAN DILARANG DIBREAKDOWN!
+     */
+    public function decomposePhysicalPackageWithAi(string $packageName, float $totalBudget, ?string $roomName = null, array $options = []): array
+    {
+        return app(GeminiRpdService::class)->decomposePackageWithAi($packageName, $totalBudget, $roomName, $options);
+    }
+
+    /**
      * Membaca file Excel menggunakan PhpOffice/PhpSpreadsheet.
      */
     protected function extractFromSpreadsheet(string $filePath, array $options = []): array
@@ -689,18 +933,27 @@ class RpdBreakdownService
             return [];
         }
 
-        // Deteksi apakah format sheet adalah Format Resmi RPD Revitalisasi Situbondo
-        $isOfficial = false;
+        // 1. Cek apakah format sheet adalah Format Resmi Bertingkat ("- Belanja Bahan" / "- Belanja Upah" per ruang)
+        $hasSeparateBahanUpah = false;
         foreach ($sheetData as $row) {
             $rowStr = strtolower(implode(' ', array_filter($row, 'is_scalar')));
-            if (str_contains($rowStr, 'belanja bahan') || str_contains($rowStr, 'belanja upah') || str_contains($rowStr, 'termin 1') || str_contains($rowStr, 'termin 2')) {
-                $isOfficial = true;
+            if (str_contains($rowStr, 'belanja bahan') || str_contains($rowStr, 'belanja upah')) {
+                $hasSeparateBahanUpah = true;
                 break;
             }
         }
 
-        if ($isOfficial) {
-            return $this->parseOfficialRpdMatrix($sheetData, $options);
+        if ($hasSeparateBahanUpah) {
+            $officialRows = $this->parseOfficialRpdMatrix($sheetData, $options);
+            if (!empty($officialRows)) {
+                return $officialRows;
+            }
+        }
+
+        // 2. Pemetaan AI Fleksibel & Heuristik Semantik Cerdas
+        $flexibleRows = $this->extractFlexibleRpdFromMatrix($sheetData, $options);
+        if (!empty($flexibleRows)) {
+            return $flexibleRows;
         }
 
         return $this->mapMatrixToStructuredRows($sheetData, $options);
@@ -826,6 +1079,7 @@ class RpdBreakdownService
                     if ($breakdownMode === 'detailed') {
                         $decomposed = $this->decomposeLumpSumToDetailedItems($amount, $category, $currentParent, $options);
                         foreach ($decomposed as $dItem) {
+                            $dItem['is_decomposed'] = true;
                             $results[] = $dItem;
                         }
                     } else {
@@ -866,6 +1120,7 @@ class RpdBreakdownService
                     if ($breakdownMode === 'detailed') {
                         $decomposedMob = $this->decomposeBelanjaMobilisasi($amount, $currentParent, $options);
                         foreach ($decomposedMob as $dItem) {
+                            $dItem['is_decomposed'] = true;
                             $results[] = $dItem;
                         }
                     } else {
@@ -923,6 +1178,7 @@ class RpdBreakdownService
                     if ($isPengelolaan && $breakdownMode === 'detailed') {
                         $decomposedPengelolaan = $this->decomposeBiayaPengelolaan($amount, $options);
                         foreach ($decomposedPengelolaan as $dItem) {
+                            $dItem['is_decomposed'] = true;
                             $results[] = $dItem;
                         }
                     } else {
@@ -990,18 +1246,27 @@ class RpdBreakdownService
         }
         fclose($handle);
 
-        // Deteksi format resmi
-        $isOfficial = false;
+        // 1. Cek apakah format CSV adalah Format Resmi Bertingkat ("- Belanja Bahan" / "- Belanja Upah" per ruang)
+        $hasSeparateBahanUpah = false;
         foreach ($matrix as $row) {
             $rowStr = strtolower(implode(' ', array_filter($row, 'is_scalar')));
-            if (str_contains($rowStr, 'belanja bahan') || str_contains($rowStr, 'belanja upah') || str_contains($rowStr, 'termin 1') || str_contains($rowStr, 'termin 2')) {
-                $isOfficial = true;
+            if (str_contains($rowStr, 'belanja bahan') || str_contains($rowStr, 'belanja upah')) {
+                $hasSeparateBahanUpah = true;
                 break;
             }
         }
 
-        if ($isOfficial) {
-            return $this->parseOfficialRpdMatrix($matrix, $options);
+        if ($hasSeparateBahanUpah) {
+            $officialRows = $this->parseOfficialRpdMatrix($matrix, $options);
+            if (!empty($officialRows)) {
+                return $officialRows;
+            }
+        }
+
+        // 2. Pemetaan AI Fleksibel & Heuristik Semantik Cerdas
+        $flexibleRows = $this->extractFlexibleRpdFromMatrix($matrix, $options);
+        if (!empty($flexibleRows)) {
+            return $flexibleRows;
         }
 
         return $this->mapMatrixToStructuredRows($matrix, $options);

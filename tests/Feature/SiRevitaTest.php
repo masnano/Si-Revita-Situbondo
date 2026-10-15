@@ -1580,6 +1580,176 @@ class SiRevitaTest extends TestCase
         $this->assertNotEmpty($dataLaden['nearest_stores']);
         $this->assertStringContainsString('Asembagus', $dataLaden['recommended_store']);
     }
+
+    public function test_ai_flexible_mapping_accepts_free_template_and_preserves_perencanaan_pengawasan()
+    {
+        $admin = User::where('username', 'admin')->first();
+        $this->actingAs($admin);
+
+        $project = \App\Models\RevitalizationProject::first();
+
+        // Template bebas dengan header:
+        // Nama/Uraian, VOL, Sat, harga satuan, Termin 1 (70%), termin 2 (30%), jumlah (100%), keterangan
+        $csvContent = "No,Nama/Uraian,VOL,Sat,harga satuan,Termin 1 (70%),termin 2 (30%),jumlah (100%),keterangan\n" .
+                      "1,Pekerjaan Rehabilitasi Ruang Kelas,1,Paket,50000000,35000000,15000000,50000000,Rehab Atap Lantai & Pengecatan\n" .
+                      "2,Biaya Pengawasan,1,Paket,4000000,0,4000000,4000000,Pengawasan Teknis Swakelola\n" .
+                      "3,Biaya Perencanaan,1,Paket,6000000,6000000,0,6000000,Perencanaan Teknis Gambar & RAB\n" .
+                      "4,Biaya Pengelolaan P2SP,1,Paket,5000000,3500000,1500000,5000000,Operasional P2SP ATK & SPJ\n" .
+                      "5,Mobilisasi dan Demobilisasi,1,Paket,4000000,2800000,1200000,4000000,Angkutan Bahan dan Alat Kerja\n";
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'rpd_ai_flex_') . '.csv';
+        file_put_contents($tempFile, $csvContent);
+
+        $uploadedFile = new \Illuminate\Http\UploadedFile(
+            $tempFile,
+            'RPD_Format_Fleksibel_Sekolah.csv',
+            'text/csv',
+            null,
+            true
+        );
+
+        \App\Models\RpdDocument::where('title', 'RPD AI Flexible Mapping Test')->delete();
+
+        $defaultDate = '2026-07-20'; // Senin
+
+        $response = $this->post(route('rpd.store'), [
+            'school_id' => $project->school_id,
+            'project_id' => $project->id,
+            'term_stage' => 'Semua Tahap (Total 100%)',
+            'target_column' => 'total',
+            'title' => 'RPD AI Flexible Mapping Test',
+            'default_date' => $defaultDate,
+            'breakdown_mode' => 'detailed',
+            'rpd_file' => $uploadedFile,
+            'use_ai' => 1,
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $doc = \App\Models\RpdDocument::where('title', 'RPD AI Flexible Mapping Test')->first();
+        $this->assertNotNull($doc, 'Dokumen RPD dengan template bebas harus berhasil diterima dan diproses');
+
+        // Total anggaran harus tepat balance Rp 69.000.000 (50jt + 4jt + 6jt + 5jt + 4jt)
+        $this->assertEquals(69000000, (int)$doc->total_budget, 'Total anggaran dokumen harus tepat 69.000.000');
+        $this->assertEquals(69000000, (int)$doc->items()->sum('total_price'), 'Akumulasi total pecahan harus nol selisih dengan pagu');
+
+        $items = $doc->items()->orderBy('row_number', 'asc')->get();
+
+        // 1. Verifikasi Biaya Perencanaan TIDAK DI-BREAKDOWN dan berada di baris pertama
+        $firstItem = $items->first();
+        $this->assertEquals('Biaya Perencanaan', $firstItem->item_name);
+        $this->assertEquals(6000000, (int)$firstItem->total_price, 'Biaya Perencanaan harus utuh Rp 6.000.000');
+        $this->assertEquals(1.0, (float)$firstItem->volume);
+        $this->assertEquals($defaultDate, $firstItem->planned_date->format('Y-m-d'));
+        $this->assertStringContainsString('Tim Teknis Perencana', $firstItem->supplier_name);
+
+        // 2. Verifikasi Biaya Pengawasan TIDAK DI-BREAKDOWN dan berada di baris terakhir
+        $lastItem = $items->last();
+        $this->assertEquals('Biaya Pengawasan', $lastItem->item_name);
+        $this->assertEquals(4000000, (int)$lastItem->total_price, 'Biaya Pengawasan harus utuh Rp 4.000.000');
+        $this->assertEquals(1.0, (float)$lastItem->volume);
+        $this->assertStringContainsString('Tim Teknis Pengawas', $lastItem->supplier_name);
+        $this->assertGreaterThan($firstItem->planned_date->format('Y-m-d'), $lastItem->planned_date->format('Y-m-d'));
+
+        // 3. Verifikasi selain Perencanaan & Pengawasan: di-breakdown oleh AI secara variatif
+        // Pekerjaan Ruang Kelas dipecah menjadi bahan (semen, pasir, bata, cat, dll) dan upah
+        $kelasMaterials = $items->filter(fn($i) => str_contains($i->item_name, 'Ruang Kelas') && $i->category === 'bahan');
+        $this->assertGreaterThanOrEqual(5, $kelasMaterials->count(), 'Pekerjaan Ruang Kelas harus dipecah menjadi rincian bahan variatif');
+
+        $kelasWages = $items->filter(fn($i) => str_contains($i->item_name, 'Ruang Kelas') && $i->category === 'upah');
+        $this->assertGreaterThanOrEqual(2, $kelasWages->count(), 'Pekerjaan Ruang Kelas harus dipecah menjadi upah tukang & pekerja');
+
+        // Total pecahan Ruang Kelas harus tepat Rp 50.000.000
+        $kelasTotal = $kelasMaterials->sum('total_price') + $kelasWages->sum('total_price');
+        $this->assertEquals(50000000, (int)$kelasTotal, 'Total pecahan Ruang Kelas harus persis Rp 50.000.000');
+
+        // 4. Verifikasi Mobilisasi dipecah menjadi 4 rincian logistik
+        $mobItems = $items->filter(fn($i) => str_contains(strtolower($i->item_name), 'angkut') || str_contains(strtolower($i->item_name), 'pengiriman') || str_contains(strtolower($i->item_name), 'mobilisasi'));
+        $this->assertGreaterThanOrEqual(4, $mobItems->count());
+        $this->assertEquals(4000000, (int)$mobItems->sum('total_price'), 'Total mobilisasi harus persis Rp 4.000.000');
+
+        // 5. Verifikasi Pengelolaan P2SP dipecah menjadi 5 kegiatan operasional
+        $pengItems = $items->filter(fn($i) => str_contains(strtolower($i->item_name), 'atk') || str_contains(strtolower($i->item_name), 'konsumsi') || str_contains(strtolower($i->item_name), 'transport') || str_contains(strtolower($i->item_name), 'spanduk') || str_contains(strtolower($i->item_name), 'materai'));
+        $this->assertGreaterThanOrEqual(4, $pengItems->count());
+        $this->assertEquals(5000000, (int)$pengItems->sum('total_price'), 'Total pengelolaan harus persis Rp 5.000.000');
+
+        // 6. Aman dari temuan: Tidak ada hari Minggu & pajak bahan >= 2jt dihitung
+        foreach ($items as $item) {
+            $this->assertFalse($item->planned_date->isSunday(), "Item {$item->item_name} tidak boleh dijadwalkan pada hari Minggu");
+            if ($item->category === 'bahan' && $item->total_price >= 2000000) {
+                $this->assertTrue($item->has_tax, "Belanja bahan >= 2jt ({$item->item_name}) wajib dipungut pajak");
+            }
+        }
+
+        // Cleanup
+        $doc->items()->delete();
+        $doc->delete();
+    }
+
+    public function test_ai_flexible_mapping_with_synonyms_and_different_casing()
+    {
+        $admin = User::where('username', 'admin')->first();
+        $this->actingAs($admin);
+
+        $project = \App\Models\RevitalizationProject::first();
+
+        // Template dengan sinonim kolom berbeda (Item Pekerjaan, Volume, Satuan, Tarif, Tahap 1, Tahap 2, Total Biaya, Catatan)
+        $csvContent = "Item Pekerjaan,Volume,Satuan,Tarif,Tahap 1,Tahap 2,Total Biaya,Catatan\n" .
+                      "Pekerjaan Toilet Sanitasi,1,Paket,20000000,14000000,6000000,20000000,Sanitair Kloset & Pipa\n" .
+                      "Biaya Perencanaan,1,Ls,3000000,3000000,0,3000000,Konsultan Perencana\n" .
+                      "Biaya Pengawasan,1,Ls,2500000,0,2500000,2500000,Konsultan Pengawas\n";
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'rpd_syn_') . '.csv';
+        file_put_contents($tempFile, $csvContent);
+
+        $uploadedFile = new \Illuminate\Http\UploadedFile(
+            $tempFile,
+            'RPD_Sinonim_Uji.csv',
+            'text/csv',
+            null,
+            true
+        );
+
+        \App\Models\RpdDocument::where('title', 'RPD Sinonim Test')->delete();
+
+        $response = $this->post(route('rpd.store'), [
+            'school_id' => $project->school_id,
+            'project_id' => $project->id,
+            'term_stage' => 'Tahap 1',
+            'target_column' => 'termin_1',
+            'title' => 'RPD Sinonim Test',
+            'default_date' => '2026-09-01',
+            'breakdown_mode' => 'detailed',
+            'rpd_file' => $uploadedFile,
+            'use_ai' => 0,
+        ]);
+
+        $response->assertRedirect();
+
+        $doc = \App\Models\RpdDocument::where('title', 'RPD Sinonim Test')->first();
+        $this->assertNotNull($doc);
+
+        // Tahap 1: Toilet 14jt (70%) + Perencanaan 3jt = 17jt total
+        $this->assertEquals(17000000, (int)$doc->total_budget);
+
+        $items = $doc->items()->orderBy('row_number', 'asc')->get();
+
+        // Biaya Perencanaan tidak dipecah
+        $planItem = $items->firstWhere('item_name', 'Biaya Perencanaan');
+        $this->assertNotNull($planItem);
+        $this->assertEquals(3000000, (int)$planItem->total_price);
+
+        // Toilet dipecah menjadi bahan & upah sanitasi
+        $toiletItems = $items->filter(fn($i) => str_contains($i->item_name, 'Toilet') || str_contains($i->item_name, 'Sanitasi'));
+        $this->assertGreaterThan(1, $toiletItems->count());
+        $this->assertEquals(14000000, (int)$toiletItems->sum('total_price'));
+
+        // Cleanup
+        $doc->items()->delete();
+        $doc->delete();
+    }
 }
+
 
 

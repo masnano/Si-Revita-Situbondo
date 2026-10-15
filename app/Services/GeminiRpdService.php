@@ -1806,5 +1806,372 @@ PROMPT;
 
         return "Hasil telaah kepatuhan administratif pembukuan {$school->name} Tahun Anggaran {$year} menunjukkan skor kepatuhan {$score}/100 dengan predikat {$opinion}. Ditemukan beberapa catatan kepatuhan yang memerlukan tindak lanjut:\n{$findingsList}\n\nDirekomendasikan kepada Bendahara Pengeluaran untuk segera menyinkronkan penanggalan bukti dan melengkapi penyetoran NTPN melalui fitur Setor Pajak Otomatis Si Revita sebelum berkas diserahkan ke Inspektorat.";
     }
+
+    /**
+     * Memetakan kolom berkas RPD menggunakan AI Google Gemini (dengan fallback Heuristik Semantik Cerdas Situbondo).
+     * Mendeteksi 8 atribut esensial yang dibutuhkan sistem:
+     * 1. Nama/Uraian
+     * 2. VOL / volume
+     * 3. Sat / satuan
+     * 4. Harga satuan
+     * 5. Termin 1 (70%)
+     * 6. Termin 2 (30%)
+     * 7. Jumlah (100%)
+     * 8. Keterangan
+     */
+    public function mapRpdColumnsWithAi(array $matrix, array $options = []): array
+    {
+        $heuristic = $this->detectRpdColumnsHeuristic($matrix);
+
+        // Jika API Key tidak ada atau use_ai bernilai false, gunakan hasil heuristik cerdas lokal
+        $apiKey = $options['api_key'] ?? config('services.gemini.api_key');
+        if (empty($apiKey) || (isset($options['use_ai']) && !$options['use_ai'])) {
+            return array_merge($heuristic, [
+                'used_ai' => false,
+                'source' => 'smart_heuristic',
+            ]);
+        }
+
+        try {
+            // Ambil sampel maksimal 20 baris pertama untuk analisis AI
+            $sampleRows = [];
+            $maxSample = min(20, count($matrix));
+            for ($i = 0; $i < $maxSample; $i++) {
+                $r = $matrix[$i] ?? [];
+                if (is_array($r) && !empty(array_filter($r, fn($v) => !is_null($v) && trim((string)$v) !== ''))) {
+                    // Batasi maksimal 15 kolom agar prompt tetap ringkas
+                    $sampleRows[] = array_slice($r, 0, 15);
+                }
+            }
+
+            if (empty($sampleRows)) {
+                return array_merge($heuristic, ['used_ai' => false, 'source' => 'smart_heuristic']);
+            }
+
+            $sampleJson = json_encode($sampleRows, JSON_UNESCAPED_UNICODE);
+
+            $prompt = <<<PROMPT
+Anda adalah AI Spesialis Parsing dan Pemetaan Dokumen RPD (Rencana Penggunaan Dana) Revitalisasi Satuan Pendidikan.
+Berikut adalah cuplikan baris-baris awal tabel Excel/CSV yang diunggah pengguna (format JSON array 2 dimensi):
+{$sampleJson}
+
+TUGAS ANDA:
+Identifikasi baris header (header_row_index, 0-indexed) dan petakan indeks kolom (0-indexed) untuk 8 atribut data wajib berikut:
+1. "uraian": Nama / Uraian Pekerjaan / Nama Barang / Nama Kegiatan / Bahan
+2. "volume": VOL / Volume / Qty / Kuantitas / Banyak
+3. "satuan": Sat / Satuan / Unit
+4. "harga_satuan": Harga Satuan / Tarif / Biaya Satuan
+5. "termin_1": Termin 1 (70%) / Tahap 1 / 70%
+6. "termin_2": Termin 2 (30%) / Tahap 2 / 30%
+7. "jumlah": Jumlah (100%) / Total / Total Biaya / 100%
+8. "keterangan": Keterangan / Catatan / Spesifikasi / Lokasi
+
+FORMAT OUTPUT WAJIB JSON MURNI (tanpa markdown pembuka/penutup):
+{
+  "header_row_index": 0,
+  "columns": {
+    "uraian": 1,
+    "volume": 2,
+    "satuan": 3,
+    "harga_satuan": 4,
+    "termin_1": 5,
+    "termin_2": 6,
+    "jumlah": 7,
+    "keterangan": 8
+  }
 }
+PROMPT;
+
+            $rawJson = $this->callGeminiApi($prompt, array_merge($options, [
+                'timeout' => 20,
+                'json_mode' => true,
+                'temperature' => 0.2,
+            ]));
+
+            if (!empty($rawJson)) {
+                $decoded = json_decode($rawJson, true);
+                if (is_array($decoded) && isset($decoded['columns']) && is_array($decoded['columns'])) {
+                    $aiCols = $decoded['columns'];
+                    $mergedCols = $heuristic['columns'] ?? [];
+
+                    foreach (['uraian', 'volume', 'satuan', 'harga_satuan', 'termin_1', 'termin_2', 'jumlah', 'keterangan'] as $k) {
+                        if (isset($aiCols[$k]) && is_numeric($aiCols[$k])) {
+                            $mergedCols[$k] = (int)$aiCols[$k];
+                        }
+                    }
+
+                    $headerRow = isset($decoded['header_row_index']) && is_numeric($decoded['header_row_index'])
+                        ? (int)$decoded['header_row_index']
+                        : ($heuristic['header_row_index'] ?? 0);
+
+                    return [
+                        'header_row_index' => $headerRow,
+                        'columns' => $mergedCols,
+                        'used_ai' => true,
+                        'source' => 'gemini_api',
+                    ];
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning("Gemini mapRpdColumnsWithAi error: " . $e->getMessage());
+        }
+
+        return array_merge($heuristic, [
+            'used_ai' => false,
+            'source' => 'smart_heuristic',
+        ]);
+    }
+
+    /**
+     * Deteksi heuristik cerdas untuk baris header dan pemetaan kolom tabel RPD.
+     */
+    public function detectRpdColumnsHeuristic(array $matrix): array
+    {
+        $bestScore = -1;
+        $bestHeaderRow = 0;
+        $bestMapping = [];
+
+        $maxRows = min(25, count($matrix));
+        for ($r = 0; $r < $maxRows; $r++) {
+            $row = $matrix[$r] ?? [];
+            if (!is_array($row) || empty(array_filter($row, fn($v) => !is_null($v) && trim((string)$v) !== ''))) {
+                continue;
+            }
+
+            // 1. Cek baris tunggal $r
+            $mapping = $this->matchRowColumns($row);
+            $score = $this->scoreColumnMapping($mapping);
+
+            // 2. Cek baris ganda (gabungan $r dan $r + 1 untuk header bertingkat)
+            if ($r + 1 < $maxRows) {
+                $nextRow = $matrix[$r + 1] ?? [];
+                if (is_array($nextRow)) {
+                    $combinedRow = [];
+                    $colCount = max(count($row), count($nextRow));
+                    for ($c = 0; $c < $colCount; $c++) {
+                        $v1 = trim((string)($row[$c] ?? ''));
+                        $v2 = trim((string)($nextRow[$c] ?? ''));
+                        $combinedRow[$c] = trim("{$v1} {$v2}");
+                    }
+                    $combinedMapping = $this->matchRowColumns($combinedRow);
+                    $combinedScore = $this->scoreColumnMapping($combinedMapping);
+                    if ($combinedScore > $score) {
+                        $mapping = $combinedMapping;
+                        $score = $combinedScore;
+                    }
+                }
+            }
+
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestHeaderRow = $r;
+                $bestMapping = $mapping;
+            }
+        }
+
+        // Default fallback mapping jika tidak terdeteksi
+        if (empty($bestMapping['uraian'])) {
+            $bestMapping = array_merge([
+                'uraian' => 1,
+                'volume' => 2,
+                'satuan' => 3,
+                'harga_satuan' => 4,
+                'termin_1' => 5,
+                'termin_2' => 6,
+                'jumlah' => 7,
+                'keterangan' => 8,
+            ], $bestMapping);
+        }
+
+        return [
+            'header_row_index' => $bestHeaderRow,
+            'columns' => $bestMapping,
+            'score' => $bestScore,
+        ];
+    }
+
+    /**
+     * Mencocokkan nilai sel pada satu baris dengan 8 atribut data RPD yang esensial.
+     */
+    public function matchRowColumns(array $row): array
+    {
+        $mapping = [];
+        $cellCount = count($row);
+
+        for ($c = 0; $c < $cellCount; $c++) {
+            $val = trim((string)($row[$c] ?? ''));
+            if ($val === '') continue;
+
+            $v = strtolower(preg_replace('/\s+/', ' ', $val));
+            $cleanV = preg_replace('/[^\w\s\%\(\)\.\/]/', '', $v);
+
+            // 1. Uraian / Nama
+            if (!isset($mapping['uraian'])) {
+                if (
+                    preg_match('/^(nama|uraian|nama[\s_\/\-]+uraian|uraian[\s_\/\-]+nama|item|item[\s_\/\-]+pekerjaan|item[\s_\/\-]+belanja|uraian[\s_\/\-]+pekerjaan|nama[\s_\/\-]+pekerjaan|uraian[\s_\/\-]+kegiatan|nama[\s_\/\-]+kegiatan|uraian[\s_\/\-]+belanja|nama[\s_\/\-]+barang|uraian[\s_\/\-]+barang|pekerjaan|barang|bahan|deskripsi|description|rincian|rincian[\s_\/\-]+pekerjaan|rincian[\s_\/\-]+belanja|komponen)$/i', $cleanV) ||
+                    ((str_contains($cleanV, 'uraian') || str_contains($cleanV, 'nama') || str_contains($cleanV, 'pekerjaan') || str_contains($cleanV, 'item') || str_contains($cleanV, 'deskripsi') || str_contains($cleanV, 'rincian')) &&
+                     !str_contains($cleanV, 'sekolah') && !str_contains($cleanV, 'harga') && !str_contains($cleanV, 'satuan') && !str_contains($cleanV, 'rekening') && !str_contains($cleanV, 'koef') && !str_contains($cleanV, 'total') && !str_contains($cleanV, 'jumlah') && !str_contains($cleanV, 'termin') && !str_contains($cleanV, 'tahap') && !str_contains($cleanV, 'vol'))
+                ) {
+                    $mapping['uraian'] = $c;
+                    continue;
+                }
+            }
+
+            // 2. Volume
+            if (!isset($mapping['volume'])) {
+                if (
+                    preg_match('/^(vol|volume|vol\.|volume\s*\(vol\)|vol\s*\(volume\)|qty|kuantitas|banyak|banyaknya|jumlah\s*satuan)$/i', $cleanV) ||
+                    (str_starts_with($cleanV, 'vol') && !str_contains($cleanV, 'harga'))
+                ) {
+                    $mapping['volume'] = $c;
+                    continue;
+                }
+            }
+
+            // 3. Satuan
+            if (!isset($mapping['satuan'])) {
+                if (
+                    preg_match('/^(sat|satuan|unit|sat\.|sat\s*\(satuan\))$/i', $cleanV) &&
+                    !str_contains($cleanV, 'harga')
+                ) {
+                    $mapping['satuan'] = $c;
+                    continue;
+                }
+            }
+
+            // 4. Harga Satuan
+            if (!isset($mapping['harga_satuan'])) {
+                if (
+                    preg_match('/(harga\s*satuan|hrg\s*satuan|tarif|biaya\s*satuan|harga\s*per\s*satuan|harga\s*sat\b|^harga$)/i', $cleanV) &&
+                    !str_contains($cleanV, 'total') && !str_contains($cleanV, 'jumlah')
+                ) {
+                    $mapping['harga_satuan'] = $c;
+                    continue;
+                }
+            }
+
+            // 5. Termin 1 (70%)
+            if (!isset($mapping['termin_1'])) {
+                if (
+                    preg_match('/(termin\s*1|termin\s*i\b|tahap\s*1|tahap\s*i\b|70\s*%|\bt1\b|pencairan\s*1)/i', $cleanV)
+                ) {
+                    $mapping['termin_1'] = $c;
+                    continue;
+                }
+            }
+
+            // 6. Termin 2 (30%)
+            if (!isset($mapping['termin_2'])) {
+                if (
+                    preg_match('/(termin\s*2|termin\s*ii\b|tahap\s*2|tahap\s*ii\b|30\s*%|\bt2\b|pencairan\s*2)/i', $cleanV)
+                ) {
+                    $mapping['termin_2'] = $c;
+                    continue;
+                }
+            }
+
+            // 7. Jumlah (100%)
+            if (
+                preg_match('/(100\s*%|jumlah\s*\(?100%?\)?|total\s*\(?100%?\)?|jumlah\s*total|total\s*biaya|total\s*anggaran|pagu\s*anggaran|^jumlah$|^total$|^pagu$)/i', $cleanV) ||
+                (str_contains($cleanV, 'jumlah') && !str_contains($cleanV, 'satuan'))
+            ) {
+                if (!isset($mapping['jumlah']) || (isset($mapping['termin_2']) && $c > $mapping['termin_2'])) {
+                    $mapping['jumlah'] = $c;
+                    continue;
+                }
+            }
+
+            // 8. Keterangan
+            if (!isset($mapping['keterangan'])) {
+                if (
+                    preg_match('/(keterangan|ket\b|catatan|spesifikasi|spek|remarks|notes)/i', $cleanV)
+                ) {
+                    $mapping['keterangan'] = $c;
+                    continue;
+                }
+            }
+
+            // Kolom pendukung lainnya jika ada
+            if (!isset($mapping['no']) && in_array($cleanV, ['no', 'no.', 'nomor', 'no urut', '#'])) {
+                $mapping['no'] = $c;
+            } elseif (!isset($mapping['kode']) && (str_contains($cleanV, 'kode') || str_contains($cleanV, 'kd rekening'))) {
+                $mapping['kode'] = $c;
+            } elseif (!isset($mapping['kategori']) && (str_contains($cleanV, 'kategori') || str_contains($cleanV, 'jenis belanja'))) {
+                $mapping['kategori'] = $c;
+            } elseif (!isset($mapping['toko']) && (str_contains($cleanV, 'toko') || str_contains($cleanV, 'rekanan') || str_contains($cleanV, 'supplier'))) {
+                $mapping['toko'] = $c;
+            } elseif (!isset($mapping['metode']) && (str_contains($cleanV, 'metode') || str_contains($cleanV, 'cara bayar'))) {
+                $mapping['metode'] = $c;
+            }
+        }
+
+        return $mapping;
+    }
+
+    /**
+     * Memberi skor relevansi pemetaan kolom untuk memilih baris header terbaik.
+     */
+    public function scoreColumnMapping(array $mapping): int
+    {
+        $score = 0;
+        if (isset($mapping['uraian'])) $score += 10;
+        if (isset($mapping['volume'])) $score += 5;
+        if (isset($mapping['satuan'])) $score += 5;
+        if (isset($mapping['harga_satuan'])) $score += 5;
+        if (isset($mapping['termin_1'])) $score += 8;
+        if (isset($mapping['termin_2'])) $score += 8;
+        if (isset($mapping['jumlah'])) $score += 8;
+        if (isset($mapping['keterangan'])) $score += 4;
+        return $score;
+    }
+
+    /**
+     * Memecah paket pekerjaan fisik revitalisasi (misal: "Rehabilitasi Ruang Kelas", "Perpustakaan", "Toilet")
+     * menjadi rincian Belanja Bahan (~68%) dan Belanja Upah (~32%) yang variatif, masuk akal, dan aman dari temuan BPK.
+     * PENTING: DILARANG MEMBREAKDOWN BIAYA PERENCANAAN DAN BIAYA PENGAWASAN!
+     */
+    public function decomposePackageWithAi(string $packageName, float $totalBudget, ?string $roomName = null, array $options = []): array
+    {
+        $totalBudget = round($totalBudget, 0);
+        if ($totalBudget <= 0) {
+            return [];
+        }
+
+        $pLower = strtolower($packageName);
+
+        // ATURAN MUTLAK: BIAYA PERENCANAAN DAN BIAYA PENGAWASAN TIDAK BOLEH DIBREAKDOWN
+        if (str_contains($pLower, 'perencanaan') || str_contains($pLower, 'pengawasan')) {
+            $isPlan = str_contains($pLower, 'perencanaan');
+            $cleanTitle = $isPlan ? 'Biaya Perencanaan' : 'Biaya Pengawasan';
+            return [[
+                'uraian' => $cleanTitle,
+                'kode' => '5.1.02.04',
+                'kategori' => 'operasional',
+                'spesifikasi' => $packageName,
+                'volume' => 1.0,
+                'satuan' => 'Paket',
+                'harga_satuan' => $totalBudget,
+                'total' => $totalBudget,
+                'tanggal' => $isPlan ? ($options['default_date'] ?? now()->format('Y-m-d')) : null,
+                'toko' => $isPlan ? 'Tim Teknis Perencana Swakelola' : 'Tim Teknis Pengawas Swakelola',
+                'npwp' => null,
+                'metode' => $totalBudget > 5000000 ? 'Transfer Bank' : 'Kas Tunai',
+                'room_name' => null,
+            ]];
+        }
+
+        // Porsi belanja fisik swakelola: ~68% bahan dan ~32% upah (nol selisih anggaran)
+        $bahanBudget = round($totalBudget * 0.68, 0);
+        $upahBudget = max(0, $totalBudget - $bahanBudget);
+
+        $breakdownService = app(RpdBreakdownService::class);
+        $targetRoom = $roomName ?: $packageName;
+
+        $bahanItems = $breakdownService->decomposeLumpSumToDetailedItems($bahanBudget, 'bahan', $targetRoom, $options);
+        $upahItems = $breakdownService->decomposeLumpSumToDetailedItems($upahBudget, 'upah', $targetRoom, $options);
+
+        return array_merge($bahanItems, $upahItems);
+    }
+}
+
 
