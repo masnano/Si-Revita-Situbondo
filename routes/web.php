@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BudgetItemController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GuideController;
+use App\Http\Controllers\HpsConversionController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ReportController;
@@ -82,6 +83,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/{rpd}/export-bku', [RpdBreakdownController::class, 'exportBku'])->name('export_bku');
         Route::post('/suggest-price', [RpdBreakdownController::class, 'suggestSitubondoPrice'])->name('ai_suggest_price');
         Route::delete('/{rpd}', [RpdBreakdownController::class, 'destroy'])->name('destroy')->middleware('role:root,admin');
+    });
+
+    // 5. Modul Konversi Data HPS ke Template Keluaran (DPP & Pajak)
+    Route::prefix('hps-konversi')->name('hps.')->group(function () {
+        Route::get('/', [HpsConversionController::class, 'index'])->name('index');
+        Route::post('/convert', [HpsConversionController::class, 'convert'])->name('convert');
     });
 
     // 5. Modul Khusus Role ROOT (Kelola User, Role, & Permission Granular)

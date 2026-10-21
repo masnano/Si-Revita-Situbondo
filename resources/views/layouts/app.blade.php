@@ -273,6 +273,16 @@
                         </div>
                         <span class="px-1.5 py-0.5 text-[9px] font-bold rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">BARU</span>
                     </a>
+
+                    <a href="{{ route('hps.index') }}" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all {{ request()->routeIs('hps*') ? 'bg-emerald-600 text-white font-semibold shadow-md shadow-emerald-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4 text-sky-400"></i>
+                        <div class="flex-1">
+                            <div class="leading-tight">Konversi Data HPS</div>
+                            <span class="text-[11px] text-sky-300 font-sans">HPS ke Template DPP</span>
+                        </div>
+                        <span class="px-1.5 py-0.5 text-[9px] font-bold rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">BARU</span>
+                    </a>
                 </div>
             </div>
 
