@@ -47,9 +47,6 @@ class HpsConversionController extends Controller
         try {
             $items = $this->hpsConversionService->convertFileToRows($file->getRealPath(), $ext, [
                 'tax_percent' => $request->filled('tax_percent') ? (float) $request->input('tax_percent') : 11,
-                'divide_ppn' => $this->submittedFlag($request, 'divide_ppn', true),
-                'include_tax_label' => $this->submittedFlag($request, 'include_tax_label', true),
-                'match_hps_total' => $this->submittedFlag($request, 'match_hps_total', false),
             ]);
 
             $spreadsheet = $this->hpsConversionService->buildSpreadsheet($items);
@@ -69,20 +66,5 @@ class HpsConversionController extends Controller
             'X-Converted-Rows' => (string) count($items),
             'X-Source-File' => $baseName,
         ]);
-    }
-
-    /**
-     * Membaca nilai checkbox yang dapat terkirim sebagai array (hidden 0 + checkbox 1).
-     * Nilai "1" pada posisi mana pun dianggap dicentang.
-     */
-    protected function submittedFlag(Request $request, string $key, bool $default): bool
-    {
-        $value = $request->input($key, $default);
-
-        if (is_array($value)) {
-            return in_array('1', array_map('strval', $value), true);
-        }
-
-        return filter_var($value, FILTER_VALIDATE_BOOLEAN);
     }
 }

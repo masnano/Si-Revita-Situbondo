@@ -56,16 +56,14 @@ class HpsConversionService
     }
 
     /**
-     * Mengubah baris mentah HPS menjadi item template (DPP, pajak, vol, satuan).
+     * Mengubah baris mentah HPS menjadi item template.
      *
-     * Kolom Harga diisi DPP (harga satuan HPS dibagi 1,11) karena sistem tujuan
-     * (SPSE) meminta nilai DPP. Setelah DPP diinput ke kolom DPP SPSE, nilai itu
-     * tidak boleh dihitung PPN lagi agar tidak terjadi pemotongan ganda.
+     * Harga pada HPS sudah berupa DPP sehingga disalin apa adanya, volume
+     * mengikuti HPS (2 desimal), dan Total diambil dari kolom Jumlah HPS.
      */
     public function normalizeItems(array $rows, array $map, array $options = []): array
     {
         $taxPercent = (float) ($options['tax_percent'] ?? 11);
-        $dividePpn = (bool) ($options['divide_ppn'] ?? true);
         $noKeyColumn = count($map) === 1 && isset($map['name']);
 
         $items = [];
@@ -122,153 +120,26 @@ class HpsConversionService
                 $volumeRounded = 0.01;
             }
 
-            $harga = $dividePpn ? round($harga / static::PPN_DIVISOR, 2) : round($harga, 2);
+            // Harga pada HPS sudah berupa DPP, sehingga disalin apa adanya.
+            $harga = round($harga, 2);
 
             // Total baris mengikuti kolom Jumlah pada dokumen HPS bila tersedia,
             // sehingga Total rincian sama persis dengan dokumen aslinya.
-            $totalBarisHps = $totalRaw > 0 ? round($totalRaw, 2) : round($hargaAsli * $volume, 2);
-            $jumlahBaris = $totalBarisHps;
-
-            $pajakPercent = ($options['divide_ppn'] ?? false)
-                ? $taxPercent
-                : ($options['include_tax_label'] ?? true ? $taxPercent : 0);
+            $jumlahBaris = $totalRaw > 0 ? round($totalRaw, 2) : round($hargaAsli * $volume, 2);
 
             $items[] = [
                 'name' => $name,
                 'unit' => $unit,
                 'volume' => $volumeRounded,
                 'harga' => $harga,
-                'pajak_percent' => $pajakPercent,
+                'pajak_percent' => $taxPercent,
                 'keterangan' => '',
                 'kunci' => '',
                 'jumlah' => $jumlahBaris,
-                'total_hps' => $totalBarisHps,
             ];
         }
 
-        return $this->matchHpsTotal($items, $options);
-    }
-
-    /**
-     * Menyesuaikan harga DPP tiap baris agar Total rincian (harga x 1,11 x vol)
-     * tepat sama dengan Jumlah baris pada dokumen HPS.
-     *
-     * Penyesuaian dilakukan per baris sehingga selisih tidak menumpuk dan
-     * Total tiap baris identik dengan HPS, meskipun volume HPS tidak konsisten
-     * dengan kolom Jumlah-nya.
-     */
-    protected function matchHpsTotal(array $items, array $options = []): array
-    {
-        if (empty($items) || !($options['match_hps_total'] ?? false)) {
-            foreach ($items as $idx => $item) {
-                if (isset($items[$idx]['total_hps'])) {
-                    $items[$idx]['jumlah'] = (float) $items[$idx]['total_hps'];
-                }
-                unset($items[$idx]['total_hps']);
-            }
-
-            return $items;
-        }
-
-        foreach ($items as $idx => $item) {
-            $targetBaris = round((float) ($item['total_hps'] ?? 0), 2);
-            $volume = max(0.01, (float) $item['volume']);
-
-            if ($targetBaris <= 0) {
-                unset($items[$idx]['total_hps']);
-                continue;
-            }
-
-            // Harga DPP ideal agar harga x 1,11 x vol = Jumlah HPS.
-            $ideal = $targetBaris / (static::PPN_DIVISOR * $volume);
-            $harga = round($ideal, 2);
-
-            // Koreksi satu sen bila pembulatan belum tepat.
-            if (abs(round($harga * static::PPN_DIVISOR * $volume, 2) - $targetBaris) >= 0.005) {
-                $best = null;
-                for ($offset = -100; $offset <= 100; $offset++) {
-                    $candidate = round($ideal + $offset * 0.01, 2);
-                    $diff = abs(round($candidate * static::PPN_DIVISOR * $volume, 2) - $targetBaris);
-
-                    if ($best === null || $diff < $best['diff']) {
-                        $best = ['harga' => $candidate, 'diff' => $diff];
-                    }
-                    if ($diff < 0.005) {
-                        break;
-                    }
-                }
-                if ($best !== null) {
-                    $harga = $best['harga'];
-                }
-            }
-
-            $items[$idx]['harga'] = $harga;
-            $items[$idx]['jumlah'] = $targetBaris;
-            unset($items[$idx]['total_hps']);
-        }
-
-        $this->closeResidual($items);
-
         return $items;
-    }
-
-    /**
-     * Menutup sisa pembulatan total dengan menggeser beberapa sen pada baris
-     * yang perubahan harganya paling kecil, sehingga total tetap akurat.
-     */
-    protected function closeResidual(array &$items, float $target = null): void
-    {
-        if ($target === null) {
-            $target = 0.0;
-            foreach ($items as $item) {
-                $target += (float) ($item['jumlah'] ?? 0);
-            }
-            $target = round($target, 2);
-        }
-
-        $guard = 0;
-        while ($guard < 2000) {
-            $guard++;
-
-            $current = $this->totalOfRows($items);
-            $diff = round($target - $current, 2);
-            if (abs($diff) < 0.005) {
-                return;
-            }
-
-            $best = null;
-            foreach ($items as $idx => $item) {
-                foreach ([0.01, -0.01] as $step) {
-                    $original = $items[$idx]['harga'];
-                    $items[$idx]['harga'] = round($original + $step, 2);
-                    $newDiff = abs(round($target - $this->totalOfRows($items), 2));
-                    $items[$idx]['harga'] = $original;
-
-                    if ($best === null || $newDiff < $best['error'] - 0.0000001) {
-                        $best = ['idx' => $idx, 'step' => $step, 'error' => $newDiff];
-                    }
-                }
-            }
-
-            if ($best === null || $best['error'] >= abs($diff)) {
-                return;
-            }
-
-            $items[$best['idx']]['harga'] = round($items[$best['idx']]['harga'] + $best['step'], 2);
-        }
-    }
-
-    /**
-     * Total nilai baris: harga x 1,11 x volume per baris.
-     */
-    protected function totalOfRows(array $items): float
-    {
-        $sum = 0.0;
-        foreach ($items as $item) {
-            $sum += round(((float) $item['harga']) * static::PPN_DIVISOR * ((float) $item['volume']), 2);
-        }
-
-        return round($sum, 2);
     }
 
     /**
