@@ -447,6 +447,29 @@
             return;
         }
 
+        // Jika form menghasilkan unduhan berkas (streamDownload), respons tidak menavigasi halaman
+        // sehingga preloader harus ditutup otomatis dan tombol dibuka kembali.
+        if (form.dataset.download === 'true') {
+            form.dataset.submitting = 'true';
+            window.showPreloader('MENGUNDUH BERKAS...', 'Menyiapkan berkas hasil proses untuk diunduh. Unduhan akan segera dimulai...');
+
+            // Buka blokir submit setelah jeda singkat agar form dapat dikirim ulang bila perlu.
+            setTimeout(function() {
+                delete form.dataset.submitting;
+                form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach(function(b) {
+                    b.disabled = false;
+                    b.classList.remove('opacity-75', 'cursor-not-allowed', 'pointer-events-none');
+                });
+            }, 1500);
+
+            // Tutup preloader setelah unduhan diasumsikan dimulai.
+            setTimeout(function() {
+                window.hidePreloader();
+            }, 4000);
+
+            return;
+        }
+
         // Jika form memerlukan konfirmasi modal, biarkan modal konfirmasi berjalan lebih dulu
         const isDelete = form.querySelector('input[name="_method"][value="DELETE"]') !== null;
         const hasConfirmAttr = form.hasAttribute('data-confirm');

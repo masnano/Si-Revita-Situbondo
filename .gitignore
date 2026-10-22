@@ -5,6 +5,7 @@
 /public/hot
 /public/storage
 /public/sirevita_db.sql
+/public/template/
 /storage/*.key
 /vendor
 .env

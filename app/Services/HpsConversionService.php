@@ -57,6 +57,10 @@ class HpsConversionService
 
     /**
      * Mengubah baris mentah HPS menjadi item template (DPP, pajak, vol, satuan).
+     *
+     * Kolom Harga diisi DPP (harga satuan HPS dibagi 1,11) karena sistem tujuan
+     * (SPSE) meminta nilai DPP. Setelah DPP diinput ke kolom DPP SPSE, nilai itu
+     * tidak boleh dihitung PPN lagi agar tidak terjadi pemotongan ganda.
      */
     public function normalizeItems(array $rows, array $map, array $options = []): array
     {
@@ -71,6 +75,13 @@ class HpsConversionService
             }
 
             $name = trim((string) ($noKeyColumn ? ($row[0] ?? '') : ($this->columnValue($row, $map, 'name'))));
+
+            // Sebagian HPS menaruh nama item di kolom lain (mis. kolom D) sehingga
+            // kolom uraian utama kosong atau hanya berisi singkatan seperti "a.".
+            if (!$noKeyColumn) {
+                $name = $this->resolveRowName($name, $row, $map);
+            }
+
             if ($name === '') {
                 continue;
             }
@@ -105,26 +116,349 @@ class HpsConversionService
                 continue;
             }
 
-            $dpp = $dividePpn ? round($harga / static::PPN_DIVISOR, 2) : round($harga, 2);
+            $hargaAsli = $harga;
+            $volumeRounded = round($volume, 2);
+            if ($volumeRounded <= 0) {
+                $volumeRounded = 0.01;
+            }
+
+            $harga = $dividePpn ? round($harga / static::PPN_DIVISOR, 2) : round($harga, 2);
+
+            // Total baris mengikuti kolom Jumlah pada dokumen HPS bila tersedia,
+            // sehingga Total rincian sama persis dengan dokumen aslinya.
+            $totalBarisHps = $totalRaw > 0 ? round($totalRaw, 2) : round($hargaAsli * $volume, 2);
+            $jumlahBaris = $totalBarisHps;
+
+            $pajakPercent = ($options['divide_ppn'] ?? false)
+                ? $taxPercent
+                : ($options['include_tax_label'] ?? true ? $taxPercent : 0);
 
             $items[] = [
                 'name' => $name,
                 'unit' => $unit,
-                'volume' => round($volume, 2),
-                'harga' => $dpp,
-                'pajak_percent' => $dividePpn ? $taxPercent : 0,
+                'volume' => $volumeRounded,
+                'harga' => $harga,
+                'pajak_percent' => $pajakPercent,
                 'keterangan' => '',
                 'kunci' => '',
+                'jumlah' => $jumlahBaris,
+                'total_hps' => $totalBarisHps,
             ];
         }
+
+        return $this->matchHpsTotal($items, $options);
+    }
+
+    /**
+     * Menyesuaikan harga DPP tiap baris agar Total rincian (harga x 1,11 x vol)
+     * tepat sama dengan Jumlah baris pada dokumen HPS.
+     *
+     * Penyesuaian dilakukan per baris sehingga selisih tidak menumpuk dan
+     * Total tiap baris identik dengan HPS, meskipun volume HPS tidak konsisten
+     * dengan kolom Jumlah-nya.
+     */
+    protected function matchHpsTotal(array $items, array $options = []): array
+    {
+        if (empty($items) || !($options['match_hps_total'] ?? false)) {
+            foreach ($items as $idx => $item) {
+                if (isset($items[$idx]['total_hps'])) {
+                    $items[$idx]['jumlah'] = (float) $items[$idx]['total_hps'];
+                }
+                unset($items[$idx]['total_hps']);
+            }
+
+            return $items;
+        }
+
+        foreach ($items as $idx => $item) {
+            $targetBaris = round((float) ($item['total_hps'] ?? 0), 2);
+            $volume = max(0.01, (float) $item['volume']);
+
+            if ($targetBaris <= 0) {
+                unset($items[$idx]['total_hps']);
+                continue;
+            }
+
+            // Harga DPP ideal agar harga x 1,11 x vol = Jumlah HPS.
+            $ideal = $targetBaris / (static::PPN_DIVISOR * $volume);
+            $harga = round($ideal, 2);
+
+            // Koreksi satu sen bila pembulatan belum tepat.
+            if (abs(round($harga * static::PPN_DIVISOR * $volume, 2) - $targetBaris) >= 0.005) {
+                $best = null;
+                for ($offset = -100; $offset <= 100; $offset++) {
+                    $candidate = round($ideal + $offset * 0.01, 2);
+                    $diff = abs(round($candidate * static::PPN_DIVISOR * $volume, 2) - $targetBaris);
+
+                    if ($best === null || $diff < $best['diff']) {
+                        $best = ['harga' => $candidate, 'diff' => $diff];
+                    }
+                    if ($diff < 0.005) {
+                        break;
+                    }
+                }
+                if ($best !== null) {
+                    $harga = $best['harga'];
+                }
+            }
+
+            $items[$idx]['harga'] = $harga;
+            $items[$idx]['jumlah'] = $targetBaris;
+            unset($items[$idx]['total_hps']);
+        }
+
+        $this->closeResidual($items);
 
         return $items;
     }
 
     /**
-     * Membuat spreadsheet template keluaran sesuai susunan kolom permintaan.
+     * Menutup sisa pembulatan total dengan menggeser beberapa sen pada baris
+     * yang perubahan harganya paling kecil, sehingga total tetap akurat.
+     */
+    protected function closeResidual(array &$items, float $target = null): void
+    {
+        if ($target === null) {
+            $target = 0.0;
+            foreach ($items as $item) {
+                $target += (float) ($item['jumlah'] ?? 0);
+            }
+            $target = round($target, 2);
+        }
+
+        $guard = 0;
+        while ($guard < 2000) {
+            $guard++;
+
+            $current = $this->totalOfRows($items);
+            $diff = round($target - $current, 2);
+            if (abs($diff) < 0.005) {
+                return;
+            }
+
+            $best = null;
+            foreach ($items as $idx => $item) {
+                foreach ([0.01, -0.01] as $step) {
+                    $original = $items[$idx]['harga'];
+                    $items[$idx]['harga'] = round($original + $step, 2);
+                    $newDiff = abs(round($target - $this->totalOfRows($items), 2));
+                    $items[$idx]['harga'] = $original;
+
+                    if ($best === null || $newDiff < $best['error'] - 0.0000001) {
+                        $best = ['idx' => $idx, 'step' => $step, 'error' => $newDiff];
+                    }
+                }
+            }
+
+            if ($best === null || $best['error'] >= abs($diff)) {
+                return;
+            }
+
+            $items[$best['idx']]['harga'] = round($items[$best['idx']]['harga'] + $best['step'], 2);
+        }
+    }
+
+    /**
+     * Total nilai baris: harga x 1,11 x volume per baris.
+     */
+    protected function totalOfRows(array $items): float
+    {
+        $sum = 0.0;
+        foreach ($items as $item) {
+            $sum += round(((float) $item['harga']) * static::PPN_DIVISOR * ((float) $item['volume']), 2);
+        }
+
+        return round($sum, 2);
+    }
+
+    /**
+     * Menentukan nama item yang paling informatif pada satu baris.
+     *
+     * Kolom uraian utama diutamakan, namun bila kosong atau hanya berisi
+     * singkatan (mis. "a.") maka teks pada kolom lain dipakai atau digabung.
+     */
+    protected function resolveRowName(string $primary, array $row, array $map): string
+    {
+        $primary = trim($primary);
+
+        if ($this->isMeaningfulName($primary)) {
+            return $primary;
+        }
+
+        $fallback = $this->fallbackRowName($row, $map);
+
+        if ($fallback === '') {
+            return $primary;
+        }
+
+        // Gabungkan bila keduanya informatif sebagian (mis. "a." + "Asuransi").
+        if ($primary !== '' && strtolower($primary) !== strtolower($fallback)) {
+            return trim($primary . ' ' . $fallback);
+        }
+
+        return $fallback;
+    }
+
+    /**
+     * Memeriksa apakah teks cukup bermakna untuk dijadikan nama item.
+     */
+    protected function isMeaningfulName(string $name): bool
+    {
+        $name = trim($name);
+
+        if ($name === '') {
+            return false;
+        }
+
+        // Terlalu pendek atau hanya penanda urut seperti "a.", "1)", "I".
+        if (mb_strlen($name) <= 3) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Mengambil nama item dari kolom lain pada baris yang sama ketika kolom
+     * uraian utama kosong. Kolom angka (volume, harga, jumlah) dilewati.
+     */
+    protected function fallbackRowName(array $row, array $map): string
+    {
+        $skip = [];
+        foreach (['volume', 'harga', 'total'] as $key) {
+            if (isset($map[$key])) {
+                $skip[$map[$key]] = true;
+            }
+        }
+
+        $nameIndex = $map['name'] ?? null;
+        $best = '';
+
+        foreach ($row as $idx => $cell) {
+            if (isset($skip[$idx]) || $idx === $nameIndex) {
+                continue;
+            }
+
+            if ($cell === null) {
+                continue;
+            }
+
+            $value = trim((string) $cell);
+            if ($value === '') {
+                continue;
+            }
+
+            // Lewati sel yang hanya berisi nomor urut.
+            if (preg_match('/^[0-9]+[.)]?$/', $value)) {
+                continue;
+            }
+
+            // Ambil teks terpanjang sebagai nama paling deskriptif.
+            if (mb_strlen($value) > mb_strlen($best)) {
+                $best = $value;
+            }
+        }
+
+        return $best;
+    }
+
+    /**
+     * Menyusun spreadsheet keluaran. Bila template resmi SPSE tersedia, template
+     * tersebut dimuat lalu datanya di-append mulai baris data pertama sehingga
+     * header, format, dan validasi dropdown milik SPSE tetap terjaga.
      */
     public function buildSpreadsheet(array $items, array $options = []): Spreadsheet
+    {
+        $templatePath = $options['template_path'] ?? $this->resolveOfficialTemplatePath();
+
+        if ($templatePath !== null && is_file($templatePath)) {
+            return $this->buildFromOfficialTemplate($templatePath, $items);
+        }
+
+        return $this->buildFromScratch($items, $options);
+    }
+
+    /**
+     * Menentukan lokasi template resmi SPSE di folder public/template.
+     */
+    protected function resolveOfficialTemplatePath(): ?string
+    {
+        $candidate = public_path('template/template-rincian.xlsx');
+
+        return is_file($candidate) ? $candidate : null;
+    }
+
+    /**
+     * Meng-append data ke template resmi SPSE tanpa mengubah struktur template.
+     */
+    protected function buildFromOfficialTemplate(string $templatePath, array $items): Spreadsheet
+    {
+        $reader = IOFactory::createReaderForFile($templatePath);
+        $spreadsheet = $reader->load($templatePath);
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $startRow = $this->detectFirstDataRow($sheet);
+
+        // Bersihkan sisa nilai lama pada area data (header & validasi tetap utuh).
+        $highestRow = $sheet->getHighestRow();
+        if ($highestRow >= $startRow) {
+            for ($row = $startRow; $row <= $highestRow; $row++) {
+                foreach (range('A', 'G') as $col) {
+                    $sheet->setCellValue($col . $row, null);
+                }
+            }
+        }
+
+        // Pertahankan format & validasi dari baris kosong berikutnya sebagai acuan baris baru.
+        $rowIdx = $startRow;
+        foreach ($items as $item) {
+            $sheet->setCellValue('A' . $rowIdx, $item['name']);
+            $sheet->setCellValue('B' . $rowIdx, $item['unit']);
+            $sheet->setCellValueExplicit('C' . $rowIdx, (float) round((float) $item['volume'], 2), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_NUMERIC);
+            $sheet->setCellValueExplicit('D' . $rowIdx, (float) round((float) $item['harga'], 2), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_NUMERIC);
+            $sheet->setCellValue('E' . $rowIdx, $item['pajak_percent']);
+            $sheet->setCellValue('F' . $rowIdx, $item['keterangan']);
+            $sheet->setCellValue('G' . $rowIdx, $item['kunci']);
+
+            $sheet->getStyle('C' . $rowIdx)->getNumberFormat()->setFormatCode('0.00');
+            $sheet->getStyle('D' . $rowIdx)->getNumberFormat()->setFormatCode('_-* #,##0.00_-;\-* #,##0.00_-;_-* "-"??_-;_-@_-');
+
+            $rowIdx++;
+        }
+
+        return $spreadsheet;
+    }
+
+    /**
+     * Mendeteksi baris data pertama pada template (baris setelah baris header).
+     */
+    protected function detectFirstDataRow($sheet): int
+    {
+        $highestColumn = $sheet->getHighestColumn();
+
+        for ($row = 1; $row <= 10; $row++) {
+            $cells = $sheet->rangeToArray('A' . $row . ':' . $highestColumn . $row, null, false, false, false);
+            $values = $cells[0] ?? [];
+
+            $headerHits = 0;
+            foreach ($values as $value) {
+                if (is_string($value) && $this->canonicalColumnKey($value) !== null) {
+                    $headerHits++;
+                }
+            }
+
+            if ($headerHits >= 3) {
+                return $row + 1;
+            }
+        }
+
+        return 2;
+    }
+
+    /**
+     * Membuat spreadsheet keluaran dari nol (fallback bila template resmi tidak ada).
+     */
+    protected function buildFromScratch(array $items, array $options = []): Spreadsheet
     {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -157,8 +491,8 @@ class HpsConversionService
             $sheet->getStyle('A' . $rowIdx . ':G' . $rowIdx)->getBorders()
                 ->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setARGB('FFDCE3EA');
             $sheet->getStyle('C' . $rowIdx)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-            $sheet->getStyle('C' . $rowIdx)->getNumberFormat()->setFormatCode('#,##0.##');
-            $sheet->getStyle('D' . $rowIdx)->getNumberFormat()->setFormatCode('#,##0.##');
+            $sheet->getStyle('C' . $rowIdx)->getNumberFormat()->setFormatCode('0.00');
+            $sheet->getStyle('D' . $rowIdx)->getNumberFormat()->setFormatCode('#,##0.00');
             $sheet->getStyle('E' . $rowIdx)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
             $rowIdx++;
@@ -341,24 +675,32 @@ class HpsConversionService
             return null;
         }
 
-        if (str_contains($value, 'barang') || str_contains($value, 'jasa') || str_contains($value, 'uraian')
-            || str_contains($value, 'pekerjaan') || str_contains($value, 'nama') || str_contains($value, 'item')) {
-            return 'name';
+        // Kolom nomor urut tidak dipakai sebagai nama item.
+        if (in_array($value, ['no', 'no.', 'nomor', 'no urut', 'nourut', '#', 'kode', 'kode barang'], true)) {
+            return null;
         }
+
+        // Kolom harga diperiksa lebih dahulu: "Harga Satuan" harus terbaca sebagai harga,
+        // bukan sebagai kolom satuan meskipun memuat kata "satuan".
         if (str_contains($value, 'harga') || str_contains($value, 'tarif')) {
             if (str_contains($value, 'total') || str_contains($value, 'jumlah')) {
                 return 'total';
             }
             return 'harga';
         }
-        if ($value === 'vol' || str_contains($value, 'volume') || str_contains($value, 'qty') || str_contains($value, 'kuantitas')) {
-            return 'volume';
-        }
-        if (str_contains($value, 'satuan') || $value === 'sat' || $value === 'unit') {
+        if (str_contains($value, 'satuan') || $value === 'sat' || $value === 'sat.' || $value === 'unit' || $value === 'uom') {
             return 'unit';
+        }
+        if ($value === 'vol' || $value === 'vol.' || str_contains($value, 'volume') || str_contains($value, 'qty') || str_contains($value, 'kuantitas')) {
+            return 'volume';
         }
         if (str_contains($value, 'jumlah') || str_contains($value, 'total')) {
             return 'total';
+        }
+        if (str_contains($value, 'barang') || str_contains($value, 'jasa') || str_contains($value, 'uraian')
+            || str_contains($value, 'pekerjaan') || str_contains($value, 'nama') || str_contains($value, 'item')
+            || str_contains($value, 'deskripsi')) {
+            return 'name';
         }
 
         return null;

@@ -17,10 +17,9 @@
                 <span>Konversi Sheet HPS ke Template DPP</span>
             </h1>
             <p class="text-xs md:text-sm text-slate-500 mt-1">
-                Unggah berkas berisi sheet <strong class="text-sky-700">HPS</strong>. Sistem membaca harga satuan HPS, menghitung
-                <strong class="text-sky-700">DPP / harga dasar</strong> (harga satuan dibagi 1,11 bila sudah termasuk PPN),
-                lalu menyusunnya menjadi berkas template dengan kolom:
-                <span class="font-semibold text-slate-700">Jenis Barang/Jasa, Satuan, Vol, Harga, Pajak(%), Keterangan, Kunci</span>.
+                Unggah berkas berisi sheet <strong class="text-sky-700">HPS</strong>. Harga satuan HPS dikonversi menjadi
+                <strong class="text-sky-700">DPP</strong> (dibagi 1,11) sesuai kebutuhan kolom DPP di SPSE.
+                Hasilnya ditulis ke <strong class="text-sky-700">template resmi SPSE</strong> (<span class="font-mono text-slate-600">template-rincian.xlsx</span>) sehingga siap diunggah.
             </p>
         </div>
 
@@ -34,7 +33,7 @@
         <!-- Main Upload Form -->
         <div class="lg:col-span-2">
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8">
-                <form action="{{ route('hps.convert') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
+                <form action="{{ route('hps.convert') }}" method="POST" enctype="multipart/form-data" class="space-y-6" data-download="true">
                     @csrf
 
                     <!-- 1. Berkas HPS -->
@@ -91,10 +90,35 @@
                             <input type="checkbox" name="divide_ppn" value="1" x-model="dividePpn"
                                    class="mt-1 rounded text-sky-600 focus:ring-sky-500 border-slate-300">
                             <div class="text-xs">
-                                <div class="font-bold text-slate-800">Harga HPS sudah termasuk PPN (hitung DPP otomatis)</div>
+                                <div class="font-bold text-slate-800">Hitung DPP: bagi harga HPS dengan 1,11</div>
                                 <p class="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                                    Jika dicentang, kolom <strong>Harga</strong> dihitung dari harga satuan HPS <strong>dibagi 1,11</strong> (DPP).
-                                    Jika tidak dicentang, harga disalin apa adanya dan pajak diisi 0.
+                                    <strong>Biarkan dicentang</strong> karena SPSE meminta nilai DPP. Pastikan nilai ini dipaste ke kolom
+                                    <strong>DPP</strong> SPSE dan tidak dihitung PPN ulang, agar PPN tidak terpotong dua kali.
+                                </p>
+                            </div>
+                        </label>
+
+                        <label class="relative flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 bg-white shadow-sm cursor-pointer hover:border-sky-500 transition-all">
+                            <input type="checkbox" name="include_tax_label" value="1" x-model="includeTaxLabel"
+                                   class="mt-1 rounded text-sky-600 focus:ring-sky-500 border-slate-300">
+                            <div class="text-xs">
+                                <div class="font-bold text-slate-800">Isi kolom Pajak(%) dengan tarif PPN</div>
+                                <p class="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                                    Kolom <strong>Pajak(%)</strong> diisi nilainya sebagai penanda bahwa harga sudah dikonversi ke DPP.
+                                </p>
+                            </div>
+                        </label>
+
+                        <label class="relative flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 bg-white shadow-sm cursor-pointer hover:border-slate-400 transition-all">
+                            <input type="hidden" name="match_hps_total" value="0">
+                            <input type="checkbox" name="match_hps_total" value="1" x-model="matchHpsTotal"
+                                   class="mt-1 rounded text-slate-600 focus:ring-slate-500 border-slate-300">
+                            <div class="text-xs">
+                                <div class="font-bold text-slate-800">Samakan total baris dengan JUMLAH di HPS</div>
+                                <p class="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                                    Opsional. Bila kolom <strong>JUMLAH</strong> pada HPS tidak konsisten dengan kolom VOLUME,
+                                    opsi ini menyesuaikan harga agar total baris tetap sama. Akibatnya harga tidak lagi
+                                    murni <span class="font-mono">HPS &divide; 1,11</span>.
                                 </p>
                             </div>
                         </label>
@@ -104,9 +128,9 @@
                                 Persentase Pajak (%) untuk kolom Pajak(%)
                             </label>
                             <input type="number" step="0.01" min="0" max="100" name="tax_percent" id="tax_percent"
-                                   x-model="taxPercent" :disabled="!dividePpn"
+                                   x-model="taxPercent" :disabled="!includeTaxLabel"
                                    class="w-full sm:w-40 text-xs md:text-sm rounded-xl border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 focus:outline-none disabled:bg-slate-100">
-                            <p class="text-[11px] text-slate-500 mt-1">Nilai default 11. Diisi 0 otomatis bila DPP tidak dihitung.</p>
+                            <p class="text-[11px] text-slate-500 mt-1">Nilai default 11.</p>
                         </div>
                     </div>
 
@@ -114,7 +138,7 @@
                         <button type="reset" @click="reset()" class="px-5 py-2.5 rounded-xl text-xs md:text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors">
                             Bersihkan
                         </button>
-                        <button type="submit" x-ref="submitBtn" @click="submitting = true"
+                        <button type="submit" @click="submitForm($event)"
                                 class="inline-flex items-center gap-2 px-6 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs md:text-sm font-bold shadow-lg shadow-sky-600/30 transition-all hover:-translate-y-0.5 disabled:opacity-60">
                             <i data-lucide="sparkles" class="w-4 h-4"></i>
                             <span x-text="submitting ? 'Memproses...' : 'Proses & Unduh Template'"></span>
@@ -127,11 +151,16 @@
         <!-- Sidebar Helper -->
         <div class="space-y-6">
             <div class="bg-gradient-to-br from-sky-900 to-slate-950 rounded-2xl p-6 text-white border border-sky-700/50 shadow-lg space-y-4">
-                <div class="flex items-center gap-2.5 text-sky-300 font-bold text-sm">
-                    <i data-lucide="table" class="w-5 h-5"></i>
-                    <span>Susunan Kolom Keluaran</span>
+                <div class="flex items-center gap-2.5 text-white font-bold text-sm">
+                    <i data-lucide="table" class="w-5 h-5 text-sky-300"></i>
+                    <span>Template Resmi SPSE</span>
                 </div>
-                <ul class="text-xs text-sky-100 space-y-2.5">
+                <p class="text-xs text-slate-200 leading-relaxed">
+                    Berkas keluaran memakai template resmi SPSE <span class="font-mono text-white">template-rincian.xlsx</span> (sheet
+                    <span class="font-mono text-white">rincian-hps</span>). Header, format, dan dropdown kolom Kunci milik SPSE dipertahankan,
+                    data hasil konversi hanya ditambahkan mulai baris kedua.
+                </p>
+                <ul class="text-xs text-slate-200 space-y-2.5">
                     <li class="flex items-start gap-2">
                         <i data-lucide="check" class="w-3.5 h-3.5 text-sky-400 mt-0.5 shrink-0"></i>
                         <span><strong class="text-white font-bold">Jenis Barang/Jasa</strong> &mdash; diambil dari uraian / nama item HPS</span>
@@ -142,7 +171,7 @@
                     </li>
                     <li class="flex items-start gap-2">
                         <i data-lucide="check" class="w-3.5 h-3.5 text-sky-400 mt-0.5 shrink-0"></i>
-                        <span><strong class="text-white font-bold">Vol</strong> &mdash; disalin dari volume HPS (default 1)</span>
+                        <span><strong class="text-white font-bold">Vol</strong> &mdash; volume HPS, dibulatkan 2 desimal</span>
                     </li>
                     <li class="flex items-start gap-2">
                         <i data-lucide="check" class="w-3.5 h-3.5 text-sky-400 mt-0.5 shrink-0"></i>
@@ -150,7 +179,7 @@
                     </li>
                     <li class="flex items-start gap-2">
                         <i data-lucide="check" class="w-3.5 h-3.5 text-sky-400 mt-0.5 shrink-0"></i>
-                        <span><strong class="text-white font-bold">Pajak(%)</strong> &mdash; 11 bila PPN dihitung, selain itu 0</span>
+                        <span><strong class="text-white font-bold">Pajak(%)</strong> &mdash; tarif PPN sebagai penanda (11)</span>
                     </li>
                     <li class="flex items-start gap-2">
                         <i data-lucide="check" class="w-3.5 h-3.5 text-sky-400 mt-0.5 shrink-0"></i>
@@ -158,7 +187,7 @@
                     </li>
                     <li class="flex items-start gap-2">
                         <i data-lucide="check" class="w-3.5 h-3.5 text-sky-400 mt-0.5 shrink-0"></i>
-                        <span><strong class="text-white font-bold">Kunci</strong> &mdash; kosong, siap diisi manual</span>
+                        <span><strong class="text-white font-bold">Kunci</strong> &mdash; dropdown SPSE (TRUE/FALSE), siap diisi manual</span>
                     </li>
                 </ul>
             </div>
@@ -173,6 +202,8 @@
                     <li>Baris <em>Total</em>, <em>Sub Total</em>, dan <em>Rekapitulasi</em> otomatis dilewati.</li>
                     <li>Bila kolom harga satuan kosong namun kolom jumlah terisi, harga satuan dihitung dari jumlah dibagi volume.</li>
                     <li>Kolom Keterangan dan Kunci dibiarkan kosong agar dapat diisi sesuai kebutuhan dokumen Anda.</li>
+                    <li>Kolom Harga berisi DPP. Paste ke kolom <strong>DPP</strong> SPSE dan jangan hitung PPN ulang agar PPN tidak terpotong dua kali.</li>
+                    <li>SPSE membulatkan volume ke 2 desimal. Aktifkan opsi <strong>Samakan total dengan HPS</strong> agar total di SPSE tepat sama dengan total HPS.</li>
                 </ul>
             </div>
         </div>
@@ -187,10 +218,25 @@ function hpsConverter() {
         fileSize: '',
         fileExt: '',
         dividePpn: true,
+        includeTaxLabel: true,
+        matchHpsTotal: false,
         taxPercent: 11,
         submitting: false,
-        handleFileSelect(event) {
-            const file = event.target.files[0];
+        submitForm(event) {
+            const form = event.target.closest('form');
+            if (!form) return;
+
+            // Biarkan validasi HTML5 berjalan lebih dulu.
+            if (typeof form.checkValidity === 'function' && !form.checkValidity()) {
+                return;
+            }
+
+            this.submitting = true;
+            setTimeout(() => {
+                this.submitting = false;
+            }, 5000);
+        },
+        handleFileSelect(event) {            const file = event.target.files[0];
             if (file) {
                 this.fileName = file.name;
                 const ext = file.name.split('.').pop().toLowerCase();
@@ -206,6 +252,8 @@ function hpsConverter() {
             this.fileSize = '';
             this.fileExt = '';
             this.dividePpn = true;
+            this.includeTaxLabel = true;
+            this.matchHpsTotal = false;
             this.taxPercent = 11;
             this.submitting = false;
         }
