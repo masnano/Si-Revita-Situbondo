@@ -78,7 +78,7 @@ class RpdBreakdownService
                 $r['harga_satuan'] = $tot;
                 $r['total'] = $tot;
                 $r['toko'] = $isPerencanaan ? 'Tim Teknis Perencana Swakelola' : 'Tim Teknis Pengawas Swakelola';
-                $r['metode'] = $tot > 5000000 ? 'belanja_transfer' : 'belanja_tunai';
+                $r['metode'] = 'belanja_tunai';
                 $expandedRows[] = $r;
                 continue;
             }
@@ -146,6 +146,11 @@ class RpdBreakdownService
                 $expandedRows[] = $r;
             }
         }
+
+        // PENTING: Terapkan batas maksimal pencairan termin (Ceiling)
+        // Jika Termin 1 (70%) pagunya misalnya 390 juta, total pecahan bahan MAKSIMAL hanya 390 juta dan TIDAK BOLEH MINUS.
+        $targetTermin = $this->determineTargetTermin($options);
+        $expandedRows = $this->normalizeBreakdownToDisbursementCeiling($expandedRows, $project, $targetTermin, $termStage, $options);
 
         // Susun urutan baris sesuai SOP Revitalisasi & Ketentuan Pos Belanja:
         // 1. Biaya Perencanaan diletakkan DIAWAL (setelah pencairan 70%)
@@ -331,6 +336,9 @@ class RpdBreakdownService
                 // Jika masih ada item yang belum diposting, status dokumen adalah 'analyzed'
                 'status' => $unpostedCount > 0 ? 'analyzed' : 'posted_to_bku',
             ]);
+
+            // Pastikan akumulasi prosentase pajak terkontrol dan tidak melebihi rentang 6 s.d 7 %
+            $this->normalizeDocumentTaxPercentage($document, 0.06, 0.07);
 
             // Jika opsi use_ai aktif, variasikan dan sempurnakan item menggunakan AI / Smart Engine
             if (!empty($options['use_ai'])) {
@@ -575,7 +583,7 @@ class RpdBreakdownService
                             'tanggal' => $this->calculateProgressiveDate($options['default_date'] ?? now()->format('Y-m-d'), count($results) + 1, $category),
                             'toko' => null,
                             'npwp' => null,
-                            'metode' => $amount > 5000000 ? 'Transfer Bank' : 'Kas Tunai',
+                            'metode' => 'Kas Tunai',
                         ];
                     }
                 }
@@ -611,7 +619,7 @@ class RpdBreakdownService
                             'tanggal' => $options['default_date'] ?? now()->format('Y-m-d'),
                             'toko' => 'Penyedia Sewa Peralatan Situbondo',
                             'npwp' => null,
-                            'metode' => $amount > 5000000 ? 'Transfer Bank' : 'Kas Tunai',
+                            'metode' => 'Kas Tunai',
                             'room_name' => $currentParent,
                         ];
                     }
@@ -671,7 +679,7 @@ class RpdBreakdownService
                             'tanggal' => $isPengawasan ? null : ($options['default_date'] ?? now()->format('Y-m-d')),
                             'toko' => $itemSupplier,
                             'npwp' => null,
-                            'metode' => $amount > 5000000 ? 'Transfer Bank' : 'Kas Tunai',
+                            'metode' => 'Kas Tunai',
                             'room_name' => null,
                         ];
                     }
@@ -706,8 +714,15 @@ class RpdBreakdownService
             $numbers = $this->extractCurrencyNumbersFromText($t);
             if (empty($numbers)) continue;
 
-            $total = end($numbers);
-            if ($total <= 0) continue;
+            $rawTotal = end($numbers);
+            if ($rawTotal <= 0) continue;
+
+            $targetTermin = $this->determineTargetTermin($options);
+            $total = match ($targetTermin) {
+                1 => round($rawTotal * 0.70, 2),
+                2 => round($rawTotal * 0.30, 2),
+                default => $rawTotal,
+            };
 
             $results[] = [
                 'uraian' => $uraian,
@@ -721,7 +736,7 @@ class RpdBreakdownService
                 'tanggal' => null,
                 'toko' => null,
                 'npwp' => null,
-                'metode' => $total > 5000000 ? 'Transfer Bank' : 'Kas Tunai',
+                'metode' => 'Kas Tunai',
             ];
         }
 
@@ -837,21 +852,27 @@ class RpdBreakdownService
             $isPerencanaan = str_contains($uLower, 'perencanaan') && !str_contains($uLower, 'pengawasan');
             $isPengawasan = str_contains($uLower, 'pengawasan') && !str_contains($uLower, 'perencanaan');
 
-            if ($targetTermin === 1 && $isPengawasan && isset($cols['termin_1']) && $valT1 == 0) {
-                continue;
+            if ($targetTermin === 1 && $isPengawasan) {
+                continue; // Biaya Pengawasan tidak dicairkan pada Termin 1
             }
-            if ($targetTermin === 2 && $isPerencanaan && isset($cols['termin_2']) && $valT2 == 0) {
-                continue;
+            if ($targetTermin === 2 && $isPerencanaan) {
+                continue; // Biaya Perencanaan tidak dicairkan pada Termin 2
             }
 
             $hasTerminCols = isset($cols['termin_1']) || isset($cols['termin_2']);
 
             if (!$hasTerminCols) {
-                $amount = $valTot > 0 ? $valTot : round($vol * $hargaSatuan, 2);
+                if ($targetTermin === 1) {
+                    $amount = $isPerencanaan ? ($valTot > 0 ? $valTot : round($vol * $hargaSatuan, 2)) : round(($valTot > 0 ? $valTot : ($vol * $hargaSatuan)) * 0.70, 2);
+                } elseif ($targetTermin === 2) {
+                    $amount = $isPengawasan ? ($valTot > 0 ? $valTot : round($vol * $hargaSatuan, 2)) : round(($valTot > 0 ? $valTot : ($vol * $hargaSatuan)) * 0.30, 2);
+                } else {
+                    $amount = $valTot > 0 ? $valTot : round($vol * $hargaSatuan, 2);
+                }
             } else {
                 $amount = match ($targetTermin) {
-                    1 => isset($cols['termin_1']) ? ($valT1 > 0 ? $valT1 : ($valT2 > 0 ? 0 : round($valTot * 0.70, 2))) : ($valTot > 0 ? round($valTot * 0.70, 2) : ($hargaSatuan > 0 ? round($vol * $hargaSatuan * 0.70, 2) : $valT2)),
-                    2 => isset($cols['termin_2']) ? ($valT2 > 0 ? $valT2 : ($valT1 > 0 ? 0 : round($valTot * 0.30, 2))) : ($valTot > 0 ? round($valTot * 0.30, 2) : ($hargaSatuan > 0 ? round($vol * $hargaSatuan * 0.30, 2) : $valT1)),
+                    1 => $isPengawasan ? 0 : (isset($cols['termin_1']) && $valT1 > 0 ? $valT1 : ($isPerencanaan ? ($valTot > 0 ? $valTot : ($valT1 ?: $valT2)) : ($valT2 > 0 ? 0 : round($valTot * 0.70, 2)))),
+                    2 => $isPerencanaan ? 0 : (isset($cols['termin_2']) && $valT2 > 0 ? $valT2 : ($isPengawasan ? ($valTot > 0 ? $valTot : ($valT2 ?: $valT1)) : ($valT1 > 0 ? 0 : round($valTot * 0.30, 2)))),
                     3 => $valTot > 0 ? $valTot : ($valT1 + $valT2),
                     default => $valTot > 0 ? $valTot : ($valT1 + $valT2 > 0 ? $valT1 + $valT2 : round($vol * $hargaSatuan, 2)),
                 };
@@ -1068,8 +1089,8 @@ class RpdBreakdownService
                 $valTot = $jumlahCol !== null ? $this->parseNumeric($row[$jumlahCol] ?? 0) : 0;
 
                 $amount = match ($targetTermin) {
-                    1 => $termin1Col !== null ? $valT1 : ($valTot ?: $valT2),
-                    2 => $termin2Col !== null ? $valT2 : ($valTot ?: $valT1),
+                    1 => $termin1Col !== null && $valT1 > 0 ? $valT1 : ($valTot > 0 ? round($valTot * 0.70, 2) : $valT2),
+                    2 => $termin2Col !== null && $valT2 > 0 ? $valT2 : ($valTot > 0 ? round($valTot * 0.30, 2) : $valT1),
                     3 => $termin3Col !== null ? $valT3 : ($valTot ?: $valT1),
                     default => $valTot > 0 ? $valTot : ($valT1 + $valT2 + $valT3),
                 };
@@ -1095,7 +1116,7 @@ class RpdBreakdownService
                             'tanggal' => $this->calculateProgressiveDate($options['default_date'] ?? now()->format('Y-m-d'), count($results) + 1, $category),
                             'toko' => null,
                             'npwp' => null,
-                            'metode' => $amount > 5000000 ? 'Transfer Bank' : 'Kas Tunai',
+                            'metode' => 'Kas Tunai',
                             'room_name' => $currentParent,
                         ];
                     }
@@ -1110,8 +1131,8 @@ class RpdBreakdownService
                 $valTot = $jumlahCol !== null ? $this->parseNumeric($row[$jumlahCol] ?? 0) : 0;
 
                 $amount = match ($targetTermin) {
-                    1 => $termin1Col !== null ? $valT1 : $valTot,
-                    2 => $termin2Col !== null ? $valT2 : 0,
+                    1 => $termin1Col !== null && $valT1 > 0 ? $valT1 : round($valTot * 0.70, 2),
+                    2 => $termin2Col !== null && $valT2 > 0 ? $valT2 : round($valTot * 0.30, 2),
                     default => $valTot > 0 ? $valTot : ($valT1 + $valT2),
                 };
 
@@ -1140,7 +1161,7 @@ class RpdBreakdownService
                             'tanggal' => $options['default_date'] ?? now()->format('Y-m-d'),
                             'toko' => 'Penyedia Sewa Peralatan Situbondo',
                             'npwp' => null,
-                            'metode' => $amount > 5000000 ? 'Transfer Bank' : 'Kas Tunai',
+                            'metode' => 'Kas Tunai',
                             'room_name' => $currentParent,
                         ];
                     }
@@ -1163,16 +1184,24 @@ class RpdBreakdownService
                 $valT2 = $termin2Col !== null ? $this->parseNumeric($row[$termin2Col] ?? 0) : 0;
                 $valTot = $jumlahCol !== null ? $this->parseNumeric($row[$jumlahCol] ?? 0) : 0;
 
+                $isPerencanaan = str_contains($cLower, 'perencanaan') && !str_contains($cLower, 'pengawasan');
+                $isPengawasan = str_contains($cLower, 'pengawasan') && !str_contains($cLower, 'perencanaan');
+                $isPengelolaan = str_contains($cLower, 'pengelolaan') && !$isPerencanaan && !$isPengawasan;
+
+                if ($targetTermin === 1 && $isPengawasan) {
+                    continue; // Biaya Pengawasan tidak dicairkan pada Termin 1
+                }
+                if ($targetTermin === 2 && $isPerencanaan) {
+                    continue; // Biaya Perencanaan tidak dicairkan pada Termin 2
+                }
+
                 $amount = match ($targetTermin) {
-                    1 => $termin1Col !== null ? $valT1 : ($valTot > 0 && $valT2 == 0 ? $valTot : 0),
-                    2 => $termin2Col !== null ? $valT2 : 0,
+                    1 => $isPengawasan ? 0 : ($termin1Col !== null && $valT1 > 0 ? $valT1 : ($isPerencanaan ? ($valTot > 0 ? $valTot : $valT1) : round($valTot * 0.70, 2))),
+                    2 => $isPerencanaan ? 0 : ($termin2Col !== null && $valT2 > 0 ? $valT2 : ($isPengawasan ? ($valTot > 0 ? $valTot : $valT2) : round($valTot * 0.30, 2))),
                     default => $valTot > 0 ? $valTot : ($valT1 + $valT2),
                 };
 
                 if ($amount > 0) {
-                    $isPerencanaan = str_contains($cLower, 'perencanaan');
-                    $isPengawasan = str_contains($cLower, 'pengawasan');
-                    $isPengelolaan = str_contains($cLower, 'pengelolaan') && !$isPerencanaan && !$isPengawasan;
                     $breakdownMode = $options['breakdown_mode'] ?? 'detailed';
 
                     if ($isPengelolaan && $breakdownMode === 'detailed') {
@@ -1205,7 +1234,7 @@ class RpdBreakdownService
                             'tanggal' => $isPengawasan ? null : ($options['default_date'] ?? now()->format('Y-m-d')),
                             'toko' => $itemSupplier,
                             'npwp' => null,
-                            'metode' => $amount > 5000000 ? 'Transfer Bank' : 'Kas Tunai',
+                            'metode' => 'Kas Tunai',
                             'room_name' => null,
                         ];
                     }
@@ -1398,9 +1427,23 @@ class RpdBreakdownService
             }
 
             $uClean = trim(preg_replace('/^[\s\-\–\—\d\.]*(?:[a-zA-Z0-9]\s*[\.\)\-\–\—\s]\s*)?/u', '', $uraian));
-            if (preg_match('/\bbiaya\s+perencanaan\b/i', $uClean) || (str_contains($uLower, 'perencanaan') && !str_contains($uLower, 'pengawasan'))) {
+            $isPerencanaan = preg_match('/\bbiaya\s+perencanaan\b/i', $uClean) || (str_contains($uLower, 'perencanaan') && !str_contains($uLower, 'pengawasan'));
+            $isPengawasan = preg_match('/\bbiaya\s+pengawasan\b/i', $uClean) || (str_contains($uLower, 'pengawasan') && !str_contains($uLower, 'perencanaan'));
+
+            $targetTermin = $this->determineTargetTermin($options);
+            if ($targetTermin === 1) {
+                if ($isPengawasan) continue;
+                $total = $isPerencanaan ? $total : round($total * 0.70, 2);
+                $volume = $isPerencanaan ? $volume : max(0.01, round($volume * 0.70, 2));
+            } elseif ($targetTermin === 2) {
+                if ($isPerencanaan) continue;
+                $total = $isPengawasan ? $total : round($total * 0.30, 2);
+                $volume = $isPengawasan ? $volume : max(0.01, round($volume * 0.30, 2));
+            }
+
+            if ($isPerencanaan) {
                 $uraian = 'Biaya Perencanaan';
-            } elseif (preg_match('/\bbiaya\s+pengawasan\b/i', $uClean) || (str_contains($uLower, 'pengawasan') && !str_contains($uLower, 'perencanaan'))) {
+            } elseif ($isPengawasan) {
                 $uraian = 'Biaya Pengawasan';
             }
 
@@ -1452,6 +1495,260 @@ class RpdBreakdownService
     }
 
     /**
+     * Menghitung batas maksimal pencairan dana (Ceiling) berdasarkan tahap/termin dan nilai kontrak proyek.
+     * Contoh: Termin 1 70% dari kontrak Rp 557 juta = Rp 389.9 juta (~390 juta).
+     */
+    public function determineMaxDisbursement(RevitalizationProject $project, int|string $targetTermin, ?string $termStage = null, array $options = []): float
+    {
+        $contractAmount = (float) ($project->contract_amount ?? 0);
+        if ($contractAmount <= 0) {
+            return 0.0;
+        }
+
+        $stageLower = strtolower($termStage ?? '');
+
+        if ($targetTermin === 1 || str_contains($stageLower, 'tahap 1') || str_contains($stageLower, 'termin 1') || str_contains($stageLower, '70%')) {
+            return round($contractAmount * 0.70, 2);
+        }
+
+        if ($targetTermin === 2 || str_contains($stageLower, 'tahap 2') || str_contains($stageLower, 'termin 2') || str_contains($stageLower, '30%')) {
+            $defaultTermin2 = round($contractAmount * 0.30, 2);
+            $postedTerm1 = Transaction::where('project_id', $project->id)
+                ->where('type', 'penerimaan_dana')
+                ->where(function ($q) {
+                    $q->where('description', 'like', '%Tahap 1%')
+                      ->orWhere('description', 'like', '%Termin 1%')
+                      ->orWhere('notes', 'like', '%Tahap 1%')
+                      ->orWhere('notes', 'like', '%Termin 1%');
+                })
+                ->sum('amount');
+
+            if ($postedTerm1 > 0) {
+                $remaining = max(0, $contractAmount - $postedTerm1);
+                return min($defaultTermin2, $remaining);
+            }
+
+            return $defaultTermin2;
+        }
+
+        if ($targetTermin === 'total' || str_contains($stageLower, 'semua') || str_contains($stageLower, '100%')) {
+            return $contractAmount;
+        }
+
+        return round($contractAmount * 0.70, 2);
+    }
+
+    /**
+     * Menjamin pemecahan RPD tidak minus dan total nominalnya MAKSIMAL sesuai pencairan termin.
+     * Jika Termin 1 (70%) pagunya 390 juta, total pecahan bahan dibatasi maksimal 390 juta.
+     */
+    public function normalizeBreakdownToDisbursementCeiling(array $rows, RevitalizationProject $project, int|string $targetTermin, string $termStage, array $options = []): array
+    {
+        $maxDisbursement = $this->determineMaxDisbursement($project, $targetTermin, $termStage, $options);
+        if ($maxDisbursement <= 0 || empty($rows)) {
+            // Pastikan tidak ada baris yang minus
+            foreach ($rows as &$row) {
+                $row['total'] = max(0, (float)($row['total'] ?? 0));
+                $row['volume'] = max(0.01, (float)($row['volume'] ?? 1));
+                $row['harga_satuan'] = max(0, (float)($row['harga_satuan'] ?? 0));
+            }
+            return $rows;
+        }
+
+        $totalSum = 0;
+        foreach ($rows as $r) {
+            $totalSum += (float)($r['total'] ?? 0);
+        }
+
+        if ($totalSum > $maxDisbursement) {
+            $fixedTotal = 0;
+            $variableIndices = [];
+
+            foreach ($rows as $idx => $r) {
+                $uLower = strtolower(trim($r['uraian'] ?? ''));
+                $isPerencanaan = str_contains($uLower, 'perencanaan') && !str_contains($uLower, 'pengawasan');
+                $isPengawasan = str_contains($uLower, 'pengawasan') && !str_contains($uLower, 'perencanaan');
+
+                if ($isPerencanaan || $isPengawasan) {
+                    $fixedTotal += (float)($r['total'] ?? 0);
+                } else {
+                    $variableIndices[] = $idx;
+                }
+            }
+
+            $targetVariable = max(0, $maxDisbursement - $fixedTotal);
+            $currentVariableTotal = 0;
+            foreach ($variableIndices as $vIdx) {
+                $currentVariableTotal += (float)($rows[$vIdx]['total'] ?? 0);
+            }
+
+            if ($currentVariableTotal > 0 && $targetVariable > 0) {
+                $scaleRatio = $targetVariable / $currentVariableTotal;
+                $runningVariableSum = 0;
+                $lastVIdx = end($variableIndices);
+
+                foreach ($variableIndices as $vIdx) {
+                    if ($vIdx === $lastVIdx) {
+                        $newItemTotal = max(0, round($targetVariable - $runningVariableSum, 0));
+                    } else {
+                        $newItemTotal = max(0, round((float)$rows[$vIdx]['total'] * $scaleRatio, 0));
+                        $runningVariableSum += $newItemTotal;
+                    }
+
+                    $rows[$vIdx]['total'] = $newItemTotal;
+                    $origPrice = (float)($rows[$vIdx]['harga_satuan'] ?? 0);
+
+                    if ($origPrice > 0) {
+                        $newVol = round($newItemTotal / $origPrice, 2);
+                        if ($newVol < 0.01) {
+                            $rows[$vIdx]['volume'] = 1.0;
+                            $rows[$vIdx]['harga_satuan'] = $newItemTotal;
+                        } else {
+                            $rows[$vIdx]['volume'] = $newVol;
+                            $rows[$vIdx]['harga_satuan'] = round($newItemTotal / $newVol, 2);
+                        }
+                    } else {
+                        $rows[$vIdx]['volume'] = 1.0;
+                        $rows[$vIdx]['harga_satuan'] = $newItemTotal;
+                    }
+                }
+            }
+        }
+
+        // Validasi ekstra: pastikan tidak ada baris yang minus
+        foreach ($rows as &$row) {
+            $row['total'] = max(0, (float)($row['total'] ?? 0));
+            $row['volume'] = max(0.01, (float)($row['volume'] ?? 1));
+            $row['harga_satuan'] = max(0, (float)($row['harga_satuan'] ?? 0));
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Pastikan total akumulasi prosentase pajak pada dokumen RPD terkontrol
+     * dan tidak melebihi rentang 6 s.d 7 % dari total pagu/anggaran dokumen.
+     *
+     * @param RpdDocument $document
+     * @param float $minRate Batas bawah ideal (default 0.06 = 6.0%)
+     * @param float $maxRate Batas atas maksimal (default 0.07 = 7.0%)
+     * @return void
+     */
+    public function normalizeDocumentTaxPercentage(RpdDocument $document, float $minRate = 0.06, float $maxRate = 0.07): void
+    {
+        $items = $document->items()->get();
+        $totalBudget = (float) $items->sum('total_price');
+
+        if ($totalBudget <= 0 || $items->isEmpty()) {
+            return;
+        }
+
+        // 1. Bersihkan pajak pada item non-bahan dan non-honor (alat/operasional/upah tidak boleh kena PPN/PPh22)
+        foreach ($items as $item) {
+            $uLower = strtolower($item->item_name);
+            $isHonor = str_contains($uLower, 'perencanaan')
+                || str_contains($uLower, 'pengawasan')
+                || str_contains($uLower, 'honor')
+                || str_contains($uLower, 'narasumber');
+
+            if (!$isHonor && $item->category !== 'bahan' && $item->has_tax) {
+                $item->update([
+                    'has_tax' => false,
+                    'tax_ppn' => 0,
+                    'tax_pph21' => 0,
+                    'tax_pph22' => 0,
+                    'tax_total' => 0,
+                    'net_amount' => $item->total_price,
+                ]);
+
+                if ($item->transaction_id) {
+                    Transaction::where('id', $item->transaction_id)->update([
+                        'has_tax' => false,
+                        'tax_type' => null,
+                        'tax_ppn' => 0,
+                        'tax_pph21' => 0,
+                        'tax_pph22' => 0,
+                        'tax_pph23' => 0,
+                        'tax_pph4_2' => 0,
+                        'tax_total' => 0,
+                        'net_amount' => $item->total_price,
+                        'tax_ntpn' => null,
+                        'tax_payment_date' => null,
+                        'tax_status' => 'none',
+                    ]);
+                }
+            }
+        }
+
+        // 2. Cek rasio pajak aktual
+        $items = $document->items()->get();
+        $currentTaxTotal = (float) $items->sum('tax_total');
+        $taxPercentage = $currentTaxTotal / $totalBudget;
+
+        // 3. Jika persentase pajak melebihi $maxRate (misal > 7.0%), batasi/capping pajak bahan
+        if ($taxPercentage > $maxRate) {
+            $targetTax = $totalBudget * $maxRate;
+
+            // Prioritaskan material pabrikan (semen, besi, atap, cat) tetap kena pajak
+            // Material lokal (pasir kali, bata merah bakar lokal) atau bernominal kecil dinonaktifkan pajaknya lebih dulu
+            $taxableMaterials = $items->where('category', 'bahan')
+                ->where('has_tax', true)
+                ->sortBy(function ($it) {
+                    $name = strtolower($it->item_name);
+                    $isLocal = str_contains($name, 'pasir') || str_contains($name, 'bata') || str_contains($name, 'tanah') || str_contains($name, 'batu');
+                    return ($isLocal ? 0 : 1) * 1000000000 + $it->total_price;
+                });
+
+            foreach ($taxableMaterials as $bItem) {
+                if ($currentTaxTotal <= $targetTax) {
+                    break;
+                }
+
+                $taxToRemove = (float) $bItem->tax_total;
+                $bItem->update([
+                    'has_tax' => false,
+                    'tax_ppn' => 0,
+                    'tax_pph21' => 0,
+                    'tax_pph22' => 0,
+                    'tax_total' => 0,
+                    'net_amount' => $bItem->total_price,
+                ]);
+
+                if ($bItem->transaction_id) {
+                    Transaction::where('id', $bItem->transaction_id)->update([
+                        'has_tax' => false,
+                        'tax_type' => null,
+                        'tax_ppn' => 0,
+                        'tax_pph21' => 0,
+                        'tax_pph22' => 0,
+                        'tax_total' => 0,
+                        'net_amount' => $bItem->total_price,
+                        'tax_ntpn' => null,
+                        'tax_payment_date' => null,
+                        'tax_status' => 'none',
+                    ]);
+                }
+
+                $currentTaxTotal -= $taxToRemove;
+            }
+        }
+
+        // 4. Rekalkulasi dan simpan ringkasan total dokumen RPD
+        $freshItems = $document->items()->get();
+        $totalTaxEstimated = $freshItems->sum('tax_total');
+        $totalNetEstimated = $freshItems->sum('net_amount');
+
+        $document->update([
+            'total_tax_estimated' => $totalTaxEstimated,
+            'total_net_estimated' => $totalNetEstimated,
+            'total_materials' => $freshItems->where('category', 'bahan')->sum('total_price'),
+            'total_wages' => $freshItems->where('category', 'upah')->sum('total_price'),
+            'total_equipment' => $freshItems->where('category', 'alat')->sum('total_price'),
+            'total_operational' => $freshItems->where('category', 'operasional')->sum('total_price'),
+        ]);
+    }
+
+    /**
      * Ekstrak seluruh token angka mata uang dari baris teks.
      */
     protected function extractCurrencyNumbersFromText(string $text): array
@@ -1493,14 +1790,16 @@ class RpdBreakdownService
         } elseif (count($numbers) === 2) {
             $amountT1 = $numbers[0];
             $amountTot = $numbers[1];
+            $amountT2 = max(0, $amountTot - $amountT1);
         } elseif (count($numbers) === 1) {
             $amountTot = $numbers[0];
-            $amountT1 = $amountTot;
+            $amountT1 = round($amountTot * 0.70, 2);
+            $amountT2 = round($amountTot * 0.30, 2);
         }
 
         return match ($targetTermin) {
-            1 => $amountT1 > 0 ? $amountT1 : ($amountTot ?: $amountT2),
-            2 => $amountT2 > 0 ? $amountT2 : ($amountTot ?: $amountT1),
+            1 => $amountT1 > 0 ? $amountT1 : round($amountTot * 0.70, 2),
+            2 => $amountT2 > 0 ? $amountT2 : round($amountTot * 0.30, 2),
             default => $amountTot > 0 ? $amountTot : ($amountT1 + $amountT2),
         };
     }
@@ -1608,10 +1907,10 @@ class RpdBreakdownService
             );
         }
 
-        // 5. Metode Pembayaran BKU (Kas Tunai vs Transfer Bank)
-        $paymentMethod = $row['metode'] ? (
-            str_contains(strtolower($row['metode']), 'bank') || str_contains(strtolower($row['metode']), 'transfer') ? 'belanja_transfer' : 'belanja_tunai'
-        ) : ($totalPrice > 5000000 ? 'belanja_transfer' : 'belanja_tunai');
+        // 5. Metode Pembayaran BKU (Semua transaksi dilakukan Cash / Kas Tunai karena uang ditarik per pencairan ke kas)
+        $paymentMethod = $row['metode'] && (str_contains(strtolower($row['metode']), 'bank') || str_contains(strtolower($row['metode']), 'transfer'))
+            ? 'belanja_transfer'
+            : 'belanja_tunai';
 
         // 6. Penghitungan Pajak Sesuai Ketentuan Perpajakan (PMK 59/2022 & PMK 168/2023)
         // Belanja Barang/Bahan >= Rp 2.000.000 kena PPN 11% & PPh 22 1.5%
@@ -1628,7 +1927,25 @@ class RpdBreakdownService
         $taxPph21 = 0;
         $hasTax = false;
 
-        if ($category === 'bahan' || $category === 'alat' || $category === 'operasional') {
+        $uLower = strtolower($uraian);
+        $isHonorOrJasa = str_contains($uLower, 'perencanaan')
+            || str_contains($uLower, 'pengawasan')
+            || str_contains($uLower, 'honor')
+            || str_contains($uLower, 'narasumber');
+
+        if ($isHonorOrJasa) {
+            // Honorarium Tim Teknis Perencana / Pengawas / Panitia Swakelola:
+            // - Bukan belanja pengadaan barang, melainkan jasa orang pribadi/tim teknis
+            // - TIDAK KENA PPN (Bukan objek PPN) dan TIDAK KENA PPh 22 (Bukan belanja barang dari toko)
+            // - Objek Pajak: PPh Pasal 21 (Honorarium Jasa Orang Pribadi Swakelola sebesar 5%)
+            if ($totalPrice > 0) {
+                $hasTax = true;
+                $taxPpn = 0;
+                $taxPph22 = 0;
+                $taxPph21 = round($totalPrice * 0.05, 2);
+            }
+        } elseif ($category === 'bahan') {
+            // Belanja bahan material fisik dari toko rekanan ber-PKP >= Rp 2.000.000 kena PPN 11% & PPh 22 1,5%
             if ($totalPrice >= 2000000) {
                 $hasTax = true;
                 $dpp = round($totalPrice / 1.11, 2);
@@ -1652,6 +1969,13 @@ class RpdBreakdownService
                 $hasTax = false;
                 $taxPph21 = 0;
             }
+        } else {
+            // Operasional (konsumsi rapat, transport panitia, ATK) & Alat (ongkos angkut material):
+            // Bebas PPN 11% & PPh 22 pada swakelola revitalisasi
+            $hasTax = false;
+            $taxPpn = 0;
+            $taxPph22 = 0;
+            $taxPph21 = 0;
         }
 
         $taxTotal = $taxPpn + $taxPph22 + $taxPph21;
@@ -1819,7 +2143,7 @@ class RpdBreakdownService
                 'tanggal' => $defaultDate,
                 'toko' => $category === 'upah' ? 'Kelompok Tukang & Pekerja Swakelola' : $defaultStore,
                 'npwp' => null,
-                'metode' => $totalBudget > 5000000 ? 'Transfer Bank' : 'Kas Tunai',
+                'metode' => 'Kas Tunai',
                 'room_name' => $roomName,
             ]];
         }
@@ -1884,7 +2208,7 @@ class RpdBreakdownService
                 'tanggal' => $itemDate,
                 'toko' => $supplier,
                 'npwp' => null,
-                'metode' => $itemTotal > 5000000 ? 'Transfer Bank' : 'Kas Tunai',
+                'metode' => 'Kas Tunai',
                 'room_name' => $roomName,
             ];
         }
@@ -1949,7 +2273,7 @@ class RpdBreakdownService
                 'tanggal' => $itemDate,
                 'toko' => $supplier,
                 'npwp' => null,
-                'metode' => $itemTotal > 5000000 ? 'Transfer Bank' : 'Kas Tunai',
+                'metode' => 'Kas Tunai',
                 'room_name' => $roomName,
             ];
         }
@@ -2749,16 +3073,40 @@ class RpdBreakdownService
                     'day_offset' => 4,
                 ],
                 [
-                    'name' => 'Pengadaan Bahan Atap (Rangka Baja Ringan Galvalum & Genteng/Spandek)',
-                    'spec' => 'Rangka kuda-kuda baja ringan galvalum C75.75, reng 0.45, genteng pres/spandek SNI, nok bubung & sekrup roofing (1 paket pembelian lengkap)',
-                    'unit' => 'Paket',
-                    'ref_price' => 220000,
-                    'weight' => 0.23,
+                    'name' => 'Rangka Kuda-Kuda Baja Ringan C75.75 SNI',
+                    'spec' => 'Kanal C75 tebal 0.75mm panjang 6m SNI untuk rangka atap pelana ruang kelas',
+                    'unit' => 'Batang',
+                    'ref_price' => 120000,
+                    'weight' => 0.14,
                     'account_code' => '5.1.02.01',
                     'supplier' => $defaultStore,
                     'week' => 2,
                     'day_in_week' => 0,
                     'day_offset' => 8,
+                ],
+                [
+                    'name' => 'Reng Baja Ringan Galvalum 0.45 SNI',
+                    'spec' => 'Reng galvalum profil U tebal 0.45mm panjang 6m dudukan genteng atap ruang kelas',
+                    'unit' => 'Batang',
+                    'ref_price' => 45000,
+                    'weight' => 0.03,
+                    'account_code' => '5.1.02.01',
+                    'supplier' => $defaultStore,
+                    'week' => 2,
+                    'day_in_week' => 1,
+                    'day_offset' => 9,
+                ],
+                [
+                    'name' => 'Penutup Atap Genteng Karang Pilang & Nok Bubung',
+                    'spec' => 'Genteng pres Karang Pilang SNI, nok bubung & sekrup roofing pengikat atap ruang kelas',
+                    'unit' => 'Buah',
+                    'ref_price' => 5500,
+                    'weight' => 0.06,
+                    'account_code' => '5.1.02.01',
+                    'supplier' => $defaultStore,
+                    'week' => 2,
+                    'day_in_week' => 2,
+                    'day_offset' => 10,
                 ],
                 [
                     'name' => 'Plafon Kalsiboard 4mm & Rangka Hollow Galvanis',
@@ -2961,9 +3309,16 @@ class RpdBreakdownService
         $project = $document->project;
         $school = $document->school;
 
+        $targetTermin = $this->determineTargetTermin(['term_stage' => $document->term_stage]);
+        $maxDisbursement = $this->determineMaxDisbursement($project, $targetTermin, $document->term_stage);
+
         // Tanggal pencairan: tanggal inputan awal (planned_date paling awal)
         $disbursementDate = $document->items()->min('planned_date') ?: now()->format('Y-m-d');
-        $totalBudget = (float) ($document->total_budget > 0 ? $document->total_budget : $document->items()->sum('total_price'));
+        $totalItemsBudget = (float) $document->items()->sum('total_price');
+        $totalBudget = (float) ($document->total_budget > 0 ? $document->total_budget : $totalItemsBudget);
+
+        // SP2D Termin minimal sebesar total belanja atau sebesar pagu pencairan termin resmi (70%/30%)
+        $sp2dAmount = $maxDisbursement > 0 ? max($totalBudget, $maxDisbursement) : $totalBudget;
         $totalCashExpenses = (float) $document->items()->where('payment_method', 'belanja_tunai')->sum('total_price');
 
         $year = $project->fiscal_year ?? Carbon::parse($disbursementDate)->format('Y');
@@ -2985,7 +3340,8 @@ class RpdBreakdownService
         $existingReceipt = Transaction::where('project_id', $project->id)
             ->where('type', 'penerimaan_dana')
             ->where(function ($q) use ($document) {
-                $q->where('notes', 'like', "%RPD #{$document->id}%")
+                $q->where('rpd_document_id', $document->id)
+                  ->orWhere('notes', 'like', "%RPD #{$document->id}%")
                   ->orWhere('notes', 'like', "%RPD: {$document->title}%");
             })
             ->first();
@@ -2994,11 +3350,12 @@ class RpdBreakdownService
         $projectTitle = trim($project->title);
 
         if ($existingReceipt) {
-            // Jika total anggaran bertambah karena ada item baru, sinkronkan nominal SP2D masuk
-            if ($totalBudget > $existingReceipt->amount) {
-                $existingReceipt->update(['amount' => $totalBudget]);
-            }
-        } elseif ($totalBudget > 0) {
+            $existingReceipt->update([
+                'amount' => max($existingReceipt->amount, $sp2dAmount),
+                'rpd_document_id' => $document->id,
+                'transaction_date' => $disbursementDate,
+            ]);
+        } elseif ($sp2dAmount > 0) {
             do {
                 $sp2dNumber = sprintf('SP2D-REVITA/%s/%s/%04d', $year, $month, $counter++);
             } while (Transaction::where('transaction_number', $sp2dNumber)->exists());
@@ -3007,6 +3364,7 @@ class RpdBreakdownService
             $receipt = Transaction::create([
                 'school_id' => $school->id,
                 'project_id' => $project->id,
+                'rpd_document_id' => $document->id,
                 'budget_item_id' => null,
                 'transaction_number' => $sp2dNumber,
                 'transaction_date' => $disbursementDate,
@@ -3015,7 +3373,7 @@ class RpdBreakdownService
                 'description' => "Penerimaan Pencairan Dana {$document->term_stage} {$projectTitle} (Sumber Dana: {$fundingSource})",
                 'recipient_name' => $recipientName,
                 'recipient_address' => 'Pemerintah Kabupaten Situbondo',
-                'amount' => $totalBudget,
+                'amount' => $sp2dAmount,
                 'has_tax' => false,
                 'tax_status' => 'none',
                 'notes' => "Pencatatan Otomatis Saldo Masuk Pencairan RPD #{$document->id}: {$document->title}",
@@ -3028,16 +3386,18 @@ class RpdBreakdownService
         $existingWithdrawal = Transaction::where('project_id', $project->id)
             ->where('type', 'tarik_tunai')
             ->where(function ($q) use ($document) {
-                $q->where('notes', 'like', "%RPD #{$document->id}%")
+                $q->where('rpd_document_id', $document->id)
+                  ->orWhere('notes', 'like', "%RPD #{$document->id}%")
                   ->orWhere('notes', 'like', "%RPD: {$document->title}%");
             })
             ->first();
 
         if ($existingWithdrawal) {
-            // Jika total belanja tunai bertambah, sinkronkan nominal penarikan tunai
-            if ($totalCashExpenses > $existingWithdrawal->amount) {
-                $existingWithdrawal->update(['amount' => $totalCashExpenses]);
-            }
+            $existingWithdrawal->update([
+                'amount' => max($existingWithdrawal->amount, $totalCashExpenses),
+                'rpd_document_id' => $document->id,
+                'transaction_date' => $disbursementDate,
+            ]);
         } elseif ($totalCashExpenses > 0) {
             do {
                 $trkNumber = sprintf('TRK-REVITA/%s/%s/%04d', $year, $month, $counter++);
@@ -3045,6 +3405,7 @@ class RpdBreakdownService
             $withdrawal = Transaction::create([
                 'school_id' => $school->id,
                 'project_id' => $project->id,
+                'rpd_document_id' => $document->id,
                 'budget_item_id' => null,
                 'transaction_number' => $trkNumber,
                 'transaction_date' => $disbursementDate,
@@ -3114,6 +3475,7 @@ class RpdBreakdownService
                 $transaction = Transaction::create([
                     'school_id' => $school->id,
                     'project_id' => $project->id,
+                    'rpd_document_id' => $document->id,
                     'budget_item_id' => $item->budget_item_id,
                     'transaction_number' => $kwtNumber,
                     'transaction_date' => $item->planned_date,
@@ -3124,7 +3486,7 @@ class RpdBreakdownService
                     'recipient_address' => 'Kabupaten Situbondo',
                     'amount' => $item->total_price,
                     'has_tax' => $item->has_tax,
-                    'tax_type' => $item->has_tax ? ($item->tax_pph22 > 0 ? 'pph22_ppn' : ($item->tax_pph21 > 0 ? 'pph21' : 'ppn')) : null,
+                    'tax_type' => $item->has_tax ? ($item->tax_pph22 > 0 && $item->tax_ppn > 0 ? 'pph22_ppn' : ($item->tax_pph22 > 0 ? 'pph22' : ($item->tax_pph21 > 0 ? 'pph21' : ($item->tax_ppn > 0 ? 'ppn' : null)))) : null,
                     'tax_ppn' => $item->tax_ppn,
                     'tax_pph21' => $item->tax_pph21,
                     'tax_pph22' => $item->tax_pph22,
@@ -3167,24 +3529,41 @@ class RpdBreakdownService
         return DB::transaction(function () use ($document) {
             $deletedCount = 0;
 
-            // 1. Ambil ID transaksi belanja dari item-item dokumen RPD
+            // 1. Ambil transaksi yang terhubung langsung via rpd_document_id
+            $trxByIds = Transaction::where('rpd_document_id', $document->id)->pluck('id')->toArray();
+
+            // 2. Ambil ID transaksi belanja dari item-item dokumen RPD
             $itemTrxIds = $document->items()
                 ->whereNotNull('transaction_id')
                 ->pluck('transaction_id')
                 ->filter()
                 ->toArray();
 
-            // 2. Ambil transaksi otomatis (saldo masuk pencairan & tarik tunai) yang terkait dokumen RPD ini
+            // 3. Ambil nomor bukti BKU dari item-item dokumen RPD
+            $itemBkuNumbers = $document->items()
+                ->whereNotNull('bku_number')
+                ->pluck('bku_number')
+                ->filter()
+                ->toArray();
+            $trxByNumbers = !empty($itemBkuNumbers)
+                ? Transaction::where('project_id', $document->project_id)
+                    ->whereIn('transaction_number', $itemBkuNumbers)
+                    ->pluck('id')
+                    ->toArray()
+                : [];
+
+            // 4. Ambil transaksi otomatis (saldo masuk pencairan & tarik tunai) serta belanja via notes matching
             $autoTrxIds = Transaction::where('project_id', $document->project_id)
                 ->where(function ($q) use ($document) {
                     $q->where('notes', 'like', "%RPD #{$document->id}%")
                       ->orWhere('notes', 'like', "%RPD: {$document->title}%")
-                      ->orWhere('notes', 'like', "%Hasil Pecah Bahan RPD: {$document->title}%");
+                      ->orWhere('notes', 'like', "%Hasil Pecah Bahan RPD: {$document->title}%")
+                      ->orWhere('notes', 'like', "%{$document->title}%");
                 })
                 ->pluck('id')
                 ->toArray();
 
-            $allTrxIds = array_unique(array_merge($itemTrxIds, $autoTrxIds));
+            $allTrxIds = array_unique(array_merge($trxByIds, $itemTrxIds, $trxByNumbers, $autoTrxIds));
 
             if (!empty($allTrxIds)) {
                 $transactions = Transaction::whereIn('id', $allTrxIds)->get();
@@ -3197,14 +3576,14 @@ class RpdBreakdownService
                 }
             }
 
-            // 3. Reset status pada seluruh item dokumen RPD
+            // 5. Reset status pada seluruh item dokumen RPD
             $document->items()->update([
                 'is_posted' => false,
                 'transaction_id' => null,
                 'bku_number' => null,
             ]);
 
-            // 4. Reset status dokumen RPD
+            // 6. Reset status dokumen RPD
             $document->update([
                 'status' => 'analyzed',
                 'posted_at' => null,
@@ -3215,13 +3594,31 @@ class RpdBreakdownService
     }
 
     /**
-     * Menghapus Dokumen RPD secara tuntas beserta seluruh transaksi BKU-nya jika sudah diposting.
+     * Menghapus Dokumen RPD secara tuntas beserta seluruh data terkait di BKU, BPK, BPP, Realisasi Anggaran, dan Kuitansi.
      */
     public function deleteDocumentWithTransactions(RpdDocument $document): void
     {
         DB::transaction(function () use ($document) {
-            // 1. Batalkan posting dan hapus transaksi BKU terkait (jika pernah diposting)
+            // 1. Batalkan posting dan hapus seluruh transaksi BKU terkait (SP2D, TRK, KWT belanja)
             $this->unpostFromBku($document);
+
+            // Double check: pastikan tidak ada transaksi yang tertinggal dengan rpd_document_id atau notes dokumen
+            $remainingTrxs = Transaction::where('rpd_document_id', $document->id)
+                ->orWhere(function ($q) use ($document) {
+                    $q->where('project_id', $document->project_id)
+                      ->where(function ($sq) use ($document) {
+                          $sq->where('notes', 'like', "%RPD #{$document->id}%")
+                             ->orWhere('notes', 'like', "%Hasil Pecah Bahan RPD: {$document->title}%")
+                             ->orWhere('notes', 'like', "%{$document->title}%");
+                      });
+                })->get();
+
+            foreach ($remainingTrxs as $trx) {
+                if ($trx->receipt_file && Storage::disk('public')->exists($trx->receipt_file)) {
+                    Storage::disk('public')->delete($trx->receipt_file);
+                }
+                $trx->delete();
+            }
 
             // 2. Hapus berkas file RPD yang diunggah jika ada
             if ($document->file_path && Storage::disk('public')->exists($document->file_path)) {
@@ -3231,6 +3628,49 @@ class RpdBreakdownService
             // 3. Hapus seluruh item pecahan dan dokumen induk
             $document->items()->delete();
             $document->delete();
+        });
+    }
+
+    /**
+     * Menghapus satu item pecahan bahan dan menghapus transaksi terkait di BKU jika sudah terposting.
+     */
+    public function deleteItemWithTransaction(RpdItem $item): void
+    {
+        DB::transaction(function () use ($item) {
+            $doc = $item->document;
+
+            // Jika item ini sudah diposting dan punya transaction_id, hapus transaksinya
+            if ($item->transaction_id) {
+                $trx = Transaction::find($item->transaction_id);
+                if ($trx) {
+                    if ($trx->receipt_file && Storage::disk('public')->exists($trx->receipt_file)) {
+                        Storage::disk('public')->delete($trx->receipt_file);
+                    }
+                    $trx->delete();
+                }
+            }
+
+            $item->delete();
+
+            // Rekalkulasi dokumen induk
+            if ($doc) {
+                $allItems = $doc->items()->get();
+                $doc->update([
+                    'total_budget' => $allItems->sum('total_price'),
+                    'total_materials' => $allItems->where('category', 'bahan')->sum('total_price'),
+                    'total_wages' => $allItems->where('category', 'upah')->sum('total_price'),
+                    'total_equipment' => $allItems->where('category', 'alat')->sum('total_price'),
+                    'total_operational' => $allItems->where('category', 'operasional')->sum('total_price'),
+                    'total_tax_estimated' => $allItems->sum('tax_total'),
+                    'total_net_estimated' => $allItems->sum('net_amount'),
+                    'total_items_count' => $allItems->count(),
+                ]);
+
+                // Sinkronisasi ulang SP2D dan Tarik Tunai jika dokumen sudah pernah diposting
+                if ($doc->status === 'posted_to_bku' || $allItems->where('is_posted', true)->isNotEmpty()) {
+                    $this->recordDisbursementTransactions($doc);
+                }
+            }
         });
     }
 

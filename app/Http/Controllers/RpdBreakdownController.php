@@ -300,7 +300,20 @@ class RpdBreakdownController extends Controller
         $taxPph21 = 0;
 
         if ($hasTax) {
-            if ($category === 'bahan' || $category === 'alat' || $category === 'operasional') {
+            $uLower = strtolower($request->item_name);
+            $isHonorOrJasa = str_contains($uLower, 'perencanaan')
+                || str_contains($uLower, 'pengawasan')
+                || str_contains($uLower, 'honor')
+                || str_contains($uLower, 'narasumber');
+
+            if ($isHonorOrJasa) {
+                // Honorarium Jasa Tim Teknis Perencana / Pengawas / Panitia Swakelola:
+                // Objek PPh Pasal 21 (Bukan PPN dan bukan PPh 22)
+                $taxPpn = 0;
+                $taxPph22 = 0;
+                $taxPph21 = round($totalPrice * 0.05, 2);
+            } elseif ($category === 'bahan') {
+                // Belanja bahan material fisik dari toko rekanan PKP (PPN 11% & PPh 22 1,5%)
                 $dpp = round($totalPrice / 1.11, 2);
                 $taxPpn = round($totalPrice - $dpp, 2);
                 $taxPph22 = round($dpp * 0.015, 2);
@@ -318,6 +331,13 @@ class RpdBreakdownController extends Controller
                     $taxPph21 = 0;
                     $hasTax = false;
                 }
+            } else {
+                // Kategori operasional (konsumsi rapat, transport panitia, ATK) & alat (ongkos angkut lokal)
+                // bukan belanja barang kena PPN 11% & PPh 22 di proyek swakelola
+                $taxPpn = 0;
+                $taxPph22 = 0;
+                $taxPph21 = 0;
+                $hasTax = false;
             }
         }
 
@@ -358,7 +378,48 @@ class RpdBreakdownController extends Controller
             'total_net_estimated' => $doc->items->sum('net_amount'),
         ]);
 
+        // Jaga persentase pajak dokumen agar tidak melebihi rentang 6 s.d 7 %
+        $this->breakdownService->normalizeDocumentTaxPercentage($doc, 0.06, 0.07);
+
+        // Jika item sudah terposting, sinkronkan ke tabel transaksi resmi BKU & SP2D/TRK
+        if ($item->transaction_id) {
+            $trx = \App\Models\Transaction::find($item->transaction_id);
+            if ($trx) {
+                $trxHasTax = $item->has_tax && $item->tax_total > 0;
+                $trx->update([
+                    'amount' => $totalPrice,
+                    'type' => $item->payment_method,
+                    'payment_method' => $item->payment_method === 'belanja_transfer' ? 'bank_transfer' : 'kas_tunai',
+                    'description' => $item->bku_description,
+                    'recipient_name' => $supplierName,
+                    'has_tax' => $trxHasTax,
+                    'tax_type' => $trxHasTax ? ($taxPph22 > 0 && $taxPpn > 0 ? 'pph22_ppn' : ($taxPph22 > 0 ? 'pph22' : ($taxPph21 > 0 ? 'pph21' : ($taxPpn > 0 ? 'ppn' : null)))) : null,
+                    'tax_ppn' => $taxPpn,
+                    'tax_pph21' => $taxPph21,
+                    'tax_pph22' => $taxPph22,
+                    'tax_total' => $taxTotal,
+                    'net_amount' => $netAmount,
+                    'transaction_date' => $request->planned_date,
+                ]);
+            }
+            $this->breakdownService->recordDisbursementTransactions($doc);
+        }
+
         return back()->with('success', 'Baris item pecahan bahan berhasil diperbarui.');
+    }
+
+    /**
+     * Hapus satu baris item pecahan bahan RPD.
+     * Jika item sudah terposting, kuitansi dan pembukuannya di BKU/BPK/BPP akan ikut dibersihkan.
+     */
+    public function destroyItem(RpdItem $item)
+    {
+        try {
+            $this->breakdownService->deleteItemWithTransaction($item);
+            return back()->with('success', 'Baris item pecahan bahan berhasil dihapus dan data terkait telah disinkronkan.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal menghapus baris item: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -595,8 +656,8 @@ class RpdBreakdownController extends Controller
             $this->breakdownService->deleteDocumentWithTransactions($rpd);
 
             $message = $isPosted
-                ? 'Dokumen RPD berhasil dihapus. Seluruh pembukuan transaksinya di BKU, BPK, BB, dan Buku Pembantu Pajak telah otomatis dibatalkan dan dibersihkan.'
-                : 'Dokumen RPD berhasil dihapus.';
+                ? 'Dokumen RPD berhasil dihapus. Seluruh data terkait di Buku Kas Umum (BKU), BPK, BPP (Pajak), Realisasi Anggaran, dan Kuitansi Pengeluaran telah otomatis dibatalkan dan dibersihkan.'
+                : 'Dokumen RPD beserta seluruh draf item pecahan bahan berhasil dihapus.';
 
             return redirect()->route('rpd.index')->with('success', $message);
         } catch (\Exception $e) {

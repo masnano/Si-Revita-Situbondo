@@ -122,16 +122,16 @@
                 @php
                     $isPostedShow = $rpd->status === 'posted_to_bku' || $postedCount > 0;
                     $delMsgShow = $isPostedShow 
-                        ? "Dokumen RPD ini <strong>sudah diposting ke BKU</strong>.<br><br>Menghapus RPD ini akan <strong>otomatis membatalkan posting</strong> dan <strong>MENGHAPUS SEMUA TRANSAKSI TERKAIT</strong> di Buku Kas Umum (BKU), BPK, BB, dan Buku Pembantu Pajak.<br><br>Apakah Anda benar-benar yakin ingin menghapus dokumen RPD beserta seluruh transaksinya?"
+                        ? "Dokumen RPD ini <strong>sudah diposting ke BKU</strong>.<br><br>Menghapus RPD ini akan <strong>otomatis MENGHAPUS SEMUA DATA TERKAIT</strong> di Buku Kas Umum (BKU), BPK (Kas), BB (Bank), BPP (Pajak), Realisasi Anggaran, dan Kuitansi Pengeluaran.<br><br>Apakah Anda benar-benar yakin ingin menghapus dokumen RPD beserta seluruh data terkaitnya?"
                         : "Apakah Anda yakin ingin menghapus dokumen RPD ini? Seluruh draf item pecahan bahan di dalamnya akan ikut terhapus.";
-                    $delTitleShow = $isPostedShow ? "Hapus RPD & Batalkan BKU" : "Hapus Dokumen RPD";
-                    $delBtnShow = $isPostedShow ? "Ya, Hapus RPD & Transaksi BKU" : "Ya, Hapus RPD";
+                    $delTitleShow = $isPostedShow ? "Hapus RPD & Semua Data Terkait" : "Hapus Dokumen RPD";
+                    $delBtnShow = $isPostedShow ? "Ya, Hapus RPD & Transaksi BKU/BPK/BPP" : "Ya, Hapus RPD";
                 @endphp
                 <form action="{{ route('rpd.destroy', $rpd->id) }}" method="POST"
                       data-confirm="{!! e($delMsgShow) !!}"
                       data-confirm-title="{{ $delTitleShow }}"
                       data-confirm-button="{{ $delBtnShow }}"
-                      onsubmit="return confirm('{{ $isPostedShow ? 'Peringatan: Dokumen RPD ini sudah diposting ke BKU. Menghapus dokumen ini akan membatalkan posting dan MENGHAPUS semua transaksi belanja, saldo masuk, dan penarikan tunai terkait dari BKU. Lanjutkan?' : 'Apakah Anda yakin ingin menghapus dokumen RPD ini?' }}')">
+                      onsubmit="return confirm('{{ $isPostedShow ? 'Peringatan: Dokumen RPD ini sudah diposting ke BKU. Menghapus dokumen ini akan MENGHAPUS semua transaksi belanja, saldo masuk SP2D, penarikan tunai, BPK, BPP, dan kuitansi terkait. Lanjutkan?' : 'Apakah Anda yakin ingin menghapus dokumen RPD ini?' }}')">
                     @csrf
                     @method('DELETE')
                     <button type="submit" 
@@ -242,11 +242,22 @@
 
         <!-- 5. Potongan Pajak -->
         <div class="bg-white rounded-xl p-4 border border-rose-200 shadow-sm">
-            <p class="text-[11px] font-bold text-rose-600 uppercase tracking-wider">Pajak (PPN & PPh)</p>
+            <div class="flex items-center justify-between">
+                <p class="text-[11px] font-bold text-rose-600 uppercase tracking-wider">Pajak (PPN & PPh)</p>
+                @php
+                    $taxPct = $summary['total_budget'] > 0 ? round(($summary['total_tax'] / $summary['total_budget']) * 100, 2) : 0;
+                @endphp
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold {{ $taxPct >= 6.0 && $taxPct <= 7.0 ? 'bg-emerald-100 text-emerald-800' : ($taxPct < 6.0 ? 'bg-blue-100 text-blue-800' : 'bg-rose-100 text-rose-800') }}" title="Target Prosentase Pajak Swakelola: 6 s.d 7%">
+                    {{ $taxPct }}% Pagu
+                </span>
+            </div>
             <h4 class="text-base font-extrabold text-rose-600 mt-1">
                 Rp {{ number_format($summary['total_tax'], 0, ',', '.') }}
             </h4>
-            <span class="text-[11px] text-rose-500/80">PPN: {{ number_format($summary['total_tax_ppn'], 0, ',', '.') }}</span>
+            <div class="flex items-center justify-between text-[11px] text-rose-500/80 mt-0.5">
+                <span>PPN: {{ number_format($summary['total_tax_ppn'], 0, ',', '.') }}</span>
+                <span>PPh: {{ number_format($summary['total_tax_pph22'] + $summary['total_tax_pph21'], 0, ',', '.') }}</span>
+            </div>
         </div>
 
         <!-- 6. Jumlah Bersih -->
@@ -275,7 +286,7 @@
                 <div class="text-base font-mono font-bold text-teal-900">
                     Rp {{ number_format($summary['cash_amount'], 0, ',', '.') }}
                 </div>
-                <span class="text-[10px] text-teal-600">&le; Rp 5.000.000</span>
+                <span class="text-[10px] text-teal-600 font-semibold">Penarikan Tunai per Pencairan</span>
             </div>
         </div>
 
@@ -293,7 +304,7 @@
                 <div class="text-base font-mono font-bold text-indigo-900">
                     Rp {{ number_format($summary['bank_amount'], 0, ',', '.') }}
                 </div>
-                <span class="text-[10px] text-indigo-600">&gt; Rp 5.000.000 / Non-Tunai</span>
+                <span class="text-[10px] text-indigo-600 font-semibold">Transfer Non-Tunai</span>
             </div>
         </div>
     </div>
@@ -468,11 +479,21 @@
                             <td class="py-3 px-3 text-center whitespace-nowrap">
                                 @if(!$it->is_posted)
                                     @role('root,admin')
-                                    <button type="button" @click="openEditModal({{ json_encode($it) }})" 
-                                            title="Edit Baris Pecah Bahan"
-                                            class="p-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-800 transition-colors">
-                                        <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                                    </button>
+                                    <div class="inline-flex items-center gap-1">
+                                        <button type="button" @click="openEditModal({{ json_encode($it) }})" 
+                                                title="Edit Baris Pecah Bahan"
+                                                class="p-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-800 transition-colors">
+                                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                        <form action="{{ route('rpd.items.destroy', $it->id) }}" method="POST"
+                                              onsubmit="return confirm('Hapus baris item ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" title="Hapus Baris Item" class="p-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 transition-colors">
+                                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                     @endrole
                                 @else
                                     <span class="text-[11px] text-slate-400 font-mono" title="Terkunci di BKU">-</span>

@@ -12,6 +12,7 @@ class Transaction extends Model
     protected $fillable = [
         'school_id',
         'project_id',
+        'rpd_document_id',
         'budget_item_id',
         'transaction_number',
         'transaction_date',
@@ -60,6 +61,11 @@ class Transaction extends Model
     public function project()
     {
         return $this->belongsTo(RevitalizationProject::class, 'project_id');
+    }
+
+    public function rpdDocument()
+    {
+        return $this->belongsTo(RpdDocument::class, 'rpd_document_id');
     }
 
     public function budgetItem()

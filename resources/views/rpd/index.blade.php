@@ -223,17 +223,17 @@
                                     @php
                                         $isPostedDoc = $doc->status === 'posted_to_bku';
                                         $confirmMsg = $isPostedDoc 
-                                            ? "Dokumen RPD ini <strong>sudah diposting ke BKU</strong>.<br><br>Menghapus RPD ini akan <strong>otomatis membatalkan posting</strong> dan <strong>MENGHAPUS SEMUA TRANSAKSI TERKAIT</strong> di Buku Kas Umum (BKU), BPK, BB, dan Buku Pembantu Pajak.<br><br>Apakah Anda yakin ingin melanjutkan penghapusan?"
+                                            ? "Dokumen RPD ini <strong>sudah diposting ke BKU</strong>.<br><br>Menghapus RPD ini akan <strong>otomatis MENGHAPUS SEMUA DATA TERKAIT</strong> di Buku Kas Umum (BKU), BPK (Kas), BB (Bank), BPP (Pajak), Realisasi Anggaran, dan Kuitansi Pengeluaran.<br><br>Apakah Anda yakin ingin melanjutkan penghapusan?"
                                             : "Apakah Anda yakin ingin menghapus dokumen RPD <strong>" . e($doc->title) . "</strong>? Seluruh data draf item pecahan bahan akan ikut terhapus.";
-                                        $confirmTitle = $isPostedDoc ? "Hapus RPD & Batalkan BKU" : "Hapus Dokumen RPD";
-                                        $confirmBtn = $isPostedDoc ? "Ya, Hapus RPD & Transaksi BKU" : "Ya, Hapus RPD";
+                                        $confirmTitle = $isPostedDoc ? "Hapus RPD & Semua Data Terkait" : "Hapus Dokumen RPD";
+                                        $confirmBtn = $isPostedDoc ? "Ya, Hapus RPD & Transaksi BKU/BPK/BPP" : "Ya, Hapus RPD";
                                     @endphp
                                     <form action="{{ route('rpd.destroy', $doc->id) }}" 
                                           method="POST" 
                                           data-confirm="{!! e($confirmMsg) !!}"
                                           data-confirm-title="{{ $confirmTitle }}"
                                           data-confirm-button="{{ $confirmBtn }}"
-                                          onsubmit="return confirm('{{ $isPostedDoc ? 'Peringatan: Dokumen RPD ini sudah diposting ke BKU. Menghapus dokumen ini akan membatalkan posting dan MENGHAPUS semua transaksi belanja, saldo masuk, dan penarikan tunai terkait dari BKU. Lanjutkan?' : 'Apakah Anda yakin ingin menghapus dokumen RPD ini?' }}')">
+                                          onsubmit="return confirm('{{ $isPostedDoc ? 'Peringatan: Dokumen RPD ini sudah diposting ke BKU. Menghapus dokumen ini akan MENGHAPUS semua transaksi belanja, saldo masuk SP2D, penarikan tunai, BPK, BPP, dan kuitansi terkait. Lanjutkan?' : 'Apakah Anda yakin ingin menghapus dokumen RPD ini?' }}')">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" 

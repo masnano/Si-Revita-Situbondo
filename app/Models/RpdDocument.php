@@ -58,6 +58,11 @@ class RpdDocument extends Model
         return $this->hasMany(RpdItem::class, 'rpd_document_id')->orderBy('row_number', 'asc');
     }
 
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class, 'rpd_document_id');
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');

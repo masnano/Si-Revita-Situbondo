@@ -489,8 +489,8 @@ OUTPUT JSON (Wajib array murni tanpa markdown):
     "supplier_name": "Tim Pelaksana P2SP Satuan Pendidikan"
   },
   {
-    "name": "Spanduk Publikasi Revitalisasi & Papan Informasi Transparansi Swakelola",
-    "specification": "Pembuatan spanduk sosialisasi program revitalisasi sekolah dan papan informasi transparansi publik swakelola P2SP",
+    "name": "Papan Informasi Transparansi Proyek & Spanduk Sosialisasi Revitalisasi",
+    "specification": "Pembuatan 1 Unit Papan Informasi Transparansi Publik (Konstruksi Rangka Kayu 5x7 & Plat/Triplek Cetak) serta 4 Buah Spanduk MMT 4x1m Sosialisasi Revitalisasi & Akuntabilitas Anggaran di Lingkungan Sekolah",
     "unit": "Paket",
     "volume": 1.0,
     "percentage": 0.15,
@@ -553,8 +553,8 @@ PROMPT;
                     'day_offset' => 7,
                 ],
                 [
-                    'name' => 'Spanduk Publikasi Revitalisasi & Papan Informasi Transparansi Swakelola',
-                    'specification' => 'Pembuatan spanduk sosialisasi program revitalisasi sekolah dan papan informasi transparansi publik swakelola P2SP',
+                    'name' => 'Papan Informasi Transparansi Proyek & Spanduk Sosialisasi Revitalisasi',
+                    'specification' => 'Pembuatan 1 Unit Papan Informasi Transparansi Publik (Konstruksi Rangka Kayu 5x7 & Plat/Triplek Cetak) serta 4 Buah Spanduk MMT 4x1m Sosialisasi Revitalisasi & Akuntabilitas Anggaran di Lingkungan Sekolah',
                     'supplier_name' => 'Percetakan & Banner Reklame Situbondo',
                     'percentage' => 0.15,
                     'unit' => 'Paket',
@@ -736,6 +736,7 @@ PROMPT;
             'kusen_pintu_kayu' => ['keywords' => ['kusen pintu', 'pintu kayu'], 'price' => 650000, 'unit' => 'Unit'],
             'kusen_jendela' => ['keywords' => ['kusen jendela', 'jendela kaca'], 'price' => 350000, 'unit' => 'Unit'],
             'kunci_pintu' => ['keywords' => ['kunci pintu', 'handle pintu', 'gagang pintu'], 'price' => 135000, 'unit' => 'Set'],
+            'materai' => ['keywords' => ['materai', 'meterai', 'bea materai'], 'price' => 10000, 'unit' => 'Lembar'],
         ];
     }
 

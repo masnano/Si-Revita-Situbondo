@@ -76,6 +76,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/template', [RpdBreakdownController::class, 'template'])->name('template');
         Route::get('/{rpd}', [RpdBreakdownController::class, 'show'])->name('show');
         Route::put('/items/{item}', [RpdBreakdownController::class, 'updateItem'])->name('items.update')->middleware('role:root,admin');
+        Route::delete('/items/{item}', [RpdBreakdownController::class, 'destroyItem'])->name('items.destroy')->middleware('role:root,admin');
         Route::post('/{rpd}/post-bku', [RpdBreakdownController::class, 'postToBku'])->name('post_bku')->middleware('role:root,admin');
         Route::post('/{rpd}/unpost', [RpdBreakdownController::class, 'unpost'])->name('unpost')->middleware('role:root,admin');
         Route::post('/{rpd}/ai-enhance', [RpdBreakdownController::class, 'enhanceWithAi'])->name('ai_enhance')->middleware('role:root,admin');
