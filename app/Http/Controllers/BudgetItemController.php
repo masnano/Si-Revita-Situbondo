@@ -128,7 +128,12 @@ class BudgetItemController extends Controller
             'mode' => 'nullable|in:replace,append',
             'skip_zero_volume' => 'nullable|boolean',
         ], [
+            'project_id.required' => 'Pilih proyek revitalisasi terlebih dahulu sebelum mengunggah berkas RAB.',
+            'project_id.exists' => 'Proyek revitalisasi yang dipilih tidak ditemukan dalam sistem.',
             'rab_file.required' => 'Pilih berkas file Excel/CSV RAB yang akan diimpor.',
+            'rab_file.file' => 'Berkas yang diunggah tidak valid atau gagal terkirim oleh server (periksa batas upload PHP).',
+            'rab_file.max' => 'Ukuran berkas RAB maksimal 20 MB.',
+            'mode.in' => 'Pilihan mode impor tidak valid.',
         ]);
 
         $project = RevitalizationProject::findOrFail($request->project_id);

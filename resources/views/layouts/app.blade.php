@@ -489,6 +489,20 @@
             </div>
             @endif
 
+            @if($errors->any())
+            <div class="mb-5 p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl shadow-sm text-sm no-print">
+                <div class="flex items-center gap-2 font-bold mb-1.5">
+                    <i data-lucide="alert-octagon" class="w-5 h-5 text-rose-600 shrink-0"></i>
+                    <span>Terjadi kesalahan pengisian / unggah data:</span>
+                </div>
+                <ul class="list-disc list-inside space-y-1 text-xs text-rose-700 ml-1">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+            @endif
+
             @if(session('info'))
             <div class="mb-5 flex items-center gap-3 p-4 bg-sky-50 border border-sky-200 text-sky-800 rounded-xl shadow-sm text-sm no-print">
                 <i data-lucide="info" class="w-5 h-5 text-sky-600 shrink-0"></i>

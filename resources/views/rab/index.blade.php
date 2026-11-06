@@ -72,6 +72,7 @@
 
         <div class="flex flex-wrap items-center gap-2">
             <!-- Project Selector -->
+            @if($projects->isNotEmpty())
             <form action="{{ route('rab.index') }}" method="GET">
                 <input type="hidden" name="menu_pekerjaan" value="{{ $selectedMenu }}">
                 <select name="project_id" onchange="this.form.submit()" class="text-xs font-semibold px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 text-slate-800 focus:ring-2 focus:ring-emerald-500">
@@ -82,6 +83,7 @@
                     @endforeach
                 </select>
             </form>
+            @endif
 
             @permission('rab.create')
             <!-- Unduh Template Excel -->
@@ -104,6 +106,25 @@
             @endpermission
         </div>
     </div>
+
+    @if($projects->isEmpty() || !$selectedProject)
+    <!-- Banner Informasi Jika Belum Ada Data Proyek -->
+    <div class="p-4 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl flex items-start gap-3 shadow-sm">
+        <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600 shrink-0 mt-0.5"></i>
+        <div class="text-xs space-y-1">
+            <h4 class="font-bold text-amber-900 text-sm">Belum Ada Proyek Revitalisasi Terdaftar</h4>
+            <p class="text-amber-800">
+                Untuk mengunggah berkas RAB Excel atau menambahkan pos belanja anggaran, Anda harus membuat data Proyek Revitalisasi terlebih dahulu.
+            </p>
+            <div class="pt-1.5">
+                <a href="{{ route('proyek.create') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all">
+                    <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                    <span>Buat Data Proyek Baru Sekarang</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <!-- Summary Box Keseluruhan Proyek -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -579,6 +600,16 @@
                 </button>
             </div>
             
+            @if(empty($selectedProjectId))
+            <div class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs flex items-start gap-2.5">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
+                <div>
+                    <strong class="font-bold">Proyek Belum Dipilih:</strong>
+                    <p class="text-amber-800 mt-0.5">Berkas RAB memerlukan proyek sasaran. Harap buat data proyek revitalisasi terlebih dahulu.</p>
+                </div>
+            </div>
+            @endif
+
             <form action="{{ route('rab.import') }}" method="POST" enctype="multipart/form-data" @submit="isSubmitting = true" class="space-y-4 text-xs">
                 @csrf
                 <input type="hidden" name="project_id" value="{{ $selectedProjectId }}">
@@ -686,7 +717,7 @@
                         <button type="button" @click="openUploadModal = false" :disabled="isSubmitting" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold">
                             Batal
                         </button>
-                        <button type="submit" :disabled="isSubmitting" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center gap-2 shadow-md shadow-blue-600/25 transition-all hover:-translate-y-0.5">
+                        <button type="submit" :disabled="isSubmitting || {{ empty($selectedProjectId) ? 'true' : 'false' }}" class="px-5 py-2 rounded-xl {{ empty($selectedProjectId) ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/25 hover:-translate-y-0.5' }} font-bold flex items-center gap-2 transition-all">
                             <template x-if="isSubmitting">
                                 <span class="inline-flex items-center gap-1.5">
                                     <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
@@ -696,7 +727,7 @@
                             <template x-if="!isSubmitting">
                                 <span class="inline-flex items-center gap-1.5">
                                     <i data-lucide="check" class="w-4 h-4"></i>
-                                    <span>Impor ke Menu Ini</span>
+                                    <span>{{ empty($selectedProjectId) ? 'Pilih Proyek Dahulu' : 'Impor ke Menu Ini' }}</span>
                                 </span>
                             </template>
                         </button>
