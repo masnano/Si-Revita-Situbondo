@@ -479,16 +479,19 @@ class RpdBreakdownController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Isian BKU Revitalisasi');
 
+        $schoolName = strtoupper($rpd->school ? $rpd->school->name : ($rpd->project?->school?->name ?? 'SEKOLAH'));
+        $projectTitle = strtoupper($rpd->project ? $rpd->project->title : 'REVITALISASI');
+
         // Kop Laporan
         $sheet->setCellValue('A1', 'OUTPUT PECAH BAHAN DOKUMEN RPD SEBAGAI ISIAN BUKU KAS UMUM (BKU)');
-        $sheet->setCellValue('A2', 'SATUAN PENDIDIKAN: ' . strtoupper($rpd->school->name));
-        $sheet->setCellValue('A3', 'PROYEK: ' . strtoupper($rpd->project->title) . ' | TAHAP: ' . $rpd->term_stage);
+        $sheet->setCellValue('A2', 'SATUAN PENDIDIKAN: ' . $schoolName);
+        $sheet->setCellValue('A3', 'PROYEK: ' . $projectTitle . ' | TAHAP: ' . ($rpd->term_stage ?? '-'));
         $sheet->mergeCells('A1:L1');
         $sheet->mergeCells('A2:L2');
         $sheet->mergeCells('A3:L3');
 
         $sheet->getStyle('A1:A3')->getFont()->setBold(true);
-        $sheet->getStyle('A1')->setSize(12);
+        $sheet->getStyle('A1')->getFont()->setSize(12);
 
         // Header
         $headers = [
@@ -543,12 +546,21 @@ class RpdBreakdownController extends Controller
         // Total
         $sheet->setCellValue('A' . $rowIdx, 'TOTAL KESELURUHAN');
         $sheet->mergeCells("A{$rowIdx}:F{$rowIdx}");
-        $sheet->setCellValue('G' . $rowIdx, "=SUM(G6:G" . ($rowIdx - 1) . ")");
-        $sheet->setCellValue('H' . $rowIdx, "=SUM(H6:H" . ($rowIdx - 1) . ")");
-        $sheet->setCellValue('I' . $rowIdx, "=SUM(I6:I" . ($rowIdx - 1) . ")");
-        $sheet->setCellValue('J' . $rowIdx, "=SUM(J6:J" . ($rowIdx - 1) . ")");
-        $sheet->setCellValue('K' . $rowIdx, "=SUM(K6:K" . ($rowIdx - 1) . ")");
-        $sheet->setCellValue('L' . $rowIdx, "=SUM(L6:L" . ($rowIdx - 1) . ")");
+        if ($rowIdx > 6) {
+            $sheet->setCellValue('G' . $rowIdx, "=SUM(G6:G" . ($rowIdx - 1) . ")");
+            $sheet->setCellValue('H' . $rowIdx, "=SUM(H6:H" . ($rowIdx - 1) . ")");
+            $sheet->setCellValue('I' . $rowIdx, "=SUM(I6:I" . ($rowIdx - 1) . ")");
+            $sheet->setCellValue('J' . $rowIdx, "=SUM(J6:J" . ($rowIdx - 1) . ")");
+            $sheet->setCellValue('K' . $rowIdx, "=SUM(K6:K" . ($rowIdx - 1) . ")");
+            $sheet->setCellValue('L' . $rowIdx, "=SUM(L6:L" . ($rowIdx - 1) . ")");
+        } else {
+            $sheet->setCellValue('G' . $rowIdx, 0);
+            $sheet->setCellValue('H' . $rowIdx, 0);
+            $sheet->setCellValue('I' . $rowIdx, 0);
+            $sheet->setCellValue('J' . $rowIdx, 0);
+            $sheet->setCellValue('K' . $rowIdx, 0);
+            $sheet->setCellValue('L' . $rowIdx, 0);
+        }
 
         $sheet->getStyle("A{$rowIdx}:L{$rowIdx}")->getFont()->setBold(true);
         $sheet->getStyle("A{$rowIdx}:F{$rowIdx}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);

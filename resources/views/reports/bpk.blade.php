@@ -63,8 +63,8 @@
 
             <a href="{{ route('reports.export', ['type' => 'bpk', 'school_id' => $selectedSchool?->id, 'month' => $month, 'year' => $year]) }}" 
                class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 transition-colors shadow-sm">
-                <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                <span>Excel/CSV</span>
+                <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+                <span>Excel (.xlsx)</span>
             </a>
 
             <button type="button" onclick="window.print()" 

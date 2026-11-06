@@ -103,21 +103,57 @@ class SiRevitaTest extends TestCase
         $this->actingAs($root);
 
         $school = School::first();
-        $response = $this->get("/laporan/export/bku?school_id={$school->id}&month=3&year=2026");
-        $response->assertStatus(200);
-        $response->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+
+        // 1. Export Excel .xlsx (Default)
+        $responseXlsxBku = $this->get("/laporan/export/bku?school_id={$school->id}&month=3&year=2026");
+        $responseXlsxBku->assertStatus(200);
+        $responseXlsxBku->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
         $responseAllBku = $this->get("/laporan/export/bku?school_id={$school->id}&month=all&year=2026");
         $responseAllBku->assertStatus(200);
-        $responseAllBku->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+        $responseAllBku->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
         $responseAllBpk = $this->get("/laporan/export/bpk?school_id={$school->id}&month=all&year=2026");
         $responseAllBpk->assertStatus(200);
-        $responseAllBpk->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+        $responseAllBpk->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
         $responseAllBb = $this->get("/laporan/export/bb?school_id={$school->id}&month=all&year=2026");
         $responseAllBb->assertStatus(200);
-        $responseAllBb->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+        $responseAllBb->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+        $responseBp = $this->get("/laporan/export/bp?school_id={$school->id}&year=2026");
+        $responseBp->assertStatus(200);
+        $responseBp->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+        // 2. Export CSV (Saat parameter format=csv diminta)
+        $responseCsvBku = $this->get("/laporan/export/bku?format=csv&school_id={$school->id}&month=3&year=2026");
+        $responseCsvBku->assertStatus(200);
+        $responseCsvBku->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+    }
+
+    public function test_rpd_export_bku_xlsx()
+    {
+        $root = User::where('username', 'root')->first();
+        $this->actingAs($root);
+
+        $doc = RpdDocument::first();
+        if ($doc) {
+            $response = $this->get("/rpd/{$doc->id}/export-bku?format=xlsx");
+            $response->assertStatus(200);
+            $response->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+            // Default format should also be xlsx
+            $responseDefault = $this->get("/rpd/{$doc->id}/export-bku");
+            $responseDefault->assertStatus(200);
+            $responseDefault->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        }
+
+        $doc250 = RpdDocument::find(250);
+        if ($doc250) {
+            $res250 = $this->get("/rpd/250/export-bku?format=xlsx");
+            $res250->assertStatus(200);
+            $res250->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        }
     }
 
     public function test_reports_support_filter_all_months()
