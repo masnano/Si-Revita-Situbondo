@@ -5,6 +5,7 @@ use App\Http\Controllers\BudgetItemController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GuideController;
 use App\Http\Controllers\HpsConversionController;
+use App\Http\Controllers\KemendikdasmenReportController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ReportController;
@@ -43,6 +44,11 @@ Route::middleware('auth')->group(function () {
 
     // 2. Laporan Revitalisasi Sekolah (BKU, BPK, BB, BP, Realisasi, Kuitansi)
     Route::prefix('laporan')->name('reports.')->group(function () {
+        // Output Format Resmi Kemendikdasmen (BKU, BPKT, BB, BPP Alt 1 & Alt 2)
+        Route::get('/kemendikdasmen', [KemendikdasmenReportController::class, 'index'])->name('kemendikdasmen')->middleware('permission:bku.view');
+        Route::get('/kemendikdasmen/export', [KemendikdasmenReportController::class, 'exportExcel'])->name('kemendikdasmen.export')->middleware('permission:bku.view');
+        Route::get('/kemendikdasmen/template', [KemendikdasmenReportController::class, 'downloadMasterTemplate'])->name('kemendikdasmen.template')->middleware('permission:bku.view');
+
         Route::get('/bku', [ReportController::class, 'bku'])->name('bku')->middleware('permission:bku.view');
         Route::get('/bpk', [ReportController::class, 'bpk'])->name('bpk')->middleware('permission:bpk.view');
         Route::get('/bb', [ReportController::class, 'bb'])->name('bb')->middleware('permission:bb.view');

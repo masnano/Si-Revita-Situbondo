@@ -204,6 +204,21 @@
                     <span class="text-[10px] bg-slate-800 text-emerald-400 px-1.5 py-0.5 rounded font-mono">4 BUKU</span>
                 </p>
                 <div class="space-y-1">
+                    <!-- Format Resmi Kemendikdasmen 2026 -->
+                    <a href="{{ route('reports.kemendikdasmen') }}" 
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all mb-2 {{ request()->routeIs('reports.kemendikdasmen*') ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold shadow-lg shadow-emerald-600/40 ring-1 ring-emerald-400/50' : 'text-slate-200 hover:bg-slate-800/90 hover:text-white bg-slate-800/40 border border-emerald-500/30' }}">
+                        <div class="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0">
+                            <i data-lucide="award" class="w-4 h-4 text-emerald-400"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="leading-tight flex items-center gap-1.5">
+                                <span class="font-bold text-[13px] text-white">Format Kemendikdasmen</span>
+                            </div>
+                            <span class="text-[10.5px] text-emerald-300 font-mono">BKU · BPKT · BB · BPP</span>
+                        </div>
+                        <span class="px-1.5 py-0.5 text-[9px] font-extrabold rounded bg-emerald-500 text-slate-950 uppercase tracking-wider shadow-sm">RESMI 2026</span>
+                    </a>
+
                     <a href="{{ route('reports.bku') }}" 
                        class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all {{ request()->routeIs('reports.bku') ? 'bg-emerald-600 text-white font-semibold shadow-md shadow-emerald-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                         <i data-lucide="book-open-check" class="w-4 h-4 text-emerald-400"></i>
