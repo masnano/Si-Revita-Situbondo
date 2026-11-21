@@ -69,12 +69,41 @@
                 </form>
 
                 <div class="flex items-center gap-2">
-                    <!-- Export Excel Resmi -->
-                    <a href="{{ route('reports.kemendikdasmen.export', ['school_id' => $selectedSchool->id, 'month_index' => $monthIndex]) }}" 
-                       class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-900/50 transition-all border border-emerald-400/30">
-                        <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-200"></i>
-                        <span>Export Excel Kemendikdasmen</span>
-                    </a>
+                    <!-- Export Excel Resmi (Split Button: Default Semua Bulan, Opsi Per Bulan) -->
+                    <div class="relative inline-flex items-center shadow-lg shadow-emerald-900/50 rounded-xl" x-data="{ openExport: false }">
+                        <a href="{{ route('reports.kemendikdasmen.export', ['school_id' => $selectedSchool->id]) }}" 
+                           title="Unduh 1 file Excel utuh memuat semua bulan (Bulan 1 s.d. selesai) sesuai format resmi Bimtek"
+                           class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-l-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all border-y border-l border-emerald-400/30">
+                            <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-200"></i>
+                            <span>Export Excel (Semua Bulan)</span>
+                        </a>
+                        <button type="button" @click="openExport = !openExport" @click.outside="openExport = false"
+                                title="Pilihan Opsi Export"
+                                class="px-2 py-2.5 rounded-r-xl bg-emerald-700 hover:bg-emerald-600 text-white border-y border-r border-emerald-400/30 transition-colors">
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-emerald-200"></i>
+                        </button>
+
+                        <!-- Dropdown Options -->
+                        <div x-show="openExport" x-cloak
+                             class="absolute right-0 top-full mt-2 w-64 rounded-xl bg-slate-900 border border-slate-700 shadow-2xl py-1.5 z-50 text-xs">
+                            <a href="{{ route('reports.kemendikdasmen.export', ['school_id' => $selectedSchool->id]) }}" 
+                               class="flex items-start gap-2.5 px-3.5 py-2 text-white hover:bg-emerald-600/30 font-semibold border-b border-slate-800 transition-colors">
+                                <i data-lucide="layers" class="w-4 h-4 text-emerald-400 mt-0.5 shrink-0"></i>
+                                <div>
+                                    <div class="font-bold text-emerald-300">Semua Bulan (Standar Bimtek)</div>
+                                    <div class="text-[10px] text-slate-400 font-normal">1 File Excel memuat Bulan 1 s.d. {{ count($availableMonths) }}</div>
+                                </div>
+                            </a>
+                            <a href="{{ route('reports.kemendikdasmen.export', ['school_id' => $selectedSchool->id, 'month_index' => $monthIndex]) }}" 
+                               class="flex items-start gap-2.5 px-3.5 py-2 text-slate-300 hover:bg-slate-800 font-semibold transition-colors">
+                                <i data-lucide="calendar" class="w-4 h-4 text-blue-400 mt-0.5 shrink-0"></i>
+                                <div>
+                                    <div class="font-bold text-slate-200">Hanya Bulan ke-{{ $monthIndex }}</div>
+                                    <div class="text-[10px] text-slate-400 font-normal">{{ $availableMonths[$monthIndex]['label'] ?? "Bulan ke-$monthIndex" }}</div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
 
                     <!-- Download Master Template Kosong -->
                     <a href="{{ route('reports.kemendikdasmen.template') }}" 
