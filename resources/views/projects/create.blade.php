@@ -15,7 +15,7 @@
         </h1>
     </div>
 
-    <form action="{{ route('projects.store') }}" method="POST" class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-8 space-y-5">
+    <form action="{{ route('projects.store') }}" method="POST" enctype="multipart/form-data" class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-8 space-y-5">
         @csrf
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -102,6 +102,24 @@
         <div>
             <label class="block text-xs font-semibold text-slate-700 mb-1">Deskripsi Ruang Lingkup Revitalisasi</label>
             <textarea name="description" rows="3" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs">{{ old('description') }}</textarea>
+        </div>
+
+        <!-- Upload Kurva S / Jadwal Pelaksanaan -->
+        <div class="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-200/80 space-y-3">
+            <div class="flex items-center justify-between">
+                <label class="block text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                    <i data-lucide="trending-up" class="w-4 h-4 text-emerald-600"></i>
+                    <span>Berkas Kurva S / Jadwal Pelaksanaan Pekerjaan (PDF / Excel)</span>
+                </label>
+                <span class="text-[10px] bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full">Mendukung .PDF & .XLSX</span>
+            </div>
+            <p class="text-[11px] text-slate-600 leading-relaxed">
+                Unggah dokumen Kurva S resmi (format Kurva S Dinas / P2SP seperti <span class="font-mono text-emerald-700">SDN 3 SUMBERARGO Kurva S.pdf</span>). Sistem akan secara otomatis menganalisis bobot rencana per minggu dan menyelaraskan jadwal penanggalan belanja BKU pada modul Pecah Bahan RPD.
+            </p>
+            <div>
+                <input type="file" name="kurva_s" accept=".pdf,.xlsx,.xls"
+                       class="block w-full text-xs text-slate-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-600 file:text-white hover:file:bg-emerald-700 cursor-pointer border border-emerald-300 rounded-xl bg-white p-1.5 shadow-sm">
+            </div>
         </div>
 
         <div class="pt-4 border-t border-slate-200 flex justify-end gap-3">

@@ -8,6 +8,9 @@ use Carbon\Carbon;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class KemendikdasmenReportService
@@ -192,6 +195,7 @@ class KemendikdasmenReportService
         $bbRows = [];
         $bppAlt1Rows = [];
         $bppAlt2Rows = [];
+        $dtRows = [];
 
         // Inisialisasi saldo running
         $bkuBalance = $saldoAwalBku;
@@ -298,6 +302,20 @@ class KemendikdasmenReportService
                     'pengeluaran' => 0,
                     'saldo' => $bbBalance,
                 ];
+
+                $dtRows[] = [
+                    'is_main' => true,
+                    'tanggal' => $tDate,
+                    'info' => $t->description ?: "Dana Revitalisasi SD tahap {$monthIndex} masuk ke rekening bank sekolah.",
+                    'uraian' => $uraian,
+                    'nilai' => $amt,
+                    'bpkt' => '–',
+                    'bb' => 'Penerimaan',
+                    'bpp_alt1' => '–',
+                    'bpp_alt2' => '–',
+                    'bku' => 'Penerimaan',
+                    'no_bukti' => $bukti,
+                ];
             } elseif ($t->type === 'tarik_tunai') {
                 $bukti = sprintf("CEK-%s-%03d", $monthStr, $seqCEK++);
 
@@ -347,6 +365,33 @@ class KemendikdasmenReportService
                     'pengeluaran' => 0,
                     'saldo' => $bpktBalance,
                 ];
+
+                $dtRows[] = [
+                    'is_main' => true,
+                    'tanggal' => $tDate,
+                    'info' => "Bendahara menarik uang tunai Rp " . number_format($amt, 0, ',', '.') . " dari rekening bank sekolah untuk kebutuhan belanja operasional/swakelola.",
+                    'uraian' => 'Penarikan tunai dari rekening bank',
+                    'nilai' => $amt,
+                    'bpkt' => '–',
+                    'bb' => 'Pengeluaran',
+                    'bpp_alt1' => '–',
+                    'bpp_alt2' => '–',
+                    'bku' => 'Pengeluaran',
+                    'no_bukti' => $bukti,
+                ];
+                $dtRows[] = [
+                    'is_main' => false,
+                    'tanggal' => null,
+                    'info' => null,
+                    'uraian' => 'Penerimaan kas tunai dari penarikan rekening bank',
+                    'nilai' => $amt,
+                    'bpkt' => 'Penerimaan',
+                    'bb' => '–',
+                    'bpp_alt1' => '–',
+                    'bpp_alt2' => '–',
+                    'bku' => 'Penerimaan',
+                    'no_bukti' => $bukti,
+                ];
             } elseif ($t->type === 'setor_tunai') {
                 $bukti = sprintf("CEK-%s-%03d", $monthStr, $seqCEK++);
 
@@ -392,6 +437,33 @@ class KemendikdasmenReportService
                     'penerimaan' => $amt,
                     'pengeluaran' => 0,
                     'saldo' => $bbBalance,
+                ];
+
+                $dtRows[] = [
+                    'is_main' => true,
+                    'tanggal' => $tDate,
+                    'info' => "Bendahara menyetor sisa kas tunai Rp " . number_format($amt, 0, ',', '.') . " ke rekening bank sekolah.",
+                    'uraian' => 'Penyetoran kas tunai ke rekening bank',
+                    'nilai' => $amt,
+                    'bpkt' => 'Pengeluaran',
+                    'bb' => '–',
+                    'bpp_alt1' => '–',
+                    'bpp_alt2' => '–',
+                    'bku' => 'Pengeluaran',
+                    'no_bukti' => $bukti,
+                ];
+                $dtRows[] = [
+                    'is_main' => false,
+                    'tanggal' => null,
+                    'info' => null,
+                    'uraian' => 'Penerimaan setoran kas tunai di rekening bank',
+                    'nilai' => $amt,
+                    'bpkt' => '–',
+                    'bb' => 'Penerimaan',
+                    'bpp_alt1' => '–',
+                    'bpp_alt2' => '–',
+                    'bku' => 'Penerimaan',
+                    'no_bukti' => $bukti,
                 ];
             } elseif (in_array($t->type, ['belanja_tunai', 'belanja_transfer'])) {
                 // Tentukan prefix kode bukti (NT untuk nota konsumsi/atk kecil, SPL untuk siplah, KW untuk kuitansi)
@@ -439,6 +511,21 @@ class KemendikdasmenReportService
                         'saldo' => $bbBalance,
                     ];
                 }
+
+                $infoDesc = $t->description . ($t->has_tax && $t->tax_total > 0 ? " (" . ($isCash ? "dibayar tunai" : "transfer bank") . ", dipungut/dipotong pajak)" : ($isCash ? " (dibayar tunai)" : " (transfer bank)"));
+                $dtRows[] = [
+                    'is_main' => true,
+                    'tanggal' => $tDate,
+                    'info' => $infoDesc,
+                    'uraian' => $t->description,
+                    'nilai' => $amt,
+                    'bpkt' => $isCash ? 'Pengeluaran' : '–',
+                    'bb' => $isCash ? '–' : 'Pengeluaran',
+                    'bpp_alt1' => '–',
+                    'bpp_alt2' => '–',
+                    'bku' => 'Pengeluaran',
+                    'no_bukti' => $bukti,
+                ];
 
                 // 2. Jika transaksi memiliki potongan/pungutan pajak (Metode Bruto)
                 if ($t->has_tax && $t->tax_total > 0) {
@@ -557,6 +644,29 @@ class KemendikdasmenReportService
                         ];
                         $bppAlt2Rows[] = $alt2Pungut;
 
+                        $alt2Key = match ($taxKey) {
+                            'PPN' => 'PPN',
+                            'PPH 22' => 'PPh 22',
+                            'PPH 21' => 'PPh 21',
+                            'PPH 4' => 'PPh 4 Ayat 2',
+                            'PPH 23' => 'PPh 23',
+                            default => $taxKey,
+                        };
+
+                        $dtRows[] = [
+                            'is_main' => false,
+                            'tanggal' => null,
+                            'info' => null,
+                            'uraian' => $uraianPungut,
+                            'nilai' => $taxVal,
+                            'bpkt' => $isCash ? 'Penerimaan' : '–',
+                            'bb' => $isCash ? '–' : 'Penerimaan',
+                            'bpp_alt1' => 'Penerimaan – ' . $taxKey,
+                            'bpp_alt2' => $alt2Key . ' (+)',
+                            'bku' => 'Penerimaan',
+                            'no_bukti' => $bukti,
+                        ];
+
                         // PENYETORAN: Jika sudah disetor
                         if ($isSetor) {
                             $bpnBukti = sprintf("BPN-%s-%03d", $monthStr, $seqBPN++);
@@ -622,6 +732,20 @@ class KemendikdasmenReportService
                                 'pajak_daerah' => 0,
                             ];
                             $bppAlt2Rows[] = $alt2Setor;
+
+                            $dtRows[] = [
+                                'is_main' => true,
+                                'tanggal' => $setorDate,
+                                'info' => "Penyetoran " . $taxKey . " via NTPN {$ntpn} (" . ($isCash ? "tunai" : "rekening bank") . ")",
+                                'uraian' => $uraianSetor,
+                                'nilai' => $taxVal,
+                                'bpkt' => $isCash ? 'Pengeluaran' : '–',
+                                'bb' => $isCash ? '–' : 'Pengeluaran',
+                                'bpp_alt1' => 'Pengeluaran – ' . $taxKey,
+                                'bpp_alt2' => $alt2Key . ' (−)',
+                                'bku' => 'Pengeluaran',
+                                'no_bukti' => $bpnBukti,
+                            ];
                         }
                     }
                 }
@@ -649,6 +773,20 @@ class KemendikdasmenReportService
                     'pengeluaran' => $amt,
                     'saldo' => $bbBalance,
                 ];
+
+                $dtRows[] = [
+                    'is_main' => true,
+                    'tanggal' => $tDate,
+                    'info' => 'Biaya administrasi perbankan',
+                    'uraian' => $t->description ?: 'Biaya administrasi perbankan',
+                    'nilai' => $amt,
+                    'bpkt' => '–',
+                    'bb' => 'Pengeluaran',
+                    'bpp_alt1' => '–',
+                    'bpp_alt2' => '–',
+                    'bku' => 'Pengeluaran',
+                    'no_bukti' => $bukti,
+                ];
             } elseif ($t->type === 'bunga_bank') {
                 $bukti = sprintf("TF-%s-%03d", $monthStr, $seqTF++);
                 $bkuBalance += $amt;
@@ -672,6 +810,20 @@ class KemendikdasmenReportService
                     'penerimaan' => $amt,
                     'pengeluaran' => 0,
                     'saldo' => $bbBalance,
+                ];
+
+                $dtRows[] = [
+                    'is_main' => true,
+                    'tanggal' => $tDate,
+                    'info' => 'Penerimaan jasa giro / bunga bank',
+                    'uraian' => $t->description ?: 'Penerimaan jasa giro / bunga bank',
+                    'nilai' => $amt,
+                    'bpkt' => '–',
+                    'bb' => 'Penerimaan',
+                    'bpp_alt1' => '–',
+                    'bpp_alt2' => '–',
+                    'bku' => 'Penerimaan',
+                    'no_bukti' => $bukti,
                 ];
             }
         }
@@ -733,6 +885,9 @@ class KemendikdasmenReportService
                 'total_dipungut' => $totalBppPenerimaan,
                 'total_disetor' => $totalBppPengeluaran,
                 'saldo_belum_disetor' => $bppBalance,
+            ],
+            'daftar_transaksi' => [
+                'rows' => $dtRows,
             ],
             'reconciliation' => [
                 'saldo_bku' => $bkuBalance,
@@ -803,6 +958,9 @@ class KemendikdasmenReportService
             $monthsData[$mIdx] = $this->getMonthlyReportData($school, $mIdx);
         }
 
+        // 0. Buat sheet 'Daftar Transaksi' sebagai tab pertama (sesuai file Contoh Bimtek Kemendikdasmen)
+        $this->generateDaftarTransaksiSheet($spreadsheet, $school, $monthsData);
+
         $prevTotals = [];
 
         // Isi setiap bulan ke sheet template BKU{m}, BPKT{m}, BB{m}, BPP{m} Alt1, BPP{m} Alt2
@@ -872,6 +1030,9 @@ class KemendikdasmenReportService
         $schoolNameSlug = str_replace([' ', '/', '\\'], '_', $school->name);
         $periodSlug = $targetMonth ? "Bulan_{$targetMonth}" : "Lengkap_Semua_Bulan";
         $fileName = "Laporan_Kemendikdasmen_Revitalisasi_{$periodSlug}_{$schoolNameSlug}_" . date('Ymd_His') . ".xlsx";
+
+        // Pastikan sheet Daftar Transaksi yang aktif terbuka saat pertama dibuka
+        $spreadsheet->setActiveSheetIndex(0);
 
         return response()->streamDownload(function () use ($spreadsheet) {
             $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
@@ -1217,6 +1378,169 @@ class KemendikdasmenReportService
             } elseif (str_contains($valB, '......')) {
                 $sheet->setCellValue("B{$r}", "({$closing['kepala_sekolah']['nama']})");
                 $sheet->setCellValue("E{$r}", "({$closing['ketua_p2sp']['nama']})");
+            }
+        }
+    }
+
+    /**
+     * Membuat dan mengisi sheet 'Daftar Transaksi' sebagai tab pertama laporan.
+     * Mengikuti format resmi Kemendikdasmen pada file: 261030 - (Negeri) Contoh Laporan BKU BPKT BB BPP.
+     */
+    protected function generateDaftarTransaksiSheet(Spreadsheet $spreadsheet, School $school, array $monthsData): void
+    {
+        // Buat sheet baru di index 0
+        $sheet = $spreadsheet->createSheet(0);
+        $sheet->setTitle('Daftar Transaksi');
+
+        // Atur lebar kolom
+        $colWidths = [
+            'A' => 6,
+            'B' => 12,
+            'C' => 48,
+            'D' => 58,
+            'E' => 16,
+            'F' => 14,
+            'G' => 14,
+            'H' => 22,
+            'I' => 18,
+            'J' => 14,
+            'K' => 20,
+        ];
+        foreach ($colWidths as $col => $w) {
+            $sheet->getColumnDimension($col)->setWidth($w);
+        }
+
+        // Baris 1: Judul
+        $sheet->setCellValue('A1', 'DAFTAR TRANSAKSI DAN PENCATATANNYA DI BUKU UTAMA');
+        $sheet->getStyle('A1')->getFont()->setName('Arial')->setSize(13)->setBold(true);
+
+        // Baris 2: Nama Sekolah & Informasi Bantuan
+        $totalDana = Transaction::where('school_id', $school->id)
+            ->where('type', 'penerimaan_dana')
+            ->sum('amount');
+        $totalDanaStr = $totalDana > 0 ? "Rp " . number_format($totalDana, 0, ',', '.') : "Revitalisasi SD 2026";
+        $sheet->setCellValue('A2', "{$school->name} – Program Revitalisasi SD 2026, total dana {$totalDanaStr}. Rekapitulasi alur transaksi ke Buku Pembantu dan Buku Kas Umum.");
+        $sheet->getStyle('A2')->getFont()->setName('Arial')->setSize(10);
+
+        // Baris 3: Petunjuk Kolom
+        $sheet->setCellValue('A3', 'Kolom BPKT/BB/BPP Alt1/BKU: kolom tempat nilai dicatat (Penerimaan/Pengeluaran). Kolom BPP Alt2: kolom jenis pajak, (+) = pajak dipungut/dipotong (nilai positif), (−) = pajak disetor (nilai negatif, tampil dalam tanda kurung). "–" = tidak dicatat di buku tersebut.');
+        $sheet->getStyle('A3')->getFont()->setName('Arial')->setSize(9)->setItalic(true);
+
+        // Baris 5: Table Header
+        $headers = [
+            'A5' => 'No.',
+            'B5' => 'Tanggal',
+            'C5' => 'Informasi Transaksi',
+            'D5' => 'Uraian Transaksi (yang ditulis di buku utama)',
+            'E5' => 'Nilai (Rp)',
+            'F5' => 'BPKT',
+            'G5' => 'BB',
+            'H5' => 'BPP Alt1',
+            'I5' => 'BPP Alt2',
+            'J5' => 'BKU',
+            'K5' => 'No. Bukti',
+        ];
+        foreach ($headers as $cell => $val) {
+            $sheet->setCellValue($cell, $val);
+        }
+
+        $headerStyle = [
+            'font' => ['name' => 'Arial', 'size' => 10, 'bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['argb' => 'FF1F4E78'],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+                'wrapText' => true,
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['argb' => 'FFD9D9D9'],
+                ],
+            ],
+        ];
+        $sheet->getStyle('A5:K5')->applyFromArray($headerStyle);
+        $sheet->getRowDimension(5)->setRowHeight(28);
+
+        $curRow = 6;
+        $globalNo = 1;
+
+        foreach ($monthsData as $mIdx => $data) {
+            $mInfo = $data['month_info'];
+            $monthNameUpper = strtoupper($mInfo['month_name']);
+            $year = $mInfo['year'];
+
+            // Header Seksi per Bulan
+            $sheet->setCellValue("A{$curRow}", "BULAN KE-{$mIdx}: {$monthNameUpper} {$year}  (sheet BPKT{$mIdx}, BB{$mIdx}, BPP{$mIdx} Alt1, BPP{$mIdx} Alt2, BKU{$mIdx})");
+            $sheet->mergeCells("A{$curRow}:K{$curRow}");
+            $sheet->getStyle("A{$curRow}:K{$curRow}")->applyFromArray([
+                'font' => ['name' => 'Arial', 'size' => 10, 'bold' => true, 'color' => ['argb' => 'FF1F4E78']],
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['argb' => 'FFDDEBF7'],
+                ],
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_LEFT,
+                    'vertical' => Alignment::VERTICAL_CENTER,
+                    'indent' => 1,
+                ],
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['argb' => 'FFBDD7EE'],
+                    ],
+                ],
+            ]);
+            $sheet->getRowDimension($curRow)->setRowHeight(22);
+            $curRow++;
+
+            $dtRows = $data['daftar_transaksi']['rows'] ?? [];
+            foreach ($dtRows as $row) {
+                if (!empty($row['is_main'])) {
+                    $sheet->setCellValue("A{$curRow}", $globalNo++);
+                }
+
+                if (!empty($row['tanggal']) && $row['tanggal'] instanceof Carbon) {
+                    $sheet->setCellValue("B{$curRow}", $row['tanggal']->format('d/m/Y'));
+                }
+
+                $sheet->setCellValue("C{$curRow}", $row['info'] ?? '');
+                $sheet->setCellValue("D{$curRow}", $row['uraian'] ?? '');
+
+                if (isset($row['nilai']) && $row['nilai'] !== null) {
+                    $sheet->setCellValue("E{$curRow}", $row['nilai']);
+                }
+
+                $sheet->setCellValue("F{$curRow}", $row['bpkt'] ?? '–');
+                $sheet->setCellValue("G{$curRow}", $row['bb'] ?? '–');
+                $sheet->setCellValue("H{$curRow}", $row['bpp_alt1'] ?? '–');
+                $sheet->setCellValue("I{$curRow}", $row['bpp_alt2'] ?? '–');
+                $sheet->setCellValue("J{$curRow}", $row['bku'] ?? '–');
+                $sheet->setCellValue("K{$curRow}", $row['no_bukti'] ?? '');
+
+                // Format & perataan baris
+                $sheet->getStyle("A{$curRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle("B{$curRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle("C{$curRow}")->getAlignment()->setWrapText(true);
+                $sheet->getStyle("D{$curRow}")->getAlignment()->setWrapText(true);
+                $sheet->getStyle("E{$curRow}")->getNumberFormat()->setFormatCode('#,##0');
+                $sheet->getStyle("E{$curRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle("F{$curRow}:K{$curRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+                $sheet->getStyle("A{$curRow}:K{$curRow}")->applyFromArray([
+                    'font' => ['name' => 'Arial', 'size' => 9.5],
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => Border::BORDER_THIN,
+                            'color' => ['argb' => 'FFE0E0E0'],
+                        ],
+                    ],
+                ]);
+
+                $curRow++;
             }
         }
     }

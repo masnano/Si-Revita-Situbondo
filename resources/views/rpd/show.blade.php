@@ -68,6 +68,23 @@
 
             @if($unpostedCount > 0)
                 @role('root,admin')
+                @if($rpd->project && $rpd->project->hasKurvaS())
+                <!-- Tombol Sesuaikan dengan Kurva S -->
+                <form action="{{ route('rpd.sync_kurva_s', $rpd->id) }}" method="POST"
+                      data-confirm="Sistem akan menyelaraskan penanggalan belanja BKU untuk <strong>{{ $unpostedCount }} item draf</strong> mengikuti jadwal dan kurva S resmi proyek ({{ $rpd->project->kurva_s_filename ?: 'Kurva S' }}).<br><br>Lanjutkan proses penyelarasan jadwal?"
+                      data-confirm-title="Sesuaikan Jadwal dengan Kurva S"
+                      data-confirm-button="Ya, Selaraskan dengan Kurva S"
+                      onsubmit="return confirm('Selaraskan penanggalan belanja BKU item draf dengan Kurva S proyek?')">
+                    @csrf
+                    <button type="submit" 
+                            class="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white rounded-xl text-xs md:text-sm font-bold shadow-md shadow-emerald-600/20 transition-all hover:-translate-y-0.5"
+                            title="Sesuaikan tanggal seluruh item mengikuti jadwal Kurva S yang diunggah">
+                        <i data-lucide="trending-up" class="w-4 h-4 text-emerald-200"></i>
+                        <span>Sesuaikan Kurva S</span>
+                    </button>
+                </form>
+                @endif
+
                 <!-- Tombol Variasikan dengan AI Gemini -->
                 <form action="{{ route('rpd.ai_enhance', $rpd->id) }}" method="POST"
                       data-confirm="Sistem akan menyempurnakan <strong>{{ $unpostedCount }} item draf</strong> menggunakan Google Gemini AI (atau Algoritma Cerdas Lokal).<br><br>Tanggal belanja akan disusun berfase konstruksi realistis, hari Minggu dihindari, upah tukang di hari Sabtu, narasi BKU dibuat variatif dan formal, serta toko lokal Situbondo disarankan otomatis.<br><br>Lanjutkan proses variasi cerdas?"
@@ -144,6 +161,36 @@
             @endrole
         </div>
     </div>
+
+    @if($rpd->project && $rpd->project->hasKurvaS())
+    <div class="p-3.5 rounded-xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200 text-xs text-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+        <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                <i data-lucide="trending-up" class="w-4 h-4"></i>
+            </div>
+            <div>
+                <span class="font-bold text-emerald-900 block">Jadwal Kurva S Terhubung: {{ $rpd->project->kurva_s_filename ?: 'Kurva S Revitalisasi' }} ({{ $rpd->project->kurva_s_total_weeks }} Minggu)</span>
+                <span class="text-slate-600 text-[11px]">Tanggal belanja draf pada dokumen ini diselaraskan otomatis dengan minggu aktif pekerjaan fisik di lapangan.</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <a href="{{ route('projects.kurva_s.download', $rpd->project_id) }}" target="_blank"
+               class="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold text-xs flex items-center gap-1 shadow-2xs">
+                <i data-lucide="external-link" class="w-3.5 h-3.5 text-emerald-600"></i>
+                <span>Lihat Kurva S</span>
+            </a>
+            @if($unpostedCount > 0)
+            <form action="{{ route('rpd.sync_kurva_s', $rpd->id) }}" method="POST" class="inline">
+                @csrf
+                <button type="submit" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1 shadow-2xs">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                    <span>Sinkronkan Ulang</span>
+                </button>
+            </form>
+            @endif
+        </div>
+    </div>
+    @endif
 
     @if($unpostedCount === 0 && $postedCount > 0)
     <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs md:text-sm">

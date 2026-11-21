@@ -391,6 +391,8 @@ class RpdBreakdownService
             'school_kecamatan' => $schoolKecamatan,
             'school_address' => $schoolAddress,
             'term_stage' => $document->term_stage ?? 'Tahap 1',
+            'project' => $document->project,
+            'kurva_s_data' => $document->project?->kurva_s_data,
         ]));
 
         $updatedCount = 0;
@@ -1865,12 +1867,19 @@ class RpdBreakdownService
         }
 
         // 3. Tanggal Rencana Penarikan / Belanja BKU
-        $defaultDate = $context['default_date'] ?? now()->format('Y-m-d');
+        $defaultDate = $context['default_date'] ?? ($project->start_date ? $project->start_date->format('Y-m-d') : now()->format('Y-m-d'));
         $uLower = strtolower($uraian);
         $isPerencanaan = str_contains($uLower, 'perencanaan');
         $isPengawasan = str_contains($uLower, 'pengawasan');
 
-        if ($isPerencanaan) {
+        // Jika proyek memiliki dokumen Kurva S yang diunggah, selaraskan tanggal mengikuti Kurva S
+        if ($project->hasKurvaS() && (empty($row['tanggal']) || $row['tanggal'] === $defaultDate)) {
+            $kurvaSService = app(\App\Services\KurvaSService::class);
+            $plannedDate = $kurvaSService->calculateItemPlannedDate([
+                'item_name' => $uraian,
+                'category' => $category,
+            ], $project, $rowNumber, $context['total_rows_count'] ?? 50);
+        } elseif ($isPerencanaan) {
             // Biaya Perencanaan: DIAWAL, setelah pencairan 70% (pada tanggal awal pencairan)
             $plannedDate = $this->parseDateOrDefault($row['tanggal'] ?? null, $defaultDate);
         } elseif ($isPengawasan) {

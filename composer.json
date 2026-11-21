@@ -12,7 +12,7 @@
         "laravel/sanctum": "^3.2",
         "laravel/tinker": "^2.8",
         "phpoffice/phpspreadsheet": "^5.8",
-        "smalot/pdfparser": "^2.13"
+        "smalot/pdfparser": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.9.1",

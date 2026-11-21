@@ -1254,7 +1254,12 @@ PROMPT;
                     $date = $item['planned_date'] ?? $baseDate;
                 }
 
-                $item['planned_date'] = $date;
+                if (!empty($context['project']) && $context['project']->hasKurvaS()) {
+                    $kurvaSService = app(\App\Services\KurvaSService::class);
+                    $item['planned_date'] = $kurvaSService->calculateItemPlannedDate($item, $context['project'], $idx, count($originalItems));
+                } else {
+                    $item['planned_date'] = $date;
+                }
 
                 if (!empty($aiRow['bku_description'])) {
                     $item['bku_description'] = trim($aiRow['bku_description']);
@@ -1376,29 +1381,34 @@ PROMPT;
                 $phase = min(5, max(1, (int)floor(($idx / max(1, $totalItems)) * 5) + 1));
             }
 
-            // 2. Hitung Tanggal Progresif
-            $targetDate = $base->copy();
-            if (str_contains($itemName, 'perencanaan')) {
-                $targetDate = $base->copy();
-            } elseif (str_contains($itemName, 'pengawasan')) {
-                $targetDate = $base->copy()->addDays(32);
-                if ($targetDate->isSunday()) {
-                    $targetDate->addDay();
-                }
-            } elseif ($cat === 'upah') {
-                $weeksToAdd = $phase - 1;
-                $targetDate->addWeeks($weeksToAdd);
-                if (!$targetDate->isSaturday()) {
-                    $targetDate->next(Carbon::SATURDAY);
-                }
+            // 2. Hitung Tanggal Progresif (Menyesuaikan Kurva S jika tersedia)
+            if (!empty($options['project']) && $options['project']->hasKurvaS()) {
+                $kurvaSService = app(\App\Services\KurvaSService::class);
+                $item['planned_date'] = $kurvaSService->calculateItemPlannedDate($item, $options['project'], $idx, $totalItems);
             } else {
-                $dayOffset = (($phase - 1) * 7) + (($idx % 4) * 2);
-                $targetDate->addDays($dayOffset);
-                if ($targetDate->isSunday()) {
-                    $targetDate->addDay();
+                $targetDate = $base->copy();
+                if (str_contains($itemName, 'perencanaan')) {
+                    $targetDate = $base->copy();
+                } elseif (str_contains($itemName, 'pengawasan')) {
+                    $targetDate = $base->copy()->addDays(32);
+                    if ($targetDate->isSunday()) {
+                        $targetDate->addDay();
+                    }
+                } elseif ($cat === 'upah') {
+                    $weeksToAdd = $phase - 1;
+                    $targetDate->addWeeks($weeksToAdd);
+                    if (!$targetDate->isSaturday()) {
+                        $targetDate->next(Carbon::SATURDAY);
+                    }
+                } else {
+                    $dayOffset = (($phase - 1) * 7) + (($idx % 4) * 2);
+                    $targetDate->addDays($dayOffset);
+                    if ($targetDate->isSunday()) {
+                        $targetDate->addDay();
+                    }
                 }
+                $item['planned_date'] = $targetDate->format('Y-m-d');
             }
-            $item['planned_date'] = $targetDate->format('Y-m-d');
 
             // 3. Kalibrasi Harga Satuan & Volume Mengikuti Standar HSPK / SHS Situbondo
             $priceBenchmark = self::determineSitubondoPrice(

@@ -480,6 +480,36 @@ class RpdBreakdownController extends Controller
     }
 
     /**
+     * Menyelaraskan kembali tanggal rencana belanja BKU pada RPD dengan Kurva S yang diunggah.
+     */
+    public function syncKurvaS(RpdDocument $rpd)
+    {
+        $project = $rpd->project;
+        if (!$project || !$project->hasKurvaS()) {
+            return back()->with('error', 'Paket Revitalisasi belum memiliki dokumen Kurva S. Silakan unggah berkas Kurva S pada menu Paket Revitalisasi terlebih dahulu.');
+        }
+
+        $kurvaSService = app(\App\Services\KurvaSService::class);
+        $result = $kurvaSService->alignRpdDocumentToKurvaS($rpd);
+
+        if (!$result['success']) {
+            return back()->with('error', $result['message']);
+        }
+
+        SystemNotification::send(
+            type: 'rpd',
+            title: 'Penyesuaian Tanggal RPD dengan Kurva S',
+            message: "Sebanyak {$result['updated_count']} item pada dokumen RPD '{$rpd->title}' berhasil diselaraskan tanggalnya mengikuti Kurva S.",
+            url: route('rpd.show', $rpd->id),
+            icon: 'calendar-check',
+            color: 'emerald',
+            data: ['rpd_id' => $rpd->id, 'updated_count' => $result['updated_count']]
+        );
+
+        return back()->with('success', $result['message']);
+    }
+
+    /**
      * Ekspor Output Pecah Bahan yang siap menjadi Isian BKU (Excel .xlsx atau CSV).
      */
     public function exportBku(Request $request, RpdDocument $rpd)

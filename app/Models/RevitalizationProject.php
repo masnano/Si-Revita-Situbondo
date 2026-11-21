@@ -22,6 +22,9 @@ class RevitalizationProject extends Model
         'status',
         'physical_progress',
         'description',
+        'kurva_s_path',
+        'kurva_s_filename',
+        'kurva_s_data',
     ];
 
     protected $casts = [
@@ -31,6 +34,7 @@ class RevitalizationProject extends Model
         'spk_date' => 'date',
         'start_date' => 'date',
         'end_date' => 'date',
+        'kurva_s_data' => 'array',
     ];
 
     public function school()
@@ -69,6 +73,27 @@ class RevitalizationProject extends Model
     public function getRemainingBudgetAttribute()
     {
         return $this->contract_amount - $this->total_realization;
+    }
+
+    // Cek apakah proyek memiliki kurva S
+    public function hasKurvaS(): bool
+    {
+        return !empty($this->kurva_s_path) || !empty($this->kurva_s_data);
+    }
+
+    // URL file Kurva S
+    public function getKurvaSUrlAttribute(): ?string
+    {
+        if (empty($this->kurva_s_path)) {
+            return null;
+        }
+        return \Illuminate\Support\Facades\Storage::url($this->kurva_s_path);
+    }
+
+    // Total minggu pelaksanaan dari Kurva S
+    public function getKurvaSTotalWeeksAttribute(): int
+    {
+        return (int)($this->kurva_s_data['total_weeks'] ?? 13);
     }
 }
 

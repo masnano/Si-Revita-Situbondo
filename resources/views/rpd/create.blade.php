@@ -221,7 +221,7 @@
                                 <input type="date" name="default_date" id="default_date" value="{{ old('default_date', date('Y-m-d')) }}"
                                        class="w-full text-xs md:text-sm rounded-xl border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none">
                                 <p class="text-[11px] text-slate-500 mt-1">
-                                    Dianggap sebagai tanggal pencairan dana termin. Sistem otomatis mencatat <strong>Saldo Masuk (Penerimaan SP2D)</strong> dan <strong>Penarikan Kas Tunai</strong> pada tanggal ini, lalu menjadwalkan belanja bahan & upah bertahap tanpa hari Minggu.
+                                    Dianggap sebagai tanggal pencairan dana termin. Sistem otomatis mencatat <strong>Saldo Masuk (Penerimaan SP2D)</strong> dan <strong>Penarikan Kas Tunai</strong> pada tanggal ini, lalu menjadwalkan belanja bahan & upah bertahap tanpa hari Minggu (otomatis diselaraskan dengan <strong>Jadwal Kurva S</strong> jika paket proyek memiliki Kurva S).
                                 </p>
                             </div>
 

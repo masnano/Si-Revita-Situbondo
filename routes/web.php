@@ -69,6 +69,7 @@ Route::middleware('auth')->group(function () {
 
     // 4. Modul Data Master Sekolah & Proyek & RAB
     Route::resource('schools', SchoolController::class);
+    Route::get('/projects/{project}/kurva-s', [ProjectController::class, 'downloadKurvaS'])->name('projects.kurva_s.download');
     Route::resource('projects', ProjectController::class);
     Route::get('/rab/template', [BudgetItemController::class, 'template'])->name('rab.template');
     Route::post('/rab/import', [BudgetItemController::class, 'import'])->name('rab.import')->middleware('permission:rab.create');
@@ -87,6 +88,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/{rpd}/unpost', [RpdBreakdownController::class, 'unpost'])->name('unpost')->middleware('role:root,admin');
         Route::post('/{rpd}/ai-enhance', [RpdBreakdownController::class, 'enhanceWithAi'])->name('ai_enhance')->middleware('role:root,admin');
         Route::post('/{rpd}/sync-disbursement', [RpdBreakdownController::class, 'syncDisbursement'])->name('sync_disbursement')->middleware('role:root,admin');
+        Route::post('/{rpd}/sync-kurva-s', [RpdBreakdownController::class, 'syncKurvaS'])->name('sync_kurva_s')->middleware('role:root,admin');
         Route::get('/{rpd}/export-bku', [RpdBreakdownController::class, 'exportBku'])->name('export_bku');
         Route::post('/suggest-price', [RpdBreakdownController::class, 'suggestSitubondoPrice'])->name('ai_suggest_price');
         Route::delete('/{rpd}', [RpdBreakdownController::class, 'destroy'])->name('destroy')->middleware('role:root,admin');
