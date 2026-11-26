@@ -741,241 +741,147 @@ PROMPT;
     }
 
     /**
-     * Direktori toko bangunan, pangkalan material, dan penyedia rekanan
-     * terdekat pada 17 Kecamatan di seluruh Kabupaten Situbondo, Jawa Timur.
+     * Direktori toko bangunan RIIL (bukan fiktif) terdekat pada 17 Kecamatan
+     * di seluruh Kabupaten Situbondo, Jawa Timur.
+     * Setiap kecamatan dibatasi maksimal 3 toko bangunan real untuk pembelanjaan bahan.
      */
     public static function getSitubondoDistrictStores(?string $kecamatan = null): array
     {
         $stores = [
             'Situbondo' => [
                 'general' => [
-                    'Toko Bangunan Berkah Jl. Basuki Rahmat Situbondo',
-                    'Toko Besi & Baja Abadi Jl. Pemuda Situbondo',
-                    'Depo Bangunan Situbondo Indah',
-                    'Toko Bangunan Mitra Karya Situbondo',
-                    'TB Jaya Abadi Jl. Irian Jaya Situbondo',
+                    'Toko Bangunan ACC (Jl. Achmad Yani No. 173, Dawuhan, Situbondo)',
+                    'Toko Bangunan Rajawali (Jl. Achmad Yani No. 155, Dawuhan, Situbondo)',
+                    'TB Jadi Jaya (Jl. PB. Sudirman No. 16, Patokan, Situbondo)',
                 ],
-                'cat' => ['Toko Cat Citra Warna Jl. PB. Sudirman Situbondo', 'Toko Cat & Finishing Pelangi Situbondo'],
-                'keramik' => ['Toko Keramik & Sanitasi Sentosa Jl. Argopuro Situbondo'],
-                'kayu' => ['UD Kayu Jati Murni Situbondo'],
-                'pasir' => ['Pemasok Pasir Pasang Kali Sampean Situbondo', 'Pemasok Batu Belah Kali Sampean'],
-                'bata' => ['Pengrajin Bata Merah Panji-Situbondo'],
                 'tukang' => ['Kelompok Tukang Swakelola Situbondo Kota', 'Kelompok Pekerja Swakelola Patokan'],
             ],
             'Panji' => [
                 'general' => [
-                    'UD Karunia Mega Bangunan Jl. Argopuro Mimbaan Panji',
-                    'UD Panji Putra Jl. Argopuro Mimbaan Panji',
-                    'Toko Bangunan Pojok Agung Jl. Jawa Krajan Mimbaan Panji',
-                    'Toko Sumber Sari Jl. Argopuro Panji',
-                    'UD Sinar Terang Bangunan Panji',
-                    'Toko Bangunan Berkah Panji Jl. Raya Banyuwangi',
+                    'UD Karunia Mega Bangunan (Jl. Argopuro No. 17, Mimbaan, Panji)',
+                    'Toko Niaga (Jl. Pangeran Diponegoro No. 106, Ardirejo, Panji)',
+                    'Toko Sumber Sari (Jl. Argopuro No. 100, Mimbaan, Panji)',
                 ],
-                'cat' => ['Toko Cat Cahaya Baru Mimbaan Panji', 'Toko Cat Citra Warna Panji'],
-                'keramik' => ['UD Karunia Mega Bangunan Mimbaan Panji'],
-                'kayu' => ['UD Kayu Jati Murni Panji'],
-                'pasir' => ['Pemasok Pasir & Koral Panji Situbondo', 'Pemasok Pasir Kali Sampean'],
-                'bata' => ['Sentra Pengrajin Bata Merah Panji Lor', 'Pengrajin Bata Merah Curah Jeru Panji'],
                 'tukang' => ['Kelompok Tukang Swakelola Panji', 'Kelompok Pekerja Swakelola Mimbaan'],
             ],
             'Besuki' => [
                 'general' => [
-                    'Toko Bangunan Setia Bakti Besuki',
-                    'Toko Material Sumber Rejeki Besuki',
-                    'TB Bintang Terang Jl. Raya Besuki',
-                    'Toko Bangunan Utama Besuki',
+                    'Toko Bangunan Semangat Baru (Jl. Raya Situbondo No. 47, Besuki)',
+                    'Toko Panama Jaya (Jl. Bondowoso No. 319, Buduan, Besuki)',
+                    'Surya Abadi Besuki (Jl. Kenanga, Kalimas, Besuki)',
                 ],
-                'cat' => ['Panama Jaya Spesialis Cat & Pelapis Besuki', 'UD Warna Abadi Besuki'],
-                'keramik' => ['Toko Bangunan Setia Bakti Besuki'],
-                'kayu' => ['Toko Kayu Murah Barokah Jl. Semiring Demung Besuki', 'Pangkalan Kayu Barokah Besuki'],
-                'pasir' => ['Pangkalan Pasir & Batu Kali Besuki', 'Pemasok Pasir Pasang Kali Sampean'],
-                'bata' => ['Pengrajin Bata Merah Kalimas Besuki', 'UD Bata Merah Pesisir Besuki'],
                 'tukang' => ['Kelompok Tukang Swakelola Besuki', 'Kelompok Pekerja Swakelola Demung'],
             ],
             'Kapongan' => [
                 'general' => [
-                    'Toko Bangunan Sumber Hidup Landangan Kapongan',
-                    'Toko SKJ Barokah Bahan Bangunan Wonokoyo Kapongan',
-                    'Toko Meubel & Bangunan Bang Hasyim Jalur Pantura Kapongan',
-                    'TB Berkah Bersama Kapongan',
+                    'Toko Bangunan Sumber Hidup (Landangan, Kapongan)',
+                    'Toko SKJ Barokah Bahan Bangunan (Wonokoyo, Kapongan)',
+                    'Yono Kayu & Plafon (Dawuhan, Wonokoyo, Kapongan)',
                 ],
-                'cat' => ['Toko Winda Jaya / Samurai Paint Wonokoyo Kapongan'],
-                'keramik' => ['Toko Bangunan Sumber Hidup Landangan Kapongan'],
-                'kayu' => ['Pengrajin Kusen Kayu Subur Kapongan', 'Pangkalan Kayu Wonokoyo Kapongan'],
-                'pasir' => ['Pemasok Pasir Pasang Kali Sampean', 'Pemasok Pasir & Batu Kapongan'],
-                'bata' => ['Pengrajin Bata Merah Landangan Kapongan', 'Pengrajin Bata Merah Kesambirampak'],
                 'tukang' => ['Kelompok Tukang Swakelola Kapongan', 'Kelompok Pekerja Swakelola Landangan'],
             ],
             'Asembagus' => [
                 'general' => [
-                    'Toko Bumi Bangunan Krajan Tengah Asembagus',
-                    'Subur Jaya Home / CV. Surya Kencana Jl. Raya Asembagus',
-                    'Toko Sumber Berkat Jl. Raya Asembagus Trigonco',
-                    'Toko Besi & Material Sinar Asembagus',
+                    'Toko Bumi Bangunan (Krajan Tengah, Asembagus)',
+                    'CV. Surya Kencana / Subur Jaya Home (Jl. Raya Asembagus)',
+                    'Toko Sumber Berkat (Jl. Raya Asembagus, Trigonco)',
                 ],
-                'cat' => ['Subur Jaya Home Asembagus', 'Toko Cat Citra Warna Asembagus'],
-                'keramik' => ['Toko Sumber Berkat Trigonco Asembagus'],
-                'kayu' => ['Pangkalan Kayu Subur Jaya Asembagus'],
-                'pasir' => ['Pemasok Pasir & Batu Kali Bantal Asembagus', 'Pemasok Pasir Sampean'],
-                'bata' => ['Pengrajin Bata Merah Mojosari Asembagus', 'Sentra Bata Merah Trigonco'],
                 'tukang' => ['Kelompok Tukang Swakelola Asembagus', 'Kelompok Pekerja Swakelola Kertosari'],
             ],
             'Banyuputih' => [
                 'general' => [
-                    'Toko Bangunan Sumber Rejeki Banyuputih (Pantura Baluran)',
-                    'Toko Material Berkah Wonorejo Banyuputih',
-                    'TB Timur Raya Jalur Pantura Banyuputih',
-                    'TB Sumberwaru Indah Banyuputih',
+                    'Toko Bangunan Bindung (Sumberanyar, Banyuputih)',
+                    'Toko Bumi Bangunan (Krajan Tengah, Asembagus)',
+                    'Toko Sumber Berkat (Jl. Raya Asembagus, Trigonco)',
                 ],
-                'cat' => ['Toko Bangunan Sumber Rejeki Banyuputih'],
-                'keramik' => ['TB Timur Raya Banyuputih'],
-                'kayu' => ['Pangkalan Kayu Jati & Sengon Banyuputih'],
-                'pasir' => ['Pangkalan Pasir & Batu Kali Banyuputih', 'Pemasok Pasir Sampean'],
-                'bata' => ['Pengrajin Bata Merah Sumberanyar Banyuputih'],
                 'tukang' => ['Kelompok Tukang Swakelola Banyuputih', 'Kelompok Pekerja Swakelola Wonorejo'],
             ],
             'Panarukan' => [
                 'general' => [
-                    'Toko Bangunan Panarukan Indah Jl. Raya Panarukan',
-                    'Toko Material Pelabuhan Panarukan',
-                    'Toko Bangunan Barokah Paowan Panarukan',
-                    'TB Kilensari Makmur Panarukan',
+                    'Toko Bangunan Sinar Mas (Jl. Raya Pelabuhan No. 472, Kilensari, Panarukan)',
+                    'Toko Semangat Baru (Krajan, Sumber Kolak, Panarukan)',
+                    'Toko Bangunan ACC (Jl. Achmad Yani No. 173, Dawuhan, Situbondo)',
                 ],
-                'cat' => ['Toko Bangunan Panarukan Indah'],
-                'keramik' => ['TB Barokah Paowan Panarukan'],
-                'kayu' => ['UD Kayu Wringinanom Panarukan'],
-                'pasir' => ['Pemasok Pasir & Sirtu Urug Panarukan', 'Pemasok Pasir Pasang Kali Sampean'],
-                'bata' => ['Pengrajin Bata Merah Paowan Panarukan'],
                 'tukang' => ['Kelompok Tukang Swakelola Panarukan', 'Kelompok Pekerja Swakelola Paowan'],
             ],
             'Mangaran' => [
                 'general' => [
-                    'Toko Bangunan Pantai Utara Mangaran (Tanjung Kamal)',
-                    'Toko Material Barokah Tanjung Kamal Mangaran',
-                    'TB Pesisir Makmur Mangaran',
+                    'Toko Bahan Bangunan Mangaran (Semiring, Mangaran)',
+                    'Toko Sumber Hidup / FK (Jl. Raya Krajan, Mangaran)',
+                    'UD Karunia Mega Bangunan (Jl. Argopuro No. 17, Mimbaan, Panji)',
                 ],
-                'cat' => ['Toko Bangunan Pantai Utara Mangaran'],
-                'keramik' => ['Toko Material Barokah Tanjung Kamal'],
-                'kayu' => ['Pangkalan Kayu Tanjung Pecinan Mangaran'],
-                'pasir' => ['Pemasok Pasir & Sirtu Pesisir Mangaran', 'Pemasok Pasir Kali Sampean'],
-                'bata' => ['Pengrajin Bata Merah Trebungan Mangaran'],
                 'tukang' => ['Kelompok Tukang Swakelola Mangaran', 'Kelompok Pekerja Swakelola Tanjung Kamal'],
             ],
             'Kendit' => [
                 'general' => [
-                    'Toko Bangunan Kendit Makmur',
-                    'Toko Material Pasir Putih Klatakan Kendit',
-                    'TB Berkah Balung Kendit',
+                    'Gudang Kerajinan Kayu Jati Ali Yusuf (Klatakan, Kendit)',
+                    'Toko Bangunan Sinar Mas (Jl. Raya Pelabuhan No. 472, Kilensari, Panarukan)',
+                    'Toko Bangunan ACC (Jl. Achmad Yani No. 173, Dawuhan, Situbondo)',
                 ],
-                'cat' => ['Toko Bangunan Kendit Makmur'],
-                'keramik' => ['TB Pasir Putih Klatakan Kendit'],
-                'kayu' => ['Pangkalan Kayu Balung Kendit'],
-                'pasir' => ['Pemasok Pasir & Sirtu Kendit', 'Pemasok Pasir Kali Sampean'],
-                'bata' => ['Pengrajin Bata Merah Rajekwesi Kendit'],
                 'tukang' => ['Kelompok Tukang Swakelola Kendit', 'Kelompok Pekerja Swakelola Klatakan'],
             ],
             'Arjasa' => [
                 'general' => [
-                    'Toko Bangunan Arjasa Mandiri',
-                    'Toko Besi & Bangunan Berkah Abadi Arjasa',
-                    'TB Sumber Makmur Lamongan Arjasa',
+                    'TB Hemat Bangunan (Jl. Raya Banyuwangi, Lamongan, Arjasa)',
+                    'Toko Bangunan Sumber Hidup (Landangan, Kapongan)',
+                    'UD Karunia Mega Bangunan (Jl. Argopuro No. 17, Mimbaan, Panji)',
                 ],
-                'cat' => ['Toko Bangunan Arjasa Mandiri'],
-                'keramik' => ['TB Berkah Abadi Arjasa'],
-                'kayu' => ['Pemasok Kayu & Bambu Konstruksi Arjasa', 'UD Kayu Jatisari Arjasa'],
-                'pasir' => ['Pemasok Pasir Kali Deluwang Arjasa', 'Pemasok Pasir Kali Sampean'],
-                'bata' => ['Pengrajin Bata Merah Kedungdowo Arjasa'],
                 'tukang' => ['Kelompok Tukang Swakelola Arjasa', 'Kelompok Pekerja Swakelola Lamongan'],
             ],
             'Jangkar' => [
                 'general' => [
-                    'Toko Bangunan Pelabuhan Jangkar',
-                    'Toko Material Sejahtera Jangkar',
-                    'TB Berkah Agel Jangkar',
+                    'Toko Bumi Bangunan (Krajan Tengah, Asembagus)',
+                    'Toko Sumber Berkat (Jl. Raya Asembagus, Trigonco)',
+                    'Toko Bangunan Sumber Hidup (Landangan, Kapongan)',
                 ],
-                'cat' => ['Toko Bangunan Pelabuhan Jangkar'],
-                'keramik' => ['Toko Material Sejahtera Jangkar'],
-                'kayu' => ['Pangkalan Kayu Palangan Jangkar'],
-                'pasir' => ['Pemasok Pasir & Batu Jangkar', 'Pemasok Pasir Kali Sampean'],
-                'bata' => ['Pengrajin Bata Merah Pesanggrahan Jangkar'],
                 'tukang' => ['Kelompok Tukang Swakelola Jangkar', 'Kelompok Pekerja Swakelola Pesanggrahan'],
             ],
             'Suboh' => [
                 'general' => [
-                    'Toko Bangunan Suboh Jaya Jl. Raya Buduan Suboh',
-                    'Toko Material Subur Buduan Suboh',
-                    'TB Berkah Ketah Suboh',
+                    'Toko Panama Jaya (Jl. Bondowoso No. 319, Buduan, Suboh)',
+                    'Toko Bangunan Semangat Baru (Jl. Raya Situbondo No. 47, Besuki)',
+                    'Surya Abadi Besuki (Jl. Kenanga, Kalimas, Besuki)',
                 ],
-                'cat' => ['Toko Bangunan Suboh Jaya'],
-                'keramik' => ['Toko Material Subur Buduan Suboh'],
-                'kayu' => ['Pangkalan Kayu Buduan Suboh'],
-                'pasir' => ['Pemasok Pasir & Batu Suboh', 'Pemasok Pasir Kali Sampean'],
-                'bata' => ['Pengrajin Bata Merah Gunung Putri Suboh'],
                 'tukang' => ['Kelompok Tukang Swakelola Suboh', 'Kelompok Pekerja Swakelola Buduan'],
             ],
             'Mlandingan' => [
                 'general' => [
-                    'Toko Bangunan Mlandingan Raya',
-                    'Toko Material Pesisir Mlandingan',
-                    'TB Berkah Selomukti Mlandingan',
+                    'Toko Bangunan Atong (Jl. Krajan, Bungatan)',
+                    'Toko Panama Jaya (Jl. Bondowoso No. 319, Buduan, Suboh)',
+                    'Toko Bangunan Semangat Baru (Jl. Raya Situbondo No. 47, Besuki)',
                 ],
-                'cat' => ['Toko Bangunan Mlandingan Raya'],
-                'keramik' => ['Toko Material Pesisir Mlandingan'],
-                'kayu' => ['Pangkalan Kayu Mlandingan Kulon'],
-                'pasir' => ['Pemasok Pasir & Batu Mlandingan', 'Pemasok Pasir Kali Sampean'],
-                'bata' => ['Pengrajin Bata Merah Tribungan Mlandingan'],
                 'tukang' => ['Kelompok Tukang Swakelola Mlandingan', 'Kelompok Pekerja Swakelola Selomukti'],
             ],
             'Banyuglugur' => [
                 'general' => [
-                    'Toko Bangunan Perbatasan Banyuglugur',
-                    'Toko Material Utama Kalianget Banyuglugur',
-                    'TB Barokah Banyuglugur',
+                    'Toko Bangunan Semangat Baru (Jl. Raya Situbondo No. 47, Besuki)',
+                    'Toko Panama Jaya (Jl. Bondowoso No. 319, Buduan, Besuki)',
+                    'Surya Abadi Besuki (Jl. Kenanga, Kalimas, Besuki)',
                 ],
-                'cat' => ['Toko Bangunan Perbatasan Banyuglugur'],
-                'keramik' => ['Toko Material Utama Kalianget Banyuglugur'],
-                'kayu' => ['Pangkalan Kayu Selobanteng Banyuglugur'],
-                'pasir' => ['Pemasok Pasir & Batu Banyuglugur', 'Pemasok Pasir Kali Sampean'],
-                'bata' => ['Pengrajin Bata Merah Telempong Banyuglugur'],
                 'tukang' => ['Kelompok Tukang Swakelola Banyuglugur', 'Kelompok Pekerja Swakelola Kalianget'],
             ],
             'Bungatan' => [
                 'general' => [
-                    'Toko Bangunan Bahari Bungatan',
-                    'Toko Material Pantai Bletok Bungatan',
-                    'TB Berkah Selowogo Bungatan',
+                    'Toko Bangunan Atong (Jl. Krajan, Bungatan)',
+                    'Toko Panama Jaya (Jl. Bondowoso No. 319, Buduan, Suboh)',
+                    'Toko Bangunan Semangat Baru (Jl. Raya Situbondo No. 47, Besuki)',
                 ],
-                'cat' => ['Toko Bangunan Bahari Bungatan'],
-                'keramik' => ['Toko Material Pantai Bletok Bungatan'],
-                'kayu' => ['Pangkalan Kayu Pasir Putih Bungatan'],
-                'pasir' => ['Pemasok Pasir & Batu Bungatan', 'Pemasok Pasir Kali Sampean'],
-                'bata' => ['Pengrajin Bata Merah Bletok Bungatan'],
                 'tukang' => ['Kelompok Tukang Swakelola Bungatan', 'Kelompok Pekerja Swakelola Bletok'],
             ],
             'Jatibanteng' => [
                 'general' => [
-                    'Toko Bangunan Jatibanteng Makmur',
-                    'Toko Material Barokah Curahsuri Jatibanteng',
-                    'TB Wringinanom Jatibanteng',
+                    'Toko Panama Jaya (Jl. Bondowoso No. 319, Buduan, Besuki)',
+                    'Toko Bangunan Semangat Baru (Jl. Raya Situbondo No. 47, Besuki)',
+                    'Surya Abadi Besuki (Jl. Kenanga, Kalimas, Besuki)',
                 ],
-                'cat' => ['Toko Bangunan Jatibanteng Makmur'],
-                'keramik' => ['Toko Material Barokah Curahsuri'],
-                'kayu' => ['Pangkalan Kayu Rimba Jatibanteng'],
-                'pasir' => ['Pemasok Pasir Kali Jatibanteng', 'Pemasok Pasir Kali Sampean'],
-                'bata' => ['Pengrajin Bata Merah Pategalan Jatibanteng'],
                 'tukang' => ['Kelompok Tukang Swakelola Jatibanteng', 'Kelompok Pekerja Swakelola Curahsuri'],
             ],
             'Sumbermalang' => [
                 'general' => [
-                    'Toko Bangunan Lereng Argopuro Sumbermalang',
-                    'Toko Material Sumber Rejeki Tlogosari Sumbermalang',
-                    'TB Barokah Baderan Sumbermalang',
+                    'Toko Panama Jaya (Jl. Bondowoso No. 319, Buduan, Besuki)',
+                    'Toko Bangunan Semangat Baru (Jl. Raya Situbondo No. 47, Besuki)',
+                    'Surya Abadi Besuki (Jl. Kenanga, Kalimas, Besuki)',
                 ],
-                'cat' => ['Toko Bangunan Lereng Argopuro Sumbermalang'],
-                'keramik' => ['Toko Material Sumber Rejeki Tlogosari'],
-                'kayu' => ['Pangkalan Kayu Argopuro Tlogosari'],
-                'pasir' => ['Pemasok Pasir & Batu Kali Argopuro Sumbermalang', 'Pemasok Pasir Sampean'],
-                'bata' => ['Pengrajin Bata Merah Alastengah Sumbermalang'],
                 'tukang' => ['Kelompok Tukang Swakelola Sumbermalang', 'Kelompok Pekerja Swakelola Tlogosari'],
             ],
         ];
@@ -992,7 +898,7 @@ PROMPT;
     }
 
     /**
-     * Memilih toko bangunan atau rekanan terdekat dari lokasi sekolah di Kabupaten Situbondo.
+     * Memilih maksimal 3 toko bangunan RIIL terdekat dari lokasi sekolah di Kabupaten Situbondo.
      */
     public static function getNearestStoresForSchool(?string $kecamatan, ?string $address = null, ?string $category = 'bahan', ?string $itemName = null): array
     {
@@ -1014,7 +920,6 @@ PROMPT;
             $targetKecamatan = 'Situbondo';
         }
 
-        $iLower = strtolower($itemName ?? '');
         $cat = strtolower($category ?? 'bahan');
 
         if ($cat === 'upah') {
@@ -1024,27 +929,15 @@ PROMPT;
             ];
         }
 
-        if (str_contains($iLower, 'pasir') || str_contains($iLower, 'batu') || str_contains($iLower, 'koral') || str_contains($iLower, 'split')) {
-            return $districtData['pasir'] ?? ['Pemasok Pasir Pasang Kali Sampean Situbondo', 'Pemasok Batu Belah Kali Sampean'];
-        }
+        // Semua pembelanjaan bahan (semen, pasir, batu, bata, cat, kayu, keramik, besi, dll.)
+        // dibatasi maksimal 3 toko bangunan real saja per kecamatan/proyek.
+        $realStores = $districtData['general'] ?? [
+            'Toko Bangunan ACC (Jl. Achmad Yani No. 173, Dawuhan, Situbondo)',
+            'Toko Bangunan Rajawali (Jl. Achmad Yani No. 155, Dawuhan, Situbondo)',
+            'TB Jadi Jaya (Jl. PB. Sudirman No. 16, Patokan, Situbondo)',
+        ];
 
-        if (str_contains($iLower, 'bata')) {
-            return $districtData['bata'] ?? ['Pengrajin Bata Merah Panji-Situbondo'];
-        }
-
-        if (str_contains($iLower, 'cat') || str_contains($iLower, 'pelitur') || str_contains($iLower, 'plamir')) {
-            return $districtData['cat'] ?? ['Toko Cat Citra Warna Situbondo'];
-        }
-
-        if (str_contains($iLower, 'kayu') || str_contains($iLower, 'kusen') || str_contains($iLower, 'pintu')) {
-            return $districtData['kayu'] ?? ['UD Kayu Jati Murni Situbondo'];
-        }
-
-        if (str_contains($iLower, 'keramik') || str_contains($iLower, 'kloset') || str_contains($iLower, 'sanitair') || str_contains($iLower, 'pipa')) {
-            return $districtData['keramik'] ?? ['Toko Keramik & Sanitasi Sentosa Situbondo'];
-        }
-
-        return $districtData['general'] ?? ['Toko Bangunan Berkah Situbondo'];
+        return array_slice($realStores, 0, 3);
     }
 
     /**
@@ -1128,8 +1021,8 @@ PROMPT;
         $kecamatan = $context['school_kecamatan'] ?? 'Situbondo';
         $schoolAddress = $context['school_address'] ?? 'Kabupaten Situbondo, Jawa Timur';
 
-        $nearestStoresList = self::getNearestStoresForSchool($kecamatan, $schoolAddress);
-        $storesSummary = implode(', ', array_slice($nearestStoresList, 0, 5));
+        $nearestStoresList = self::getNearestStoresForSchool($kecamatan, $schoolAddress, 'bahan');
+        $storesSummary = implode(', ', array_slice($nearestStoresList, 0, 3));
 
         return <<<PROMPT
 Anda adalah Asisten AI Ahli Administrasi Keuangan Daerah & Manajemen Konstruksi Fisik untuk Program Revitalisasi Satuan Pendidikan di Kabupaten Situbondo, Jawa Timur.
@@ -1176,8 +1069,8 @@ ATURAN WAJIB (STRICT RULES):
    Total pengeluaran (total_price) per item HARUS TETAP SAMA DAN BALANCE (zero variance). Rumus wajib: volume * unit_price = total_price.
 
 2. REKOMENDASI TOKO BANGUNAN TERDEKAT DI KECAMATAN {$kecamatan} (supplier_name):
-   - Prioritaskan toko bangunan riil yang terdekat dari lokasi sekolah di Kecamatan {$kecamatan}, Situbondo.
-   - Untuk material pasir dan batu, gunakan Pemasok Pasir & Batu Kali Sampean Situbondo.
+   - Pembelanjaan bahan material (kategori 'bahan', termasuk semen, pasir, batu, bata, besi, kayu, cat, keramik, pipa) WAJIB menggunakan MAKSIMAL 3 TOKO BANGUNAN REAL SAJA yang dipilih HANYA dari daftar toko riil berikut: {$storesSummary}.
+   - DILARANG KERAS mengarang, membuat, atau menggunakan nama toko fiktif / di luar 3 toko real di atas (jangan membuat toko khusus pasir/bata/cat sendiri).
    - Untuk upah pekerja, gunakan Kelompok Tukang Swakelola {$kecamatan} / Kelompok Pekerja Swakelola Komite Sekolah.
 
 3. PENANGGALAN JADWAL BELANJA BKU (planned_date):
@@ -1305,7 +1198,41 @@ PROMPT;
             $result[] = $item;
         }
 
-        return $result;
+        return $this->enforceMaxThreeRealMaterialStores($result, $schoolKecamatan, $schoolAddress);
+    }
+
+    /**
+     * Memastikan seluruh item belanja bahan (kategori 'bahan') hanya menggunakan
+     * toko bangunan RIIL (bukan fiktif) dan dibatasi maksimal 3 toko saja.
+     */
+    protected function enforceMaxThreeRealMaterialStores(array $items, string $schoolKecamatan, string $schoolAddress): array
+    {
+        $realStores = array_slice(
+            self::getNearestStoresForSchool($schoolKecamatan, $schoolAddress, 'bahan'),
+            0,
+            3
+        );
+
+        if (empty($realStores)) {
+            return $items;
+        }
+
+        $bahanIndex = 0;
+        foreach ($items as &$item) {
+            if (($item['category'] ?? 'bahan') !== 'bahan') {
+                continue;
+            }
+
+            $current = trim((string)($item['supplier_name'] ?? ''));
+            if ($current === '' || $current === '....................' || !in_array($current, $realStores, true)) {
+                $item['supplier_name'] = $realStores[$bahanIndex % count($realStores)];
+            }
+
+            $bahanIndex++;
+        }
+        unset($item);
+
+        return $items;
     }
 
     /**
@@ -1497,7 +1424,7 @@ PROMPT;
             $result[] = $item;
         }
 
-        return $result;
+        return $this->enforceMaxThreeRealMaterialStores($result, $schoolKecamatan, $schoolAddress);
     }
 
     /**

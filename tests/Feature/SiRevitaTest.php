@@ -1533,36 +1533,59 @@ class SiRevitaTest extends TestCase
         $this->assertEquals(4, $pasirCalib['volume']);
         $this->assertEquals('M³', $pasirCalib['unit']);
 
-        // 4. Uji Rekomendasi Toko Bangunan Riil Terdekat per Kecamatan
+        // 4. Uji Rekomendasi Toko Bangunan Riil Terdekat per Kecamatan (Maksimal 3 Toko Real)
         // Kecamatan Besuki
         $storesBesuki = $gemini->getNearestStoresForSchool('Besuki', 'Jl. Madura No. 12, Besuki, Situbondo', 'bahan');
         $this->assertNotEmpty($storesBesuki);
+        $this->assertLessThanOrEqual(3, count($storesBesuki), 'Maksimal 3 toko bangunan real per kecamatan');
         $this->assertTrue(
-            in_array('Toko Bangunan Utama Besuki', $storesBesuki) ||
-            in_array('Toko Bangunan Setia Bakti Besuki', $storesBesuki) ||
-            in_array('Toko Material Sumber Rejeki Besuki', $storesBesuki),
+            in_array('Toko Bangunan Semangat Baru (Jl. Raya Situbondo No. 47, Besuki)', $storesBesuki) ||
+            in_array('Toko Panama Jaya (Jl. Bondowoso No. 319, Buduan, Besuki)', $storesBesuki) ||
+            in_array('Surya Abadi Besuki (Jl. Kenanga, Kalimas, Besuki)', $storesBesuki),
             'Harus merekomendasikan toko bangunan riil di Kecamatan Besuki'
         );
 
         // Kecamatan Panji
         $storesPanji = $gemini->getNearestStoresForSchool('Panji', 'Jl. Basuki Rahmat, Panji, Situbondo', 'bahan');
         $this->assertNotEmpty($storesPanji);
+        $this->assertLessThanOrEqual(3, count($storesPanji), 'Maksimal 3 toko bangunan real per kecamatan');
         $this->assertTrue(
-            in_array('UD Karunia Mega Bangunan Jl. Argopuro Mimbaan Panji', $storesPanji) ||
-            in_array('UD Panji Putra Jl. Argopuro Mimbaan Panji', $storesPanji) ||
-            in_array('UD Sinar Terang Bangunan Panji', $storesPanji),
+            in_array('UD Karunia Mega Bangunan (Jl. Argopuro No. 17, Mimbaan, Panji)', $storesPanji) ||
+            in_array('Toko Niaga (Jl. Pangeran Diponegoro No. 106, Ardirejo, Panji)', $storesPanji) ||
+            in_array('Toko Sumber Sari (Jl. Argopuro No. 100, Mimbaan, Panji)', $storesPanji),
             'Harus merekomendasikan toko bangunan riil di Kecamatan Panji'
         );
 
-        // Pemasok Spesialis: Pasir Kali Sampean
+        // Material Pasir/Batu/Cat tetap dibeli di maksimal 3 toko bangunan real (bukan toko fiktif)
         $pasirStores = $gemini->getNearestStoresForSchool('Situbondo', null, 'bahan', 'Pasir Pasang Kali Sampean');
         $this->assertNotEmpty($pasirStores);
-        $this->assertTrue(
-            in_array('Pemasok Pasir Pasang Kali Sampean Situbondo', $pasirStores) ||
-            in_array('Pemasok Pasir Pasang Kali Sampean', $pasirStores) ||
-            in_array('Penyedia Pasir & Agregat Kali Sampean Situbondo', $pasirStores),
-            'Pemasok pasir harus mengikutsertakan sentra Kali Sampean'
-        );
+        $this->assertLessThanOrEqual(3, count($pasirStores), 'Material pasir juga harus dibeli di maksimal 3 toko real');
+        $this->assertContains('Toko Bangunan ACC (Jl. Achmad Yani No. 173, Dawuhan, Situbondo)', $pasirStores);
+
+        // 5. Uji applySmartHeuristicVariance menghasilkan maksimal 3 toko real untuk seluruh item bahan
+        $sampleMaterials = [];
+        foreach (['Semen Gresik 50 Kg', 'Pasir Pasang', 'Batu Belah', 'Bata Merah', 'Cat Tembok', 'Keramik 40x40', 'Besi Beton 10mm', 'Pipa PVC'] as $i => $matName) {
+            $sampleMaterials[] = [
+                'row_number' => $i + 1,
+                'category' => 'bahan',
+                'item_name' => $matName,
+                'volume' => 10,
+                'unit' => 'Unit',
+                'unit_price' => 100000,
+                'total_price' => 1000000,
+                'supplier_name' => '....................',
+            ];
+        }
+        $enhancedMaterials = $gemini->applySmartHeuristicVariance($sampleMaterials, '2026-08-03', 'Rehab Ruang Kelas', [
+            'school_kecamatan' => 'Situbondo',
+            'school_address' => 'Jl. Basuki Rahmat, Situbondo',
+        ]);
+        $distinctStores = array_values(array_unique(array_column($enhancedMaterials, 'supplier_name')));
+        $this->assertLessThanOrEqual(3, count($distinctStores), 'Pembelanjaan bahan harus maksimal di 3 toko saja');
+        $allowedSitubondoStores = $gemini->getNearestStoresForSchool('Situbondo', null, 'bahan');
+        foreach ($distinctStores as $st) {
+            $this->assertContains($st, $allowedSitubondoStores, 'Semua toko bahan harus berasal dari daftar toko real');
+        }
     }
 
     /**
