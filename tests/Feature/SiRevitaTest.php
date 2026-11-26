@@ -1207,7 +1207,7 @@ class SiRevitaTest extends TestCase
         $this->assertTrue(in_array($taxSat, ['2026-08-08', '2026-08-10']));
         $this->assertFalse(\Carbon\Carbon::parse($taxSat)->isSunday(), 'Tanggal penyetoran pajak dilarang hari Minggu');
 
-        // 3. Uji Manual Transaction Store: Pajak Otomatis 'disetor' lengkap dengan NTPN & Tanggal Sinkron
+        // 3. Uji Manual Transaction Store: Pajak Default 'dipungut' (manual di Buku Pembantu Pajak)
         $school = School::first();
         $project = RevitalizationProject::where('school_id', $school->id)->first();
         $trxNumber = 'BKU-TEST-TAX/' . uniqid();
@@ -1225,18 +1225,16 @@ class SiRevitaTest extends TestCase
             'tax_type' => 'PPN & PPh 22',
             'tax_ppn' => 300000,
             'tax_pph22' => 45000,
-            // tax_ntpn dan tax_payment_date sengaja dikosongkan untuk menguji auto-generate default
+            // tax_ntpn dan tax_payment_date dikosongkan untuk memastikan status awal dipungut
         ]);
         $storeResp->assertRedirect();
 
         $savedTx = Transaction::where('transaction_number', $trxNumber)->first();
         $this->assertNotNull($savedTx);
         $this->assertTrue($savedTx->has_tax);
-        $this->assertEquals('disetor', $savedTx->tax_status, 'Status pajak harus default disetor');
-        $this->assertNotEmpty($savedTx->tax_ntpn, 'Nomor NTPN harus otomatis digenerate');
-        $this->assertEquals(16, strlen($savedTx->tax_ntpn));
-        $this->assertNotNull($savedTx->tax_payment_date);
-        $this->assertTrue(in_array($savedTx->tax_payment_date->format('Y-m-d'), ['2026-08-10', '2026-08-11']));
+        $this->assertEquals('dipungut', $savedTx->tax_status, 'Status pajak awal harus dipungut (manual)');
+        $this->assertNull($savedTx->tax_ntpn, 'Nomor NTPN tidak boleh otomatis terisi sebelum disetor');
+        $this->assertNull($savedTx->tax_payment_date, 'Tanggal setor pajak tidak boleh otomatis terisi sebelum disetor');
 
         // 4. Uji Route Massal Auto Setor Pajak Buku Pembantu Pajak (/laporan/bp/auto-setor)
         $autoSetorResp = $this->post('/laporan/bp/auto-setor', [
@@ -1246,6 +1244,13 @@ class SiRevitaTest extends TestCase
         ]);
         $autoSetorResp->assertRedirect();
         $autoSetorResp->assertSessionHas('success');
+
+        $savedTx->refresh();
+        $this->assertEquals('disetor', $savedTx->tax_status, 'Setelah auto-setor, status pajak menjadi disetor');
+        $this->assertNotEmpty($savedTx->tax_ntpn);
+        $this->assertEquals(16, strlen($savedTx->tax_ntpn));
+        $this->assertNotNull($savedTx->tax_payment_date);
+        $this->assertTrue(in_array($savedTx->tax_payment_date->format('Y-m-d'), ['2026-08-10', '2026-08-11']));
 
         // 5. Uji Akses Halaman Laporan Buku Pembantu Pajak (BP)
         $bpResp = $this->get('/laporan/bp?school_id=' . $school->id . '&year=2026');

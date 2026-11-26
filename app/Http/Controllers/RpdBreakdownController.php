@@ -132,11 +132,11 @@ class RpdBreakdownController extends Controller
                 ]);
 
                 $sampleData = [
-                    [1, '5.1.02.01', 'Bahan', 'Semen Gresik 50 Kg', 'SNI PCC Type 1', 100, 'Zak', 68000, 6800000, '2026-03-05', 'Toko Bangunan Berkah Situbondo', 'Transfer Bank'],
+                    [1, '5.1.02.01', 'Bahan', 'Semen Gresik 50 Kg', 'SNI PCC Type 1', 100, 'Zak', 68000, 6800000, '2026-03-05', 'Toko Bangunan Berkah Situbondo', 'Kas Tunai'],
                     [2, '5.1.02.01', 'Bahan', 'Pasir Pasang Kali Sampean', 'Kualitas Kasar Bersih', 8, 'M3', 250000, 2000000, '2026-03-06', 'Pemasok Pasir Kali Situbondo', 'Kas Tunai'],
                     [3, '5.1.02.01', 'Bahan', 'Bata Merah Bakar Panji', 'Standar 5x11x22 cm', 5000, 'Bh', 950, 4750000, '2026-03-08', 'Pengrajin Bata Panji Situbondo', 'Kas Tunai'],
                     [4, '5.1.02.01', 'Bahan', 'Besi Beton Polos Dia. 10 mm', 'SNI Panjang 12 Meter', 50, 'Batang', 85000, 4250000, '2026-03-10', 'Toko Besi Abadi Situbondo', 'Kas Tunai'],
-                    [5, '5.1.02.01', 'Bahan', 'Cat Tembok Eksterior Dulux Weathershield', 'Warna Putih Salju 20L', 4, 'Pail', 1450000, 5800000, '2026-03-15', 'Toko Cat Citra Warna Situbondo', 'Transfer Bank'],
+                    [5, '5.1.02.01', 'Bahan', 'Cat Tembok Eksterior Dulux Weathershield', 'Warna Putih Salju 20L', 4, 'Pail', 1450000, 5800000, '2026-03-15', 'Toko Cat Citra Warna Situbondo', 'Kas Tunai'],
                     [6, '5.1.02.02', 'Upah', 'Upah Tukang Batu & Plesteran (Minggu I)', 'HOK Tukang', 24, 'OH', 125000, 3000000, '2026-03-12', 'Kelompok Tukang Pak Slamet', 'Kas Tunai'],
                     [7, '5.1.02.02', 'Upah', 'Upah Pekerja / Pembantu Tukang (Minggu I)', 'HOK Tenaga Lokal', 36, 'OH', 90000, 3240000, '2026-03-12', 'Kelompok Pekerja Swakelola', 'Kas Tunai'],
                     [8, '5.1.02.03', 'Alat', 'Sewa Mesin Molen Pengaduk Semen', 'Kapasitas 350L per Hari', 5, 'Hari', 180000, 900000, '2026-03-07', 'Sewa Alat Proyek Jaya', 'Kas Tunai'],
@@ -356,7 +356,7 @@ class RpdBreakdownController extends Controller
             'total_price' => $totalPrice,
             'planned_date' => $request->planned_date,
             'supplier_name' => $supplierName,
-            'payment_method' => $request->payment_method,
+            'payment_method' => 'belanja_tunai',
             'has_tax' => $hasTax,
             'tax_ppn' => $taxPpn,
             'tax_pph22' => $taxPph22,
@@ -388,8 +388,8 @@ class RpdBreakdownController extends Controller
                 $trxHasTax = $item->has_tax && $item->tax_total > 0;
                 $trx->update([
                     'amount' => $totalPrice,
-                    'type' => $item->payment_method,
-                    'payment_method' => $item->payment_method === 'belanja_transfer' ? 'bank_transfer' : 'kas_tunai',
+                    'type' => 'belanja_tunai',
+                    'payment_method' => 'kas_tunai',
                     'description' => $item->bku_description,
                     'recipient_name' => $supplierName,
                     'has_tax' => $trxHasTax,

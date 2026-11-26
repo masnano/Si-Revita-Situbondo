@@ -669,7 +669,6 @@
                         <select name="payment_method" x-model="editingItem.payment_method" required
                                 class="w-full text-xs rounded-lg border border-slate-300 bg-white text-slate-800 font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none">
                             <option value="belanja_tunai" class="bg-white text-slate-800 py-1">Kas Tunai (BPK)</option>
-                            <option value="belanja_transfer" class="bg-white text-slate-800 py-1">Transfer Bank (BB) - {{ $rpd->project->school->bank_name ?? 'Bank' }}</option>
                         </select>
                     </div>
                 </div>

@@ -104,19 +104,21 @@ class TransactionController extends Controller
         $taxTotal = $hasTax ? ($taxPpn + $taxPph21 + $taxPph22 + $taxPph23 + $taxPph4_2) : 0;
         $netAmount = max(0, $amount - $taxTotal);
 
-        $geminiService = app(GeminiRpdService::class);
         $taxStatus = 'none';
-        $taxNtpn = $request->tax_ntpn;
-        $taxPaymentDate = $request->tax_payment_date;
+        $taxNtpn = $request->tax_ntpn ?: null;
+        $taxPaymentDate = $request->tax_payment_date ?: null;
 
         if ($hasTax && $taxTotal > 0) {
-            if (empty($taxNtpn)) {
-                $taxNtpn = $geminiService->generateNtpn();
+            if ($request->tax_status === 'disetor' || !empty($taxNtpn)) {
+                $taxStatus = 'disetor';
+                if (empty($taxPaymentDate)) {
+                    $taxPaymentDate = $validated['transaction_date'];
+                }
+            } else {
+                $taxStatus = 'dipungut';
+                $taxNtpn = null;
+                $taxPaymentDate = null;
             }
-            if (empty($taxPaymentDate)) {
-                $taxPaymentDate = $geminiService->calculateTaxPaymentDate($validated['transaction_date']);
-            }
-            $taxStatus = 'disetor';
         }
 
         $receiptPath = null;
@@ -201,19 +203,21 @@ class TransactionController extends Controller
         $taxTotal = $hasTax ? ($taxPpn + $taxPph21 + $taxPph22 + $taxPph23 + $taxPph4_2) : 0;
         $netAmount = max(0, $amount - $taxTotal);
 
-        $geminiService = app(GeminiRpdService::class);
         $taxStatus = 'none';
-        $taxNtpn = $request->tax_ntpn;
-        $taxPaymentDate = $request->tax_payment_date;
+        $taxNtpn = $request->tax_ntpn ?: null;
+        $taxPaymentDate = $request->tax_payment_date ?: null;
 
         if ($hasTax && $taxTotal > 0) {
-            if (empty($taxNtpn)) {
-                $taxNtpn = $geminiService->generateNtpn();
+            if ($request->tax_status === 'disetor' || !empty($taxNtpn)) {
+                $taxStatus = 'disetor';
+                if (empty($taxPaymentDate)) {
+                    $taxPaymentDate = $validated['transaction_date'];
+                }
+            } else {
+                $taxStatus = 'dipungut';
+                $taxNtpn = null;
+                $taxPaymentDate = null;
             }
-            if (empty($taxPaymentDate)) {
-                $taxPaymentDate = $geminiService->calculateTaxPaymentDate($validated['transaction_date']);
-            }
-            $taxStatus = 'disetor';
         }
 
         $receiptPath = $transaction->receipt_file;

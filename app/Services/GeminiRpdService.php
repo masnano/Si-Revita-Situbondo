@@ -389,7 +389,7 @@ PROMPT;
                 'tanggal' => $planDate,
                 'toko' => $supplier,
                 'npwp' => null,
-                'metode' => $subTotal > 5000000 ? 'Transfer Bank' : 'Kas Tunai',
+                'metode' => 'Kas Tunai',
                 'room_name' => $roomName,
             ];
         }
@@ -642,7 +642,7 @@ PROMPT;
                 'tanggal' => $planDate,
                 'toko' => $supplier,
                 'npwp' => null,
-                'metode' => $subTotal > 5000000 ? 'Transfer Bank' : 'Kas Tunai',
+                'metode' => 'Kas Tunai',
                 'room_name' => null,
             ];
         }
@@ -2093,7 +2093,7 @@ PROMPT;
                 'tanggal' => $isPlan ? ($options['default_date'] ?? now()->format('Y-m-d')) : null,
                 'toko' => $isPlan ? 'Tim Teknis Perencana Swakelola' : 'Tim Teknis Pengawas Swakelola',
                 'npwp' => null,
-                'metode' => $totalBudget > 5000000 ? 'Transfer Bank' : 'Kas Tunai',
+                'metode' => 'Kas Tunai',
                 'room_name' => null,
             ]];
         }

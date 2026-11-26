@@ -1916,10 +1916,8 @@ class RpdBreakdownService
             );
         }
 
-        // 5. Metode Pembayaran BKU (Semua transaksi dilakukan Cash / Kas Tunai karena uang ditarik per pencairan ke kas)
-        $paymentMethod = $row['metode'] && (str_contains(strtolower($row['metode']), 'bank') || str_contains(strtolower($row['metode']), 'transfer'))
-            ? 'belanja_transfer'
-            : 'belanja_tunai';
+        // 5. Metode Pembayaran BKU (Semua transaksi dilakukan Cash / Kas Tunai karena seluruh dana termin ditarik tunai)
+        $paymentMethod = 'belanja_tunai';
 
         // 6. Penghitungan Pajak Sesuai Ketentuan Perpajakan (PMK 59/2022 & PMK 168/2023)
         // Belanja Barang/Bahan >= Rp 2.000.000 kena PPN 11% & PPh 22 1.5%
@@ -3328,7 +3326,8 @@ class RpdBreakdownService
 
         // SP2D Termin minimal sebesar total belanja atau sebesar pagu pencairan termin resmi (70%/30%)
         $sp2dAmount = $maxDisbursement > 0 ? max($totalBudget, $maxDisbursement) : $totalBudget;
-        $totalCashExpenses = (float) $document->items()->where('payment_method', 'belanja_tunai')->sum('total_price');
+        // Setelah penyaluran per termin, uang ditarik seluruhnya dalam bentuk cash (tunai)
+        $totalCashExpenses = $sp2dAmount;
 
         $year = $project->fiscal_year ?? Carbon::parse($disbursementDate)->format('Y');
         $month = Carbon::parse($disbursementDate)->format('m');
@@ -3420,7 +3419,7 @@ class RpdBreakdownService
                 'transaction_date' => $disbursementDate,
                 'type' => 'tarik_tunai',
                 'payment_method' => 'kas_tunai',
-                'description' => "Penarikan Dana Tunai dari Rekening Bank Operasional ke Kas Tunai Brankas untuk Belanja Bahan & Upah ({$document->term_stage})",
+                'description' => "Penarikan Seluruh Dana Tunai (Cash) dari Rekening Bank Operasional ke Kas Tunai Brankas untuk Belanja Tunai ({$document->term_stage})",
                 'recipient_name' => 'Bendahara Swakelola Sekolah',
                 'recipient_address' => 'Kabupaten Situbondo',
                 'amount' => $totalCashExpenses,
@@ -3477,9 +3476,9 @@ class RpdBreakdownService
                 } while (Transaction::where('transaction_number', $kwtNumber)->exists());
 
                 $hasTax = $item->has_tax && $item->tax_total > 0;
-                $taxStatus = $hasTax ? 'disetor' : 'none';
-                $taxNtpn = $hasTax ? $geminiService->generateNtpn() : null;
-                $taxPaymentDate = $hasTax ? $geminiService->calculateTaxPaymentDate($item->planned_date, $item->category) : null;
+                $taxStatus = $hasTax ? 'dipungut' : 'none';
+                $taxNtpn = null;
+                $taxPaymentDate = null;
 
                 $transaction = Transaction::create([
                     'school_id' => $school->id,
@@ -3488,8 +3487,8 @@ class RpdBreakdownService
                     'budget_item_id' => $item->budget_item_id,
                     'transaction_number' => $kwtNumber,
                     'transaction_date' => $item->planned_date,
-                    'type' => $item->payment_method,
-                    'payment_method' => $item->payment_method === 'belanja_transfer' ? 'bank_transfer' : 'kas_tunai',
+                    'type' => 'belanja_tunai',
+                    'payment_method' => 'kas_tunai',
                     'description' => $item->bku_description,
                     'recipient_name' => $item->supplier_name,
                     'recipient_address' => 'Kabupaten Situbondo',
@@ -4100,7 +4099,7 @@ class RpdBreakdownService
             'I4' => 'Total Biaya (Rp)',
             'J4' => 'Tanggal Rencana Belanja (YYYY-MM-DD)',
             'K4' => 'Toko / Rekanan Pemasok',
-            'L4' => 'Metode Bayar (Kas Tunai / Transfer Bank)',
+            'L4' => 'Metode Bayar (Kas Tunai)',
         ];
 
         foreach ($headers as $cell => $text) {
@@ -4113,11 +4112,11 @@ class RpdBreakdownService
         $sheet->getRowDimension(4)->setRowHeight(28);
 
         $sampleData = [
-            [1, '5.1.02.01', 'Bahan', 'Semen Gresik 50 Kg', 'SNI PCC Type 1', 100, 'Zak', 68000, 6800000, '2026-03-05', 'Toko Bangunan Berkah Situbondo', 'Transfer Bank'],
+            [1, '5.1.02.01', 'Bahan', 'Semen Gresik 50 Kg', 'SNI PCC Type 1', 100, 'Zak', 68000, 6800000, '2026-03-05', 'Toko Bangunan Berkah Situbondo', 'Kas Tunai'],
             [2, '5.1.02.01', 'Bahan', 'Pasir Pasang Kali Sampean', 'Kualitas Kasar Bersih', 8, 'M3', 250000, 2000000, '2026-03-06', 'Pemasok Pasir Kali Situbondo', 'Kas Tunai'],
             [3, '5.1.02.01', 'Bahan', 'Bata Merah Bakar Panji', 'Standar 5x11x22 cm', 5000, 'Bh', 950, 4750000, '2026-03-08', 'Pengrajin Bata Panji Situbondo', 'Kas Tunai'],
             [4, '5.1.02.01', 'Bahan', 'Besi Beton Polos Dia. 10 mm', 'SNI Panjang 12 Meter', 50, 'Batang', 85000, 4250000, '2026-03-10', 'Toko Besi Abadi Situbondo', 'Kas Tunai'],
-            [5, '5.1.02.01', 'Bahan', 'Cat Tembok Eksterior Dulux Weathershield', 'Warna Putih Salju 20L', 4, 'Pail', 1450000, 5800000, '2026-03-15', 'Toko Cat Citra Warna Situbondo', 'Transfer Bank'],
+            [5, '5.1.02.01', 'Bahan', 'Cat Tembok Eksterior Dulux Weathershield', 'Warna Putih Salju 20L', 4, 'Pail', 1450000, 5800000, '2026-03-15', 'Toko Cat Citra Warna Situbondo', 'Kas Tunai'],
             [6, '5.1.02.02', 'Upah', 'Upah Tukang Batu & Plesteran (Minggu I)', 'HOK Tukang', 24, 'OH', 125000, 3000000, '2026-03-12', 'Kelompok Tukang Pak Slamet', 'Kas Tunai'],
             [7, '5.1.02.02', 'Upah', 'Upah Pekerja / Pembantu Tukang (Minggu I)', 'HOK Tenaga Lokal', 36, 'OH', 90000, 3240000, '2026-03-12', 'Kelompok Pekerja Swakelola', 'Kas Tunai'],
             [8, '5.1.02.03', 'Alat', 'Sewa Mesin Molen Pengaduk Semen', 'Kapasitas 350L per Hari', 5, 'Hari', 180000, 900000, '2026-03-07', 'Sewa Alat Proyek Jaya', 'Kas Tunai'],
