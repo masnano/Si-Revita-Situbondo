@@ -214,17 +214,34 @@
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
+                                <label for="disbursement_date" class="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                                    <span>Tanggal Salur / Pencairan Dana Termin</span>
+                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">Saldo Masuk & Tarik Tunai</span>
+                                </label>
+                                <input type="date" name="disbursement_date" id="disbursement_date" value="{{ old('disbursement_date', date('Y-m-d')) }}" required
+                                       class="w-full text-xs md:text-sm rounded-xl border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none">
+                                <p class="text-[11px] text-slate-500 mt-1">
+                                    Tanggal dana termin masuk ke rekening bank (<strong>Penerimaan SP2D</strong>) sekaligus tanggal <strong>Penarikan Tunai Kas</strong> dicatat di BKU.
+                                </p>
+                                @error('disbursement_date')
+                                    <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div>
                                 <label for="default_date" class="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                                    <span>Tanggal Awal Transaksi BKU (Tanggal Pencairan Dana)</span>
-                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">Saldo Masuk Otomatis</span>
+                                    <span>Tanggal Awal Belanja BKU</span>
+                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">Jadwal Item</span>
                                 </label>
                                 <input type="date" name="default_date" id="default_date" value="{{ old('default_date', date('Y-m-d')) }}"
                                        class="w-full text-xs md:text-sm rounded-xl border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none">
                                 <p class="text-[11px] text-slate-500 mt-1">
-                                    Dianggap sebagai tanggal pencairan dana termin. Sistem otomatis mencatat <strong>Saldo Masuk (Penerimaan SP2D)</strong> dan <strong>Penarikan Kas Tunai</strong> pada tanggal ini, lalu menjadwalkan belanja bahan & upah bertahap tanpa hari Minggu (otomatis diselaraskan dengan <strong>Jadwal Kurva S</strong> jika paket proyek memiliki Kurva S).
+                                    Tanggal mulai penjadwalan belanja bahan & upah bertahap tanpa hari Minggu (otomatis diselaraskan dengan <strong>Jadwal Kurva S</strong> jika tersedia).
                                 </p>
                             </div>
+                        </div>
 
+                        <div class="grid grid-cols-1 gap-4">
                             <div>
                                 <label for="default_store" class="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
                                     <span>Toko Rekanan Bahan Bangunan</span>

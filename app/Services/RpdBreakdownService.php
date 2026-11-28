@@ -190,9 +190,12 @@ class RpdBreakdownService
                     ->first();
             }
 
+            $disbursementDate = $options['disbursement_date'] ?? ($options['default_date'] ?? null);
+
             if ($document) {
                 $document->update([
                     'title' => $title,
+                    'disbursement_date' => $disbursementDate ?? $document->disbursement_date,
                     'file_path' => $storedPath,
                     'file_name' => $originalName,
                     'file_type' => $extension,
@@ -204,6 +207,7 @@ class RpdBreakdownService
                     'project_id' => $project->id,
                     'title' => $title,
                     'term_stage' => $termStage,
+                    'disbursement_date' => $disbursementDate,
                     'file_path' => $storedPath,
                     'file_name' => $originalName,
                     'file_type' => $extension,
@@ -236,6 +240,10 @@ class RpdBreakdownService
 
                 if (!$parsed) {
                     continue;
+                }
+
+                if (!empty($disbursementDate) && !empty($parsed['planned_date'])) {
+                    $parsed['planned_date'] = $this->clampDateToDisbursement($parsed['planned_date'], $disbursementDate);
                 }
 
                 $cleanParsedName = trim(preg_replace('/\s+/', ' ', mb_strtolower($parsed['item_name'])));
@@ -3230,6 +3238,29 @@ class RpdBreakdownService
      * Menghitung tanggal berjarak progresif untuk item ringkasan (summary) atau tabel umum
      * berdasarkan tanggal dasar, dengan jarak 2-4 hari kerja tanpa jatuh di hari Minggu.
      */
+    /**
+     * Memastikan tanggal belanja tidak mendahului tanggal salur termin (lewati hari Minggu jika perlu).
+     */
+    public function clampDateToDisbursement(string $plannedDate, ?string $disbursementDate): string
+    {
+        if (empty($disbursementDate)) {
+            return $plannedDate;
+        }
+
+        $planned = Carbon::parse($plannedDate)->startOfDay();
+        $disbursement = Carbon::parse($disbursementDate)->startOfDay();
+
+        if ($planned->lt($disbursement)) {
+            $clamped = $disbursement->copy();
+            if ($clamped->isSunday()) {
+                $clamped->addDay();
+            }
+            return $clamped->format('Y-m-d');
+        }
+
+        return $planned->format('Y-m-d');
+    }
+
     public function calculateProgressiveDate(string $baseDate, int $step = 1, string $category = 'bahan'): string
     {
         try {
@@ -3319,8 +3350,10 @@ class RpdBreakdownService
         $targetTermin = $this->determineTargetTermin(['term_stage' => $document->term_stage]);
         $maxDisbursement = $this->determineMaxDisbursement($project, $targetTermin, $document->term_stage);
 
-        // Tanggal pencairan: tanggal inputan awal (planned_date paling awal)
-        $disbursementDate = $document->items()->min('planned_date') ?: now()->format('Y-m-d');
+        // Tanggal pencairan (tanggal salur): prioritaskan disbursement_date dari upload RPD, fallback ke planned_date paling awal
+        $disbursementDate = $document->disbursement_date
+            ? Carbon::parse($document->disbursement_date)->format('Y-m-d')
+            : ($document->items()->min('planned_date') ?: now()->format('Y-m-d'));
         $totalItemsBudget = (float) $document->items()->sum('total_price');
         $totalBudget = (float) ($document->total_budget > 0 ? $document->total_budget : $totalItemsBudget);
 
@@ -3358,11 +3391,13 @@ class RpdBreakdownService
         $projectTitle = trim($project->title);
 
         if ($existingReceipt) {
+            $finalReceiptAmount = max((float) $existingReceipt->amount, $sp2dAmount);
             $existingReceipt->update([
-                'amount' => max($existingReceipt->amount, $sp2dAmount),
+                'amount' => $finalReceiptAmount,
                 'rpd_document_id' => $document->id,
                 'transaction_date' => $disbursementDate,
             ]);
+            $totalCashExpenses = $finalReceiptAmount;
         } elseif ($sp2dAmount > 0) {
             do {
                 $sp2dNumber = sprintf('SP2D-REVITA/%s/%s/%04d', $year, $month, $counter++);
@@ -3440,7 +3475,11 @@ class RpdBreakdownService
      */
     public function postToBku(RpdDocument $document): int
     {
-        $items = $document->items()->where('is_posted', false)->get();
+        $items = $document->items()
+            ->where('is_posted', false)
+            ->orderBy('planned_date')
+            ->orderBy('row_number')
+            ->get();
         if ($items->isEmpty()) {
             $created = $this->recordDisbursementTransactions($document);
             return count($created);
@@ -3466,11 +3505,46 @@ class RpdBreakdownService
             $disbursementTxs = $this->recordDisbursementTransactions($document, $counter);
             $postedCount += count($disbursementTxs);
 
+            // Hitung sisa dana cair yang tersedia untuk termin/proyek agar belanja berhenti saat dana habis
+            $totalProjectInflow = (float) Transaction::where('project_id', $project->id)
+                ->whereIn('type', ['penerimaan_dana', 'bunga_bank'])
+                ->sum('amount');
+            $totalProjectOutflow = (float) Transaction::where('project_id', $project->id)
+                ->whereIn('type', ['belanja_tunai', 'belanja_transfer', 'biaya_bank'])
+                ->sum('amount');
+            $availableFunds = max(0.0, $totalProjectInflow - $totalProjectOutflow);
+
+            $docInflow = (float) Transaction::where('rpd_document_id', $document->id)
+                ->where('type', 'penerimaan_dana')
+                ->sum('amount');
+            if ($docInflow > 0) {
+                $docOutflow = (float) Transaction::where('rpd_document_id', $document->id)
+                    ->whereIn('type', ['belanja_tunai', 'belanja_transfer', 'biaya_bank'])
+                    ->sum('amount');
+                $availableFunds = min($availableFunds, max(0.0, $docInflow - $docOutflow));
+            }
+
             // 2. Pencatatan Transaksi Belanja Bahan & Upah
             $geminiService = app(GeminiRpdService::class);
+            $docDisbursementDate = $document->disbursement_date?->format('Y-m-d');
 
             foreach ($items as $item) {
-                $month = Carbon::parse($item->planned_date)->format('m');
+                $itemAmount = (float) $item->total_price;
+                if ($itemAmount > $availableFunds + 0.01) {
+                    // Hentikan belanja saat dana yang cair pada termin sudah habis
+                    break;
+                }
+                $availableFunds -= $itemAmount;
+
+                $effectiveDate = $this->clampDateToDisbursement(
+                    Carbon::parse($item->planned_date)->format('Y-m-d'),
+                    $docDisbursementDate
+                );
+                if ($effectiveDate !== Carbon::parse($item->planned_date)->format('Y-m-d')) {
+                    $item->update(['planned_date' => $effectiveDate]);
+                }
+
+                $month = Carbon::parse($effectiveDate)->format('m');
                 do {
                     $kwtNumber = sprintf('KWT-REVITA/%s/%s/%04d', $year, $month, $counter++);
                 } while (Transaction::where('transaction_number', $kwtNumber)->exists());
@@ -3486,7 +3560,7 @@ class RpdBreakdownService
                     'rpd_document_id' => $document->id,
                     'budget_item_id' => $item->budget_item_id,
                     'transaction_number' => $kwtNumber,
-                    'transaction_date' => $item->planned_date,
+                    'transaction_date' => $effectiveDate,
                     'type' => 'belanja_tunai',
                     'payment_method' => 'kas_tunai',
                     'description' => $item->bku_description,
@@ -3518,10 +3592,13 @@ class RpdBreakdownService
                 $postedCount++;
             }
 
-            $document->update([
-                'status' => 'posted_to_bku',
-                'posted_at' => now(),
-            ]);
+            $remainingUnposted = $document->items()->where('is_posted', false)->count();
+            if ($remainingUnposted === 0) {
+                $document->update([
+                    'status' => 'posted_to_bku',
+                    'posted_at' => now(),
+                ]);
+            }
         });
 
         return $postedCount;

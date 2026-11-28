@@ -125,10 +125,13 @@ class KemendikdasmenReportService
         $saldoAwalPajak = 0;
 
         foreach ($pastTxs as $pt) {
-            if ($pt->type === 'penerimaan_dana' || $pt->type === 'bunga_bank') {
+            if ($pt->type === 'penerimaan_dana') {
+                $saldoAwalBb += (float)$pt->amount;
+            } elseif ($pt->type === 'bunga_bank') {
                 $saldoAwalBku += (float)$pt->amount;
                 $saldoAwalBb += (float)$pt->amount;
             } elseif ($pt->type === 'tarik_tunai') {
+                $saldoAwalBku += (float)$pt->amount;
                 $saldoAwalBb -= (float)$pt->amount;
                 $saldoAwalBpkt += (float)$pt->amount;
             } elseif ($pt->type === 'setor_tunai') {
@@ -280,19 +283,8 @@ class KemendikdasmenReportService
                     ? ($t->description ?: "Penerimaan dana tahap 1 (70%)") 
                     : ($t->description ?: "Penerimaan dana bantuan revitalisasi");
 
-                $bkuBalance += $amt;
+                // Catatan penerimaan_dana hanya di Buku Bank (BB); di BKU langsung dicatat saat penarikan tunai
                 $bbBalance += $amt;
-
-                $bkuRows[] = [
-                    'tanggal' => $tDate,
-                    'uraian' => $uraian,
-                    'no_bukti' => $bukti,
-                    'penerimaan' => $amt,
-                    'pengeluaran' => 0,
-                    'saldo' => $bkuBalance,
-                    'tgl_setor_pajak' => null,
-                    'uraian_setor_pajak' => null,
-                ];
 
                 $bbRows[] = [
                     'tanggal' => $tDate,
@@ -313,29 +305,18 @@ class KemendikdasmenReportService
                     'bb' => 'Penerimaan',
                     'bpp_alt1' => '–',
                     'bpp_alt2' => '–',
-                    'bku' => 'Penerimaan',
+                    'bku' => '–',
                     'no_bukti' => $bukti,
                 ];
             } elseif ($t->type === 'tarik_tunai') {
                 $bukti = sprintf("CEK-%s-%03d", $monthStr, $seqCEK++);
+                $tarikUraian = 'Penarikan tunai dari rekening bank — ' . ($t->description ?: 'Penarikan Seluruh Dana Tunai (Cash) dari Rekening Bank Operasional ke Kas Tunai Brankas untuk Belanja Tunai');
 
-                // Di BKU: 2 baris (keluar dari bank, masuk ke kas tunai)
-                $bkuBalance -= $amt;
-                $bkuRows[] = [
-                    'tanggal' => $tDate,
-                    'uraian' => 'Penarikan tunai dari rekening bank',
-                    'no_bukti' => $bukti,
-                    'penerimaan' => 0,
-                    'pengeluaran' => $amt,
-                    'saldo' => $bkuBalance,
-                    'tgl_setor_pajak' => null,
-                    'uraian_setor_pajak' => null,
-                ];
-
+                // Di BKU: langsung dicatat sebagai Penerimaan kas tunai (tanpa catatan ganda penerimaan_dana)
                 $bkuBalance += $amt;
                 $bkuRows[] = [
                     'tanggal' => $tDate,
-                    'uraian' => 'Penerimaan kas tunai dari penarikan rekening bank',
+                    'uraian' => $tarikUraian,
                     'no_bukti' => $bukti,
                     'penerimaan' => $amt,
                     'pengeluaran' => 0,
@@ -359,7 +340,7 @@ class KemendikdasmenReportService
                 $bpktBalance += $amt;
                 $bpktRows[] = [
                     'tanggal' => $tDate,
-                    'uraian' => 'Penerimaan kas tunai dari penarikan rekening bank',
+                    'uraian' => $tarikUraian,
                     'no_bukti' => $bukti,
                     'penerimaan' => $amt,
                     'pengeluaran' => 0,
@@ -376,14 +357,14 @@ class KemendikdasmenReportService
                     'bb' => 'Pengeluaran',
                     'bpp_alt1' => '–',
                     'bpp_alt2' => '–',
-                    'bku' => 'Pengeluaran',
+                    'bku' => '–',
                     'no_bukti' => $bukti,
                 ];
                 $dtRows[] = [
                     'is_main' => false,
                     'tanggal' => null,
                     'info' => null,
-                    'uraian' => 'Penerimaan kas tunai dari penarikan rekening bank',
+                    'uraian' => $tarikUraian,
                     'nilai' => $amt,
                     'bpkt' => 'Penerimaan',
                     'bb' => '–',
@@ -838,7 +819,10 @@ class KemendikdasmenReportService
         $totalBpktPenerimaan = array_sum(array_column($bpktRows, 'penerimaan'));
         $totalBpktPengeluaran = array_sum(array_column($bpktRows, 'pengeluaran'));
 
-        $totalBppPenerimaan = array_sum(array_column($bppAlt1Rows, 'penerimaan'));
+        $totalBppPenerimaan = array_sum(array_map(
+            fn($r) => empty($r['is_initial']) ? (float) $r['penerimaan'] : 0.0,
+            $bppAlt1Rows
+        ));
         $totalBppPengeluaran = array_sum(array_column($bppAlt1Rows, 'pengeluaran'));
 
         // Rekonsiliasi & Perbedaan (Harus Rp 0)
@@ -1115,9 +1099,9 @@ class KemendikdasmenReportService
             } elseif (str_contains($valC, '2. Saldo Pembantu Kas')) {
                 $sheet->setCellValue("E{$r}", "=BPKT{$mIdx}!G{$bpktTotalRow}");
             } elseif (str_contains($valC, 'Pajak dipungut')) {
-                $sheet->setCellValue("F{$r}", "=SUMPRODUCT(ABS(TblBPP{$mIdx}Alt2[[PPN]:[Pajak Daerah]])*NOT(ISNUMBER(MATCH(TblBPP{$mIdx}Alt2[Jenis Bukti Pajak],{\"NTPN\",\"NTPD\"},0))))+'BPP{$mIdx} Alt1'!H{$bppTotalRow}");
+                $sheet->setCellValue("F{$r}", "=SUMPRODUCT(ABS(TblBPP{$mIdx}Alt2[[PPN]:[Pajak Daerah]])*NOT(ISNUMBER(MATCH(TblBPP{$mIdx}Alt2[Jenis Bukti Pajak],{\"NTPN\",\"NTPD\"},0))))");
             } elseif (str_contains($valC, 'Pajak disetor')) {
-                $sheet->setCellValue("F{$r}", "=SUMPRODUCT(ABS(TblBPP{$mIdx}Alt2[[PPN]:[Pajak Daerah]])*ISNUMBER(MATCH(TblBPP{$mIdx}Alt2[Jenis Bukti Pajak],{\"NTPN\",\"NTPD\"},0)))+'BPP{$mIdx} Alt1'!I{$bppTotalRow}");
+                $sheet->setCellValue("F{$r}", "=SUMPRODUCT(ABS(TblBPP{$mIdx}Alt2[[PPN]:[Pajak Daerah]])*ISNUMBER(MATCH(TblBPP{$mIdx}Alt2[Jenis Bukti Pajak],{\"NTPN\",\"NTPD\"},0)))");
             } elseif (str_contains($valD, '2026') && str_contains($valD, '…')) {
                 $sheet->setCellValue("D{$r}", "{$closing['lokasi']}, {$closing['tanggal_str']}");
             } elseif ($valC === 'Kepala ....' || str_contains($valC, 'Kepala')) {

@@ -42,7 +42,7 @@ class ReportController extends Controller
         $saldoAwalPenerimaan = 0;
         $saldoAwalPengeluaran = 0;
         foreach ($pastTransactions as $t) {
-            if (in_array($t->type, ['penerimaan_dana', 'bunga_bank'])) {
+            if (in_array($t->type, ['tarik_tunai', 'bunga_bank'])) {
                 $saldoAwalPenerimaan += $t->amount;
             } elseif (in_array($t->type, ['belanja_tunai', 'belanja_transfer', 'biaya_bank'])) {
                 $saldoAwalPengeluaran += $t->amount;
@@ -69,25 +69,21 @@ class ReportController extends Controller
         $bkuRows = [];
 
         foreach ($transactions as $t) {
-            $penerimaan = 0;
-            $pengeluaran = 0;
-
-            if (in_array($t->type, ['penerimaan_dana', 'bunga_bank'])) {
-                $penerimaan = $t->amount;
-                $runningBalance += $penerimaan;
+            foreach ($this->expandBkuRowEntries($t) as $entry) {
+                $penerimaan = $entry['penerimaan'];
+                $pengeluaran = $entry['pengeluaran'];
+                $runningBalance += ($penerimaan - $pengeluaran);
                 $totalPenerimaanBulan += $penerimaan;
-            } elseif (in_array($t->type, ['belanja_tunai', 'belanja_transfer', 'biaya_bank'])) {
-                $pengeluaran = $t->amount;
-                $runningBalance -= $pengeluaran;
                 $totalPengeluaranBulan += $pengeluaran;
-            }
 
-            $bkuRows[] = [
-                'transaction' => $t,
-                'penerimaan' => $penerimaan,
-                'pengeluaran' => $pengeluaran,
-                'saldo' => $runningBalance,
-            ];
+                $bkuRows[] = [
+                    'transaction' => $t,
+                    'description' => $entry['description'],
+                    'penerimaan' => $penerimaan,
+                    'pengeluaran' => $pengeluaran,
+                    'saldo' => $runningBalance,
+                ];
+            }
         }
 
         $allTxUpToNow = Transaction::where('school_id', $selectedSchool?->id)
@@ -592,7 +588,7 @@ class ReportController extends Controller
             $pastTransactions = Transaction::where('school_id', $school->id)
                 ->where('transaction_date', '<', $startDate)
                 ->get();
-            $saldoAwalPenerimaan = $pastTransactions->whereIn('type', ['penerimaan_dana', 'bunga_bank'])->sum('amount');
+            $saldoAwalPenerimaan = $pastTransactions->whereIn('type', ['tarik_tunai', 'bunga_bank'])->sum('amount');
             $saldoAwalPengeluaran = $pastTransactions->whereIn('type', ['belanja_tunai', 'belanja_transfer', 'biaya_bank'])->sum('amount');
             $saldoAwal = $saldoAwalPenerimaan - $saldoAwalPengeluaran;
 
@@ -624,22 +620,24 @@ class ReportController extends Controller
             $rowIdx = 9;
             $no = 1;
             foreach ($txs as $t) {
-                $p = in_array($t->type, ['penerimaan_dana', 'bunga_bank']) ? $t->amount : 0;
-                $k = in_array($t->type, ['belanja_tunai', 'belanja_transfer', 'biaya_bank']) ? $t->amount : 0;
-                $bal += ($p - $k);
+                foreach ($this->expandBkuRowEntries($t) as $entry) {
+                    $p = $entry['penerimaan'];
+                    $k = $entry['pengeluaran'];
+                    $bal += ($p - $k);
 
-                $sheet->setCellValue('A' . $rowIdx, $no++);
-                $sheet->setCellValue('B' . $rowIdx, $t->transaction_date->format('d/m/Y'));
-                $sheet->setCellValue('C' . $rowIdx, $t->transaction_number);
-                $sheet->setCellValue('D' . $rowIdx, $t->description);
-                $sheet->setCellValue('E' . $rowIdx, $p);
-                $sheet->setCellValue('F' . $rowIdx, $k);
-                $sheet->setCellValue('G' . $rowIdx, $bal);
+                    $sheet->setCellValue('A' . $rowIdx, $no++);
+                    $sheet->setCellValue('B' . $rowIdx, $t->transaction_date->format('d/m/Y'));
+                    $sheet->setCellValue('C' . $rowIdx, $t->transaction_number);
+                    $sheet->setCellValue('D' . $rowIdx, $entry['description']);
+                    $sheet->setCellValue('E' . $rowIdx, $p);
+                    $sheet->setCellValue('F' . $rowIdx, $k);
+                    $sheet->setCellValue('G' . $rowIdx, $bal);
 
-                $sheet->getStyle('A' . $rowIdx . ':C' . $rowIdx)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle('E' . $rowIdx . ':G' . $rowIdx)->getNumberFormat()->setFormatCode('#,##0');
+                    $sheet->getStyle('A' . $rowIdx . ':C' . $rowIdx)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                    $sheet->getStyle('E' . $rowIdx . ':G' . $rowIdx)->getNumberFormat()->setFormatCode('#,##0');
 
-                $rowIdx++;
+                    $rowIdx++;
+                }
             }
 
             $sheet->setCellValue('A' . $rowIdx, 'TOTAL TRANSAKSI');
@@ -1016,7 +1014,7 @@ class ReportController extends Controller
                 $pastTransactions = Transaction::where('school_id', $school->id)
                     ->where('transaction_date', '<', $startDate)
                     ->get();
-                $saldoAwalPenerimaan = $pastTransactions->whereIn('type', ['penerimaan_dana', 'bunga_bank'])->sum('amount');
+                $saldoAwalPenerimaan = $pastTransactions->whereIn('type', ['tarik_tunai', 'bunga_bank'])->sum('amount');
                 $saldoAwalPengeluaran = $pastTransactions->whereIn('type', ['belanja_tunai', 'belanja_transfer', 'biaya_bank'])->sum('amount');
                 $saldoAwal = $saldoAwalPenerimaan - $saldoAwalPengeluaran;
 
@@ -1046,19 +1044,21 @@ class ReportController extends Controller
 
                 $no = 1;
                 foreach ($txs as $t) {
-                    $p = in_array($t->type, ['penerimaan_dana', 'bunga_bank']) ? $t->amount : 0;
-                    $k = in_array($t->type, ['belanja_tunai', 'belanja_transfer', 'biaya_bank']) ? $t->amount : 0;
-                    $bal += ($p - $k);
+                    foreach ($this->expandBkuRowEntries($t) as $entry) {
+                        $p = $entry['penerimaan'];
+                        $k = $entry['pengeluaran'];
+                        $bal += ($p - $k);
 
-                    fputcsv($file, [
-                        $no++,
-                        $t->transaction_date->format('d/m/Y'),
-                        $t->transaction_number,
-                        $t->description,
-                        $p,
-                        $k,
-                        $bal
-                    ]);
+                        fputcsv($file, [
+                            $no++,
+                            $t->transaction_date->format('d/m/Y'),
+                            $t->transaction_number,
+                            $entry['description'],
+                            $p,
+                            $k,
+                            $bal
+                        ]);
+                    }
                 }
             } elseif ($type === 'bpk') {
                 fputcsv($file, ['PEMERINTAH KABUPATEN SITUBONDO']);
@@ -1233,6 +1233,55 @@ class ReportController extends Controller
         }
         $m = (int)$month;
         return $bulanIndo[$m] ?? Carbon::create(null, $m, 1)->locale('id')->translatedFormat('F');
+    }
+
+    /**
+     * Memecah transaksi BKU agar mutasi tarik/setor tunai tampil nominalnya (Pengeluaran & Penerimaan berpasangan)
+     * dan tidak muncul sebagai '-' pada laporan BKU.
+     */
+    private function expandBkuRowEntries(Transaction $t): array
+    {
+        $amount = (float) $t->amount;
+
+        // Hilangkan catatan penerimaan_dana dan langsung jadikan tarik_tunai sebagai penerimaan kas BKU
+        if ($t->type === 'penerimaan_dana') {
+            return [];
+        }
+
+        if ($t->type === 'tarik_tunai') {
+            return [
+                [
+                    'penerimaan' => $amount,
+                    'pengeluaran' => 0.0,
+                    'description' => 'Penarikan tunai dari rekening bank — ' . $t->description,
+                ],
+            ];
+        }
+
+        if ($t->type === 'setor_tunai') {
+            return [
+                [
+                    'penerimaan' => 0.0,
+                    'pengeluaran' => $amount,
+                    'description' => 'Penyetoran kas tunai ke rekening bank — ' . $t->description,
+                ],
+                [
+                    'penerimaan' => $amount,
+                    'pengeluaran' => 0.0,
+                    'description' => 'Penerimaan setoran kas tunai di rekening bank — ' . $t->description,
+                ],
+            ];
+        }
+
+        if ($t->type === 'bunga_bank') {
+            return [['penerimaan' => $amount, 'pengeluaran' => 0.0, 'description' => $t->description]];
+        }
+
+        if (in_array($t->type, ['belanja_tunai', 'belanja_transfer', 'biaya_bank'])) {
+            return [['penerimaan' => 0.0, 'pengeluaran' => $amount, 'description' => $t->description]];
+        }
+
+        return [['penerimaan' => 0.0, 'pengeluaran' => 0.0, 'description' => $t->description]];
     }
 
     private function resolveSchoolId(Request $request)

@@ -192,7 +192,7 @@
                             {{ $t->transaction_number }}
                         </td>
                         <td class="py-2.5 px-4 border border-slate-300 text-slate-800 leading-snug">
-                            {{ $t->description }}
+                            {{ $row['description'] ?? $t->description }}
                             @if($t->recipient_name)
                                 <div class="text-[10px] text-slate-500 mt-0.5">Kepada: {{ $t->recipient_name }}</div>
                             @endif

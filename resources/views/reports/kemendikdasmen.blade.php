@@ -380,8 +380,14 @@
                         <!-- Rekapitulasi Pajak -->
                         <div class="space-y-2">
                             <div class="font-bold text-slate-900 uppercase tracking-wider text-[11px] mb-2">Rekapitulasi Pajak (Buku Pembantu Pajak):</div>
+                            @if($reportData['bpp']['saldo_awal'] > 0)
                             <div class="flex justify-between py-1 border-b border-slate-100">
-                                <span class="text-slate-600">Pajak dipungut/dipotong (termasuk saldo awal):</span>
+                                <span class="text-slate-600">Saldo awal pajak belum disetor:</span>
+                                <span class="font-mono font-semibold text-slate-700">Rp {{ number_format($reportData['bpp']['saldo_awal'], 2, ',', '.') }}</span>
+                            </div>
+                            @endif
+                            <div class="flex justify-between py-1 border-b border-slate-100">
+                                <span class="text-slate-600">Pajak dipungut/dipotong bulan ini:</span>
                                 <span class="font-mono font-semibold text-slate-900">Rp {{ number_format($reportData['bpp']['total_dipungut'], 2, ',', '.') }}</span>
                             </div>
                             <div class="flex justify-between py-1 border-b border-slate-100">

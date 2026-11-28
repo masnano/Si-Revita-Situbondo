@@ -14,6 +14,7 @@ class RpdDocument extends Model
         'project_id',
         'title',
         'term_stage',
+        'disbursement_date',
         'file_path',
         'file_name',
         'file_type',
@@ -40,6 +41,7 @@ class RpdDocument extends Model
         'total_tax_estimated' => 'decimal:2',
         'total_net_estimated' => 'decimal:2',
         'total_items_count' => 'integer',
+        'disbursement_date' => 'date',
         'posted_at' => 'datetime',
     ];
 

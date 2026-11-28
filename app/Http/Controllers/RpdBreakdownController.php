@@ -182,6 +182,7 @@ class RpdBreakdownController extends Controller
             'breakdown_mode' => 'nullable|string|in:detailed,summary',
             'rpd_file' => 'required|file|max:20480',
             'title' => 'nullable|string|max:255',
+            'disbursement_date' => 'nullable|date',
             'default_date' => 'nullable|date',
             'default_store' => 'nullable|string|max:255',
             'use_ai' => 'nullable|boolean',
@@ -209,7 +210,8 @@ class RpdBreakdownController extends Controller
                 'target_column' => $request->target_column ?: 'auto',
                 'breakdown_mode' => $request->input('breakdown_mode', 'detailed'),
                 'title' => $request->title ?: ('RPD ' . $request->term_stage . ' - ' . $project->title),
-                'default_date' => $request->default_date ?: now()->format('Y-m-d'),
+                'disbursement_date' => $request->disbursement_date ?: ($request->default_date ?: now()->format('Y-m-d')),
+                'default_date' => $request->default_date ?: ($request->disbursement_date ?: now()->format('Y-m-d')),
                 'default_store' => $defaultStore,
                 'notes' => $request->notes,
                 'use_ai' => $useAi,
@@ -445,8 +447,14 @@ class RpdBreakdownController extends Controller
                 data: ['rpd_id' => $rpd->id, 'project_id' => $rpd->project_id, 'posted_count' => $count]
             );
 
+            $remainingUnposted = $rpd->items()->where('is_posted', false)->count();
+            $successMsg = "Alhamdulillah! Sebanyak {$count} transaksi resmi (termasuk Saldo Masuk Pencairan & Penarikan Tunai Kas) berhasil dibukukan ke Buku Kas Umum (BKU), BPK, BB, dan Buku Pembantu Pajak!";
+            if ($remainingUnposted > 0) {
+                $successMsg .= " ({$remainingUnposted} item belanja dihentikan/ditahan karena dana yang cair pada termin ini sudah habis.)";
+            }
+
             return redirect()->route('rpd.show', $rpd->id)
-                ->with('success', "Alhamdulillah! Sebanyak {$count} transaksi resmi (termasuk Saldo Masuk Pencairan & Penarikan Tunai Kas) berhasil dibukukan ke Buku Kas Umum (BKU), BPK, BB, dan Buku Pembantu Pajak!");
+                ->with('success', $successMsg);
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal memposting ke BKU: ' . $e->getMessage());
         }

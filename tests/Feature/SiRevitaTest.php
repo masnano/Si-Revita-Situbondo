@@ -507,12 +507,306 @@ class SiRevitaTest extends TestCase
         // 3. Verifikasi halaman BKU, BPK, dan BB dapat diakses dan saldonya positif
         $bkuRes = $this->get('/laporan/bku?school_id=' . $project->school_id . '&month=8&year=2026');
         $bkuRes->assertStatus(200);
+        $bkuRes->assertSee('Penarikan tunai dari rekening bank');
+        $bkuRes->assertDontSee('Penerimaan Pencairan Dana');
 
         $bpkRes = $this->get('/laporan/bpk?school_id=' . $project->school_id . '&month=8&year=2026');
         $bpkRes->assertStatus(200);
 
         $bbRes = $this->get('/laporan/bb?school_id=' . $project->school_id . '&month=8&year=2026');
         $bbRes->assertStatus(200);
+    }
+
+    public function test_rpd_upload_disbursement_date_controls_receipt_and_withdrawal_dates()
+    {
+        $admin = User::where('username', 'admin')->first();
+        $this->actingAs($admin);
+
+        $project = RevitalizationProject::first();
+        $this->assertNotNull($project);
+
+        $csvContent = "NO,KODE AKUN,KATEGORI,URAIAN PEKERJAAN / BAHAN,SPESIFIKASI,VOL,SATUAN,HARGA SATUAN,TOTAL BIAYA,TANGGAL,TOKO,METODE\n";
+        $csvContent .= "1,5.1.02.01,Bahan,Semen Portland 50kg,SNI,10,Zak,70000,700000,2026-10-12,Toko Uji,Kas Tunai\n";
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'rpd_disb_') . '.csv';
+        file_put_contents($tempFile, $csvContent);
+
+        $uploadedFile = new \Illuminate\Http\UploadedFile(
+            $tempFile,
+            'rpd_disbursement_test.csv',
+            'text/csv',
+            null,
+            true
+        );
+
+        $disbursementDate = '2026-10-05';
+        $defaultDate = '2026-10-12';
+
+        $response = $this->post('/rpd', [
+            'school_id' => $project->school_id,
+            'project_id' => $project->id,
+            'term_stage' => 'Tahap 2',
+            'target_column' => 'termin_2',
+            'breakdown_mode' => 'detailed',
+            'title' => 'RPD Uji Tanggal Salur Khusus',
+            'rpd_file' => $uploadedFile,
+            'disbursement_date' => $disbursementDate,
+            'default_date' => $defaultDate,
+        ]);
+
+        $response->assertRedirect();
+        @unlink($tempFile);
+
+        $doc = \App\Models\RpdDocument::where('title', 'RPD Uji Tanggal Salur Khusus')->latest('id')->first();
+        $this->assertNotNull($doc);
+        $this->assertEquals($disbursementDate, $doc->disbursement_date?->format('Y-m-d'));
+
+        $postResponse = $this->post("/rpd/{$doc->id}/post-bku");
+        $postResponse->assertRedirect();
+
+        $this->assertDatabaseHas('transactions', [
+            'rpd_document_id' => $doc->id,
+            'type' => 'penerimaan_dana',
+            'transaction_date' => $disbursementDate,
+            'payment_method' => 'bank_transfer',
+        ]);
+
+        $this->assertDatabaseHas('transactions', [
+            'rpd_document_id' => $doc->id,
+            'type' => 'tarik_tunai',
+            'transaction_date' => $disbursementDate,
+            'payment_method' => 'kas_tunai',
+        ]);
+    }
+
+    public function test_post_to_bku_stops_spending_when_termin_funds_are_exhausted()
+    {
+        $admin = User::where('username', 'admin')->first();
+        $this->actingAs($admin);
+
+        $school = School::first()->replicate();
+        $school->npsn = (string) rand(10000000, 99999999);
+        $school->name = 'SDN Uji Batas Dana Termin';
+        $school->save();
+
+        $project = RevitalizationProject::first()->replicate();
+        $project->school_id = $school->id;
+        $project->title = 'Proyek Uji Batas Dana';
+        $project->fiscal_year = 2027;
+        $project->contract_amount = 10000000;
+        $project->save();
+
+        $doc = \App\Models\RpdDocument::create([
+            'school_id' => $school->id,
+            'project_id' => $project->id,
+            'title' => 'RPD Uji Batas Dana',
+            'term_stage' => 'Tahap 1',
+            'disbursement_date' => '2027-02-01',
+            'total_budget' => 5000000,
+            'status' => 'analyzed',
+            'created_by' => $admin->id,
+        ]);
+
+        \App\Models\Transaction::create([
+            'school_id' => $school->id,
+            'project_id' => $project->id,
+            'rpd_document_id' => $doc->id,
+            'transaction_number' => 'SP2D-LIMIT-' . uniqid(),
+            'transaction_date' => '2027-02-01',
+            'type' => 'penerimaan_dana',
+            'payment_method' => 'bank_transfer',
+            'description' => 'Pencairan Tahap 1',
+            'amount' => 5000000,
+            'created_by' => $admin->id,
+        ]);
+
+        $item1 = \App\Models\RpdItem::create([
+            'rpd_document_id' => $doc->id,
+            'project_id' => $project->id,
+            'row_number' => 1,
+            'category' => 'bahan',
+            'item_name' => 'Material 1',
+            'volume' => 1,
+            'unit' => 'Paket',
+            'unit_price' => 4000000,
+            'total_price' => 4000000,
+            'planned_date' => '2027-02-02',
+            'supplier_name' => 'Toko A',
+            'payment_method' => 'belanja_tunai',
+            'bku_description' => 'Belanja Material 1',
+            'is_posted' => false,
+        ]);
+
+        $item2 = \App\Models\RpdItem::create([
+            'rpd_document_id' => $doc->id,
+            'project_id' => $project->id,
+            'row_number' => 2,
+            'category' => 'bahan',
+            'item_name' => 'Material 2',
+            'volume' => 1,
+            'unit' => 'Paket',
+            'unit_price' => 4000000,
+            'total_price' => 4000000,
+            'planned_date' => '2027-02-03',
+            'supplier_name' => 'Toko B',
+            'payment_method' => 'belanja_tunai',
+            'bku_description' => 'Belanja Material 2',
+            'is_posted' => false,
+        ]);
+
+        app(\App\Services\RpdBreakdownService::class)->postToBku($doc);
+
+        $item1->refresh();
+        $item2->refresh();
+
+        $this->assertTrue((bool) $item1->is_posted);
+        $this->assertFalse((bool) $item2->is_posted);
+
+        $project->transactions()->delete();
+        $doc->items()->delete();
+        $doc->delete();
+        $project->delete();
+        $school->delete();
+    }
+
+    public function test_post_to_bku_clamps_item_dates_before_disbursement_date()
+    {
+        $admin = User::where('username', 'admin')->first();
+        $this->actingAs($admin);
+
+        $school = School::first()->replicate();
+        $school->npsn = (string) rand(10000000, 99999999);
+        $school->name = 'SDN Uji Clamp Tanggal Salur';
+        $school->save();
+
+        $project = RevitalizationProject::first()->replicate();
+        $project->school_id = $school->id;
+        $project->title = 'Proyek Uji Clamp Tanggal';
+        $project->fiscal_year = 2027;
+        $project->contract_amount = 10000000;
+        $project->save();
+
+        $doc = \App\Models\RpdDocument::create([
+            'school_id' => $school->id,
+            'project_id' => $project->id,
+            'title' => 'RPD Uji Clamp Tanggal',
+            'term_stage' => 'Tahap 2',
+            'disbursement_date' => '2027-03-10',
+            'total_budget' => 1000000,
+            'status' => 'analyzed',
+            'created_by' => $admin->id,
+        ]);
+
+        // Item sengaja bertanggal sebelum tanggal salur (2027-02-15 < 2027-03-10)
+        $item = \App\Models\RpdItem::create([
+            'rpd_document_id' => $doc->id,
+            'project_id' => $project->id,
+            'row_number' => 1,
+            'category' => 'bahan',
+            'item_name' => 'Cat Tembok',
+            'volume' => 1,
+            'unit' => 'Pail',
+            'unit_price' => 1000000,
+            'total_price' => 1000000,
+            'planned_date' => '2027-02-15',
+            'supplier_name' => 'Toko Cat',
+            'payment_method' => 'belanja_tunai',
+            'bku_description' => 'Belanja Cat Tembok',
+            'is_posted' => false,
+        ]);
+
+        app(\App\Services\RpdBreakdownService::class)->postToBku($doc);
+
+        $item->refresh();
+        $this->assertEquals('2027-03-10', $item->planned_date->format('Y-m-d'));
+        $this->assertDatabaseHas('transactions', [
+            'id' => $item->transaction_id,
+            'transaction_date' => '2027-03-10',
+        ]);
+
+        $project->transactions()->delete();
+        $doc->items()->delete();
+        $doc->delete();
+        $project->delete();
+        $school->delete();
+    }
+
+    public function test_kemendikdasmen_bpp_total_dipungut_excludes_previous_month_saldo_awal()
+    {
+        $admin = User::where('username', 'admin')->first();
+        $this->actingAs($admin);
+
+        $school = School::first()->replicate();
+        $school->npsn = (string) rand(10000000, 99999999);
+        $school->name = 'SDN Uji BPP Bulanan';
+        $school->save();
+
+        $project = RevitalizationProject::first()->replicate();
+        $project->school_id = $school->id;
+        $project->title = 'Proyek Uji BPP';
+        $project->fiscal_year = 2027;
+        $project->contract_amount = 50000000;
+        $project->save();
+
+        $suffix = uniqid();
+        \App\Models\Transaction::create([
+            'school_id' => $school->id,
+            'project_id' => $project->id,
+            'transaction_number' => 'SP2D-BPP-' . $suffix,
+            'transaction_date' => '2027-01-02',
+            'type' => 'penerimaan_dana',
+            'payment_method' => 'bank_transfer',
+            'description' => 'Pencairan Uji',
+            'amount' => 50000000,
+            'created_by' => $admin->id,
+        ]);
+
+        // Bulan 1: Pajak Rp 1.000.000 (dipungut, belum disetor)
+        \App\Models\Transaction::create([
+            'school_id' => $school->id,
+            'project_id' => $project->id,
+            'transaction_number' => 'KWT-BPP1-' . $suffix,
+            'transaction_date' => '2027-01-10',
+            'type' => 'belanja_tunai',
+            'payment_method' => 'kas_tunai',
+            'description' => 'Belanja Bulan 1',
+            'amount' => 10000000,
+            'has_tax' => true,
+            'tax_ppn' => 1000000,
+            'tax_total' => 1000000,
+            'net_amount' => 9000000,
+            'tax_status' => 'dipungut',
+            'created_by' => $admin->id,
+        ]);
+
+        // Bulan 2: Pajak Rp 2.000.000 (dipungut, belum disetor)
+        \App\Models\Transaction::create([
+            'school_id' => $school->id,
+            'project_id' => $project->id,
+            'transaction_number' => 'KWT-BPP2-' . $suffix,
+            'transaction_date' => '2027-02-10',
+            'type' => 'belanja_tunai',
+            'payment_method' => 'kas_tunai',
+            'description' => 'Belanja Bulan 2',
+            'amount' => 20000000,
+            'has_tax' => true,
+            'tax_ppn' => 2000000,
+            'tax_total' => 2000000,
+            'net_amount' => 18000000,
+            'tax_status' => 'dipungut',
+            'created_by' => $admin->id,
+        ]);
+
+        $svc = app(\App\Services\KemendikdasmenReportService::class);
+        $month2 = $svc->getMonthlyReportData($school, 2);
+
+        $this->assertEquals(1000000.0, (float) $month2['bpp']['saldo_awal']);
+        $this->assertEquals(2000000.0, (float) $month2['bpp']['total_dipungut']);
+        $this->assertEquals(3000000.0, (float) $month2['bpp']['saldo_belum_disetor']);
+
+        $project->transactions()->delete();
+        $project->delete();
+        $school->delete();
     }
 
     public function test_upload_rab_excel_auto_maps_budget_items_and_template_download()
